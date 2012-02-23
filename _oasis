@@ -1,0 +1,32 @@
+OASISFormat: 0.2
+Name:        Release
+Version:     0.1.0
+Synopsis:    OCaml daemon framework
+Authors:     Andre Nathan
+License:     BSD3
+
+Library release
+  Path:            lib
+  BuildTools:      ocamlbuild
+  BuildDepends:    lwt, lwt.unix, lwt.syntax
+  CompiledObject:  best
+  Modules:         Release, Release_io, Release_bytes, Release_privileges,
+                   Release_ipc
+  InternalModules: Option
+  CSources:        release_privileges_stubs.c
+
+Executable test_master
+  Path:            lib_test
+  BuildTools:      ocamlbuild
+  MainIs:          master.ml
+  Install:         false
+  CompiledObject:  best
+  BuildDepends:    release, lwt, lwt.unix, lwt.syntax, str
+
+Executable test_slave
+  Path:            lib_test
+  BuildTools:      ocamlbuild
+  MainIs:          slave.ml
+  Install:         false
+  CompiledObject:  best
+  BuildDepends:    release, lwt, lwt.unix, lwt.syntax, str
