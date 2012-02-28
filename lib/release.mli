@@ -1,4 +1,4 @@
-val daemonize : (unit -> unit Lwt.t) -> unit Lwt.t
+val daemon : (unit -> unit Lwt.t) -> unit Lwt.t
 
 val master_slave : ?background:bool
                 -> ?syslog:bool

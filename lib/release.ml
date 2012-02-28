@@ -1,6 +1,39 @@
 open Lwt
 open Printf
 
+let fork () =
+  lwt () = Lwt_io.flush_all () in
+  match Lwt_unix.fork () with
+  | 0 ->
+      return 0
+  | pid ->
+      Lwt_sequence.iter_node_l Lwt_sequence.remove Lwt_main.exit_hooks;
+      return pid
+
+let daemon f =
+  let grandchild () =
+    lwt () = Lwt_unix.chdir "/" in
+    lwt dev_null = Lwt_unix.openfile "/dev/null" [Lwt_unix.O_RDWR] 0 in
+    let close_and_dup fd =
+      lwt () = Lwt_unix.close fd in
+      Lwt_unix.dup2 dev_null fd;
+      return () in
+    let descrs = [Lwt_unix.stdin; Lwt_unix.stdout; Lwt_unix.stderr] in 
+    lwt () = Lwt_list.iter_p close_and_dup descrs in
+    lwt () = Lwt_unix.close dev_null in
+    f () in
+  let child () =
+    ignore (Unix.setsid ());
+    Sys.set_signal Sys.sighup Sys.Signal_ignore;
+    Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
+    match_lwt fork () with
+    | 0 -> grandchild ()
+    | _ -> exit 0 in
+  ignore (Unix.umask 0);
+  match_lwt fork () with
+  | 0 -> child ()
+  | _ -> exit 0
+
 let read_lock_file path =
   try_lwt
     Lwt_io.with_file Lwt_io.input path (fun ch ->
@@ -67,39 +100,6 @@ let check_root () =
 
 let check_nonroot () =
   check_user ((<>) 0) "cannot be run as root"
-
-let fork () =
-  lwt () = Lwt_io.flush_all () in
-  match Lwt_unix.fork () with
-  | 0 ->
-      return 0
-  | pid ->
-      Lwt_sequence.iter_node_l Lwt_sequence.remove Lwt_main.exit_hooks;
-      return pid
-
-let daemonize f =
-  let grandchild () =
-    lwt () = Lwt_unix.chdir "/" in
-    lwt dev_null = Lwt_unix.openfile "/dev/null" [Lwt_unix.O_RDWR] 0 in
-    let close_and_dup fd =
-      lwt () = Lwt_unix.close fd in
-      Lwt_unix.dup2 dev_null fd;
-      return () in
-    let descrs = [Lwt_unix.stdin; Lwt_unix.stdout; Lwt_unix.stderr] in 
-    lwt () = Lwt_list.iter_p close_and_dup descrs in
-    lwt () = Lwt_unix.close dev_null in
-    f () in
-  let child () =
-    ignore (Unix.setsid ());
-    Sys.set_signal Sys.sighup Sys.Signal_ignore;
-    Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
-    match_lwt fork () with
-    | 0 -> grandchild ()
-    | _ -> exit 0 in
-  ignore (Unix.umask 0);
-  match_lwt fork () with
-  | 0 -> child ()
-  | _ -> exit 0
 
 let try_exec run path =
   let can_exec st =
@@ -180,7 +180,7 @@ let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
     idle_t in
   let main_t =
     lwt () = if privileged then check_root () else check_nonroot () in
-    if background then daemonize work else work () in
+    if background then Release.daemon work else work () in
   Lwt_main.run main_t
 
 let master_slave = master_slaves ~num_slaves:1
