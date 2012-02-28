@@ -1,5 +1,5 @@
 OASISFormat: 0.2
-Name:        Release
+Name:        release
 Version:     0.1.0
 Synopsis:    OCaml daemon framework
 Authors:     Andre Nathan
