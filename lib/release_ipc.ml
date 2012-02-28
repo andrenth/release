@@ -17,7 +17,7 @@ module type S = sig
 
   val read : ?timeout:float
           -> Lwt_unix.file_descr
-          -> [> `Data of string | `EOF | `Timeout ] Lwt.t
+          -> [`Data of string | `EOF | `Timeout] Lwt.t
 
   val write : Lwt_unix.file_descr -> string -> unit Lwt.t
 
