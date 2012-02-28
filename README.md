@@ -27,7 +27,7 @@ After cloning the repository, run the commands below.
 -- Pearl Jam, _Release - Master/Slave_  
 
 The simplest way to use the library is to simply daemonize a process. Release
-provides an Lwt-enabled function to do this in the `Release_daemon` module.
+provides an Lwt-enabled function to do this in the `Release` module.
 
     val daemon : (unit -> unit Lwt.t) -> unit Lwt.t
 
