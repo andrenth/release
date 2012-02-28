@@ -17,7 +17,7 @@ val master_slaves : ?background:bool
                  -> exec:string
                  -> unit -> unit
 
-val slave : ?syslog:bool
-         -> ?user:string
-         -> main:(Lwt_unix.file_descr -> unit Lwt.t)
-         -> unit -> unit
+val me : ?syslog:bool
+      -> ?user:string
+      -> main:(Lwt_unix.file_descr -> unit Lwt.t)
+      -> unit -> unit

@@ -193,7 +193,7 @@ let lose_privileges user =
     lwt () = Lwt_log.error err in
     exit 1
 
-let slave ?(syslog = true) ?user ~main:main () =
+let me ?(syslog = true) ?user ~main:main () =
   if syslog then Lwt_log.default := Lwt_log.syslog ~facility:`Daemon ();
   let main_t =
     lwt () = Option.either check_nonroot lose_privileges user in
