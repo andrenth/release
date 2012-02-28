@@ -10,6 +10,8 @@ terminal and to release root privileges when those are not necessary.
 
 In this documentation, any mention of a "thread" refers to an `Lwt.t`.
 
+All quotes are from the Pearl Jam song _Release - Master/Slave_ :)
+
 ## Installation
 
 After cloning the repository, run the commands below.
@@ -24,7 +26,6 @@ After cloning the repository, run the commands below.
 > Can you see me now  
 > I am myself  
 > Like you somehow  
--- Pearl Jam, _Release - Master/Slave_  
 
 The simplest way to use the library is to simply daemonize a process. Release
 provides an Lwt-enabled function to do this in the `Release` module.
@@ -103,7 +104,6 @@ This function works exactly like `Release.master_slave`, but it creates
 > Where it takes me  
 > I'll hold the pain  
 > Release me  
--- Pearl Jam, _Release - Master/Slave_  
 
 When a slave process is run, some code must be run in order to setup
 communication with the master, and also to drop privileges to a non-root user.
@@ -126,7 +126,6 @@ accepts a file descriptor for communication with the master process.
 
 > I'll wait up in the dark  
 > For you to speak to me  
--- Pearl Jam, _Release - Master/Slave_  
 
 Inter-process communication in `Release` is handled in a type-safe manner in
 the module `Release_ipc`.
