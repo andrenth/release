@@ -180,7 +180,7 @@ let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
     idle_t in
   let main_t =
     lwt () = if privileged then check_root () else check_nonroot () in
-    if background then Release.daemon work else work () in
+    if background then daemon work else work () in
   Lwt_main.run main_t
 
 let master_slave = master_slaves ~num_slaves:1
