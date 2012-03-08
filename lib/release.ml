@@ -1,6 +1,8 @@
 open Lwt
 open Printf
 
+type ipc_handler = (Lwt_unix.file_descr -> unit Lwt.t)
+
 let fork () =
   lwt () = Lwt_io.flush_all () in
   match Lwt_unix.fork () with
@@ -88,6 +90,9 @@ let remove_lock_file path =
           "pid mismatch in lock file: found %d, mine is %d; not removing"
           pid mypid
 
+let remove_control_socket (path, _) =
+  Lwt_unix.unlink path
+
 let check_user test msg =
   if not (test (Unix.getuid ())) then
     lwt () = Lwt_log.error_f "%s %s" Sys.argv.(0) msg in
@@ -113,71 +118,97 @@ let try_exec run path =
     lwt () = Lwt_log.error_f "cannot execute `%s'" path in
     exit 126
 
-let init_slave_death_rate () =
-  let num_exec_tries = 10 in
-  let tries = ref num_exec_tries in
-  let time = ref 0. in
-  fun () ->
-    let now = Unix.time () in
-    if now -. !time > 1. then begin
-      tries := num_exec_tries;
-      time := now
-    end;
-    match !tries with
-    | 0 ->
-        lwt () = Lwt_log.error "slave process dying too fast" in
-        exit 1
-    | _ ->
-        decr tries;
-        return ()
+let handle_proc_death reexec proc =
+  let log = Lwt_log.notice_f in
+  let pid = proc#pid in
+  lwt () = log "creating child process %d" pid in
+  lwt () = match_lwt proc#status with
+  | Lwt_unix.WEXITED 0 -> log "process %d exited normally" pid
+  | Lwt_unix.WEXITED s -> log "process %d exited with status %d" pid s
+  | Lwt_unix.WSIGNALED s -> log "process %d signaled to death by %d" pid s
+  | Lwt_unix.WSTOPPED s -> log "process %d stopped by signal %d" pid s in
+  reexec ()
+
+let rec exec_process path ipc_handler check_death_rate =
+  lwt () = check_death_rate () in
+  let master_fd, slave_fd =
+    Lwt_unix.socketpair Lwt_unix.PF_UNIX Lwt_unix.SOCK_STREAM 0 in
+  Lwt_unix.set_close_on_exec master_fd;
+  let _ipc_t = ipc_handler master_fd in
+  let run_proc path =
+    let fd = Lwt_unix.unix_file_descr slave_fd in
+    let reexec () =
+      exec_process path ipc_handler check_death_rate in
+    Lwt_process.with_process_none
+      ~stdin:(`FD_move fd)
+      (path, [| path |])
+      (handle_proc_death reexec) in
+  let _slave_t =
+    try_exec run_proc path in
+  return ()
+
+let num_exec_tries = 10
+
+let check_death_rate time tries () =
+  let now = Unix.time () in
+  if now -. !time > 1. then begin
+    tries := num_exec_tries;
+    time := now
+  end;
+  match !tries with
+  | 0 ->
+      lwt () = Lwt_log.error "slave process dying too fast" in
+      exit 1
+  | _ ->
+      decr tries;
+      return ()
 
 let exec_slave =
-  let check_slave_death_rate = init_slave_death_rate () in
-  let rec exec_slave path ipc_handler =
-    lwt () = check_slave_death_rate () in
-    let master_fd, slave_fd =
-      Lwt_unix.socketpair Lwt_unix.PF_UNIX Lwt_unix.SOCK_STREAM 0 in
-    Lwt_unix.set_close_on_exec master_fd;
-    let _ipc_t = ipc_handler master_fd in
-    let proc_handler proc =
-      let log = Lwt_log.notice_f in
-      let pid = proc#pid in
-      lwt () = log "creating child process %d" pid in
-      lwt () = match_lwt proc#status with
-      | Lwt_unix.WEXITED 0 -> log "process %d exited normally" pid
-      | Lwt_unix.WEXITED s -> log "process %d exited with status %d" pid s
-      | Lwt_unix.WSIGNALED s -> log "process %d signaled to death by %d" pid s
-      | Lwt_unix.WSTOPPED s -> log "process %d stopped by signal %d" pid s in
-      exec_slave path ipc_handler in
-    let run_slave path =
-      let fd = Lwt_unix.unix_file_descr slave_fd in
-      let cmd = (path, [| path |]) in
-      Lwt_process.with_process_none ~stdin:(`FD_move fd) cmd proc_handler in
-    let _slave_t =
-      try_exec run_slave path in
-    return () in
-  exec_slave
+  let tries = ref num_exec_tries in
+  let time = ref 0. in
+  fun path ipc_handler ->
+    exec_process path ipc_handler (check_death_rate time tries)
 
-let handle_sigterm _ =
-  ignore (Lwt_unix.on_signal Sys.sigterm ignore);
-  ignore_result (Lwt_log.notice "got sigterm");
+let handle_termination signal _ =
+  ignore_result (Lwt_log.notice_f "got %s, exiting" signal);
   Unix.kill 0 15;
   exit 143
 
+let handle_sigterm = handle_termination "sigterm"
+let handle_sigint = handle_termination "sigint"
+
+let handle_control_connections (sock_path, handler) =
+  let sock = Lwt_unix.socket Lwt_unix.PF_UNIX Lwt_unix.SOCK_STREAM 0 in
+  let sock_addr = Lwt_unix.ADDR_UNIX sock_path in
+  Lwt_unix.bind sock sock_addr;
+  Lwt_unix.listen sock 10;
+  let rec accept () =
+    lwt cli_sock, _ = Lwt_unix.accept sock in
+    lwt () = Lwt.pick [handler cli_sock; Lwt_unix.sleep 5.0] in
+    accept () in
+  accept ()
+
 let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
-                  ~num_slaves ~lock_file ~ipc_handler ~exec () =
+                  ?control_socket ~num_slaves ~lock_file ~slave_ipc_handler
+                  ~exec () =
   if syslog then Lwt_log.default := Lwt_log.syslog ~facility:`Daemon ();
-  let create_slaves () =
+  let create_procs () =
     for_lwt i = 1 to num_slaves do
-      exec_slave exec ipc_handler
+      exec_slave exec slave_ipc_handler
     done in
   let work () =
     ignore (Lwt_unix.on_signal Sys.sigterm handle_sigterm);
+    ignore (Lwt_unix.on_signal Sys.sigint handle_sigint);
     lwt () = create_lock_file lock_file in
-    Lwt_main.at_exit (fun () -> remove_lock_file lock_file);
+    Lwt_main.at_exit (fun () ->
+      lwt () = Option.either return remove_control_socket control_socket in
+      lwt () = remove_lock_file lock_file in
+      return ());
     let idle_t, idle_w = Lwt.wait () in
-    lwt () = create_slaves () in
-    idle_t in
+    let control_t =
+      Option.either return handle_control_connections control_socket in
+    lwt () = create_procs () in
+    control_t <&> idle_t in
   let main_t =
     lwt () = if privileged then check_root () else check_nonroot () in
     if background then daemon work else work () in
@@ -193,7 +224,7 @@ let lose_privileges user =
     lwt () = Lwt_log.error err in
     exit 1
 
-let me ?(syslog = true) ?user ~main:main () =
+let me ?(syslog = true) ?user ~main () =
   if syslog then Lwt_log.default := Lwt_log.syslog ~facility:`Daemon ();
   let main_t =
     lwt () = Option.either check_nonroot lose_privileges user in

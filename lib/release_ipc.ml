@@ -67,7 +67,7 @@ struct
     | `Timeout ->
         raise_lwt (Failure "read from slave shouldn't timeout")
     | `EOF ->
-        lwt () = Lwt_log.notice "got EOF from slave" in
+        lwt () = Lwt_log.notice "got EOF on IPC socket" in
         Lwt_unix.close fd
     | `Data req ->
         lwt resp = handler (O.request_of_string req) in

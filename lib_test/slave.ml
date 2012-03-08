@@ -15,9 +15,9 @@ let ipc_request =
       | `EOF ->
           Lwt_log.notice "unexpected EOF from master"
       | `Response r ->
-          Lwt_log.notice_f "response: %s" (IpcOps.string_of_response r) in
+          Lwt_log.notice_f "response: %s" (SlaveIpcOps.string_of_response r) in
     lwt () = Lwt_mutex.lock mtx in
-    lwt () = Ipc.make_request ~timeout:5. fd req response_handler in
+    lwt () = SlaveIpc.make_request ~timeout:5. fd req response_handler in
     Lwt_mutex.unlock mtx;
     return ()
 
@@ -27,11 +27,11 @@ let main fd =
   let t1 =
     lwt () = Lwt_log.notice_f "t1 (%d)" pid in
     lwt () = Lwt_unix.sleep (float_of_int (Random.int 3)) in
-    ipc_request fd (IpcOps.Req1 pid) in
+    ipc_request fd (SlaveIpcOps.Req1 pid) in
   let t2 =
     lwt () = Lwt_log.notice_f "t2 (%d)" pid in
     lwt () = Lwt_unix.sleep (float_of_int (Random.int 3)) in
-    ipc_request fd (IpcOps.Req2 pid) in
+    ipc_request fd (SlaveIpcOps.Req2 pid) in
   lwt () = Lwt.join [t1; t2] in
   lwt () = Lwt_log.notice_f "exiting (%d)" (Unix.getpid ()) in
   exit 0

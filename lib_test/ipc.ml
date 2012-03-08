@@ -1,6 +1,6 @@
 open Printf
 
-module IpcOps = struct
+module SlaveIpcOps = struct
   type request = Req1 of int
                | Req2 of int
 
@@ -40,4 +40,17 @@ module IpcOps = struct
       failwith (sprintf "bad response: %s" s)
 end
 
-module Ipc = Release_ipc.Make (IpcOps)
+module SlaveIpc = Release_ipc.Make (SlaveIpcOps)
+
+module ControlIpcOps = struct
+  type request = Req of string
+  type response = Resp of string
+
+  let string_of_request (Req s) = s
+  let request_of_string s = Req s
+
+  let string_of_response (Resp s) = s
+  let response_of_string s = Resp s
+end
+
+module ControlIpc = Release_ipc.Make (ControlIpcOps)
