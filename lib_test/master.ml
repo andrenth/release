@@ -20,6 +20,7 @@ let control_connection_handler fd =
   ControlIpc.handle_request fd handler
 
 let () =
+  let slave_exec = sprintf "%s/_build/lib_test/test_slave" (Unix.getcwd ()) in
   Release.master_slaves
     ~num_slaves:1
     ~background:false
@@ -27,5 +28,5 @@ let () =
     ~lock_file:(sprintf "/var/run/%s.pid" (Filename.basename Sys.argv.(0)))
     ~slave_ipc_handler:ipc_handler
     ~control_socket:("/tmp/master.socket", control_connection_handler)
-    ~exec:"/home/andre/ml/daemon/_build/lib_test/test_slave"
+    ~exec:slave_exec
     ()
