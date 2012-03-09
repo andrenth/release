@@ -178,15 +178,20 @@ let handle_sigterm = handle_termination "sigterm"
 let handle_sigint = handle_termination "sigint"
 
 let handle_control_connections (sock_path, handler) =
-  let sock = Lwt_unix.socket Lwt_unix.PF_UNIX Lwt_unix.SOCK_STREAM 0 in
-  let sock_addr = Lwt_unix.ADDR_UNIX sock_path in
-  Lwt_unix.bind sock sock_addr;
-  Lwt_unix.listen sock 10;
-  let rec accept () =
-    lwt cli_sock, _ = Lwt_unix.accept sock in
-    lwt () = Lwt.pick [handler cli_sock; Lwt_unix.sleep 5.0] in
-    accept () in
-  accept ()
+  try_lwt
+    let sock = Lwt_unix.socket Lwt_unix.PF_UNIX Lwt_unix.SOCK_STREAM 0 in
+    Lwt_unix.setsockopt sock Lwt_unix.SO_REUSEADDR true;
+    let sock_addr = Lwt_unix.ADDR_UNIX sock_path in
+    Lwt_unix.bind sock sock_addr;
+    Lwt_unix.listen sock 10;
+    let rec accept () =
+      lwt cli_sock, _ = Lwt_unix.accept sock in
+      lwt () = Lwt.pick [handler cli_sock; Lwt_unix.sleep 5.0] in
+      accept () in
+    accept ()
+  with Unix.Unix_error (Unix.EADDRINUSE, _, _) ->
+    lwt () = Lwt_log.error_f "control socket %s already exists" sock_path in
+    exit 1
 
 let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
                   ?control_socket ~num_slaves ~lock_file ~slave_ipc_handler
