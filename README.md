@@ -204,3 +204,35 @@ itself.
 
 Higher-level protocols are left for the library users to implement according
 to the needs of their respective applications.
+
+## Extras
+
+### The `Release_bytes` module
+
+When writing network-based daemons, the need to implement some kind of binary
+protocol is very common. Very often, these protocols have numeric fields that
+must be read or written by the application. Since the network I/O functions
+take string buffers as arguments, the need to perform conversions from strings
+to integers, and conversely, is quite frequent.
+
+The Release library offers the `Release_bytes` module to help in such
+conversions. This module contains a set of functions that take a string as an
+argument and read or write integers of various sizes at a given offset on the
+string.
+
+A list of the functions available in `Release_bytes`, with their respective
+signatures, is given below.
+
+* `val read_byte_at : int -> string -> int`
+* `val read_byte : string -> int`
+* `val write_byte : int -> Buffer.t -> unit`
+* `val write_byte32 : int32 -> Buffer.t -> unit`
+* `val read_int16_at : int -> string -> int`
+* `val read_int16 : string -> int`
+* `val write_int16 : int -> Buffer.t -> unit`
+* `val read_int_at : int -> string -> int`
+* `val read_int : string -> int`
+* `val write_int : int -> Buffer.t -> unit`
+* `val read_int32_at : int -> string -> int32`
+* `val read_int32 : string -> int32`
+* `val write_int32 : int32 -> Buffer.t -> unit`
