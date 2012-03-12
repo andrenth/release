@@ -59,8 +59,9 @@ the function `Release.master_slave`.
     val master_slave : ?background:bool
                     -> ?syslog:bool
                     -> ?privileged:bool
+                    -> ?control:(string * (Lwt_unix.file_descr -> unit Lwt.t))
                     -> lock_file:string
-                    -> ipc_handler:(Lwt_unix.file_descr -> unit Lwt.t)
+                    -> slave_ipc_handler:(Lwt_unix.file_descr -> unit Lwt.t)
                     -> exec:string
                     -> unit -> unit
 
@@ -74,10 +75,15 @@ The `master_slave` function will create a lock file in the path given in the
 If the lock file already exists and contains the PID of a running process,
 the master process will refuse to start.
 
-Inter-process communication is handled in the master process by a callback
-function given in the `ipc_handler` argument. This function receives a file
-descriptor that is used for communication with the slave process. IPC in
-Release will be described in more details below.
+The `control` argument consists of a tuple specifying the path to a Unix socket
+and a callback function. The master process will create and listen on this
+socket on startup. This is useful for the implementation of control programs
+that communicate with the master process.
+
+Inter-process communication with the slave process is handled in the master
+by a callback function given in the `slave_ipc_handler` argument. This function
+receives a file descriptor that is used for communication with the slave
+process. IPC in Release will be described in more details below.
 
 The `exec` argument must be a path to an executable file that corresponds to
 a program that will be run as the slave process. More about the slave process
@@ -89,6 +95,7 @@ The general case of _n_ slave processes is handled by the function
     val master_slaves : ?background:bool
                      -> ?syslog:bool
                      -> ?privileged:bool
+                     -> ?control:(string * (Lwt_unix.file_descr -> unit Lwt.t))
                      -> num_slaves:int
                      -> lock_file:string
                      -> ipc_handler:(Lwt_unix.file_descr -> unit Lwt.t)
@@ -181,3 +188,19 @@ be passed as an argument to the `handler` callback. The master process can call
 `handle_request fd handler` to wait for an IPC request from a slave. This
 request will be passed to the callback function, which must return a response
 that will be written back to the slave.
+
+#### The IPC protocol
+
+Release uses a very simple IPC protocol. This information is not necessary for
+writing applications using this library, but it is useful for creating control
+programs or scripts in languages other than OCaml, which can't use Release
+(see the `control` argument described above).
+
+Every Release IPC message consists of a 1-byte field containing the length of
+the payload portion of the message and a payload field of variable length.
+Thus, a message containing the payload string "hello" will have the length byte
+set to `5` (the length of the string) and the payload field will be the string
+itself.
+
+Higher-level protocols are left for the library users to implement according
+to the needs of their respective applications.
