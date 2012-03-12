@@ -184,7 +184,14 @@ let handle_control_connections (sock_path, handler) =
     Lwt_unix.listen sock 10;
     let rec accept () =
       lwt cli_sock, _ = Lwt_unix.accept sock in
-      lwt () = Lwt.pick [handler cli_sock; Lwt_unix.sleep 5.0] in
+      let timeout_t =
+        lwt () = Lwt_unix.sleep 10.0 in
+        lwt () = Lwt_log.warning_f "timeout on control socket" in
+        Lwt_unix.close cli_sock in
+      let handler_t =
+        lwt () = handler cli_sock in
+        Lwt_unix.close cli_sock in
+      ignore (Lwt.pick [handler_t; timeout_t]);
       accept () in
     accept ()
   with Unix.Unix_error (Unix.EADDRINUSE, _, _) ->
