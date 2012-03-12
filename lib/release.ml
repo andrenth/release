@@ -1,8 +1,6 @@
 open Lwt
 open Printf
 
-type ipc_handler = (Lwt_unix.file_descr -> unit Lwt.t)
-
 let fork () =
   lwt () = Lwt_io.flush_all () in
   match Lwt_unix.fork () with
@@ -194,8 +192,7 @@ let handle_control_connections (sock_path, handler) =
     exit 1
 
 let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
-                  ?control_socket ~num_slaves ~lock_file ~slave_ipc_handler
-                  ~exec () =
+                  ?control ~num_slaves ~lock_file ~slave_ipc_handler ~exec () =
   if syslog then Lwt_log.default := Lwt_log.syslog ~facility:`Daemon ();
   let create_procs () =
     for_lwt i = 1 to num_slaves do
@@ -206,12 +203,12 @@ let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
     ignore (Lwt_unix.on_signal Sys.sigint handle_sigint);
     lwt () = create_lock_file lock_file in
     Lwt_main.at_exit (fun () ->
-      lwt () = Option.either return remove_control_socket control_socket in
+      lwt () = Option.either return remove_control_socket control in
       lwt () = remove_lock_file lock_file in
       return ());
     let idle_t, idle_w = Lwt.wait () in
     let control_t =
-      Option.either return handle_control_connections control_socket in
+      Option.either return handle_control_connections control in
     lwt () = create_procs () in
     control_t <&> idle_t in
   let main_t =

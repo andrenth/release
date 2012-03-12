@@ -27,6 +27,6 @@ let () =
     ~syslog:false
     ~lock_file:(sprintf "/var/run/%s.pid" (Filename.basename Sys.argv.(0)))
     ~slave_ipc_handler:ipc_handler
-    ~control_socket:("/tmp/master.socket", control_connection_handler)
+    ~control:("/tmp/master.socket", control_connection_handler)
     ~exec:slave_exec
     ()
