@@ -27,7 +27,8 @@ module type S = sig
                   -> ([`Response of response | `EOF | `Timeout] -> 'a Lwt.t)
                   -> 'a Lwt.t
 
-  val handle_request : Lwt_unix.file_descr
+  val handle_request : ?timeout:float
+                    -> Lwt_unix.file_descr
                     -> (request -> response Lwt.t)
                     -> unit Lwt.t
 end
@@ -62,8 +63,8 @@ struct
       | `EOF -> `EOF
       | `Data resp -> `Response (O.response_of_string resp))
 
-  let handle_request fd handler =
-    match_lwt read fd with
+  let handle_request ?timeout fd handler =
+    match_lwt read ?timeout fd with
     | `Timeout ->
         raise_lwt (Failure "read from slave shouldn't timeout")
     | `EOF ->

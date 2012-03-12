@@ -25,7 +25,8 @@ module type S = sig
                   -> ([`Response of response | `EOF | `Timeout] -> 'a Lwt.t)
                   -> 'a Lwt.t
 
-  val handle_request : Lwt_unix.file_descr
+  val handle_request : ?timeout:float
+                    -> Lwt_unix.file_descr
                     -> (request -> response Lwt.t)
                     -> unit Lwt.t
 end

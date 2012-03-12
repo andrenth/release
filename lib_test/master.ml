@@ -17,7 +17,7 @@ let control_connection_handler fd =
     let s = ControlIpcOps.string_of_request req in
     lwt () = Lwt_log.notice_f "got control request: %s" s in
     return (ControlIpcOps.response_of_string (String.uppercase s)) in
-  ControlIpc.handle_request fd handler
+  ControlIpc.handle_request ~timeout:5. fd handler
 
 let () =
   let slave_exec = sprintf "%s/_build/lib_test/test_slave" (Unix.getcwd ()) in
