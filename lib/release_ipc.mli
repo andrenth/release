@@ -1,3 +1,7 @@
+type handler = (Lwt_unix.file_descr -> unit Lwt.t)
+
+val setup_control_socket : Lwt_io.file_name -> handler -> unit Lwt.t
+
 module type Ops = sig
   type request
   type response
