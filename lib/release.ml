@@ -161,8 +161,8 @@ let check_death_rate time tries () =
       decr tries;
       return ()
 
-let exec_slave =
-  let tries = ref num_exec_tries in
+let init_exec_slave max_tries =
+  let tries = ref max_tries in
   let time = ref 0. in
   fun path ipc_handler ->
     exec_process path ipc_handler (check_death_rate time tries)
@@ -203,6 +203,7 @@ let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
   if syslog then Lwt_log.default := Lwt_log.syslog ~facility:`Daemon ();
   let create_procs () =
     for_lwt i = 1 to num_slaves do
+      let exec_slave = init_exec_slave num_exec_tries in
       exec_slave exec slave_ipc_handler
     done in
   let work () =
