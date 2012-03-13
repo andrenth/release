@@ -109,11 +109,16 @@ let try_exec run path =
     let kind = st.Lwt_unix.st_kind in
     let perm = st.Lwt_unix.st_perm in
     kind = Lwt_unix.S_REG && perm land 0o100 <> 0 in
-  lwt st = Lwt_unix.lstat path in
-  if can_exec st then
-    run path
-  else
-    lwt () = Lwt_log.error_f "cannot execute `%s'" path in
+  try_lwt
+    lwt st = Lwt_unix.lstat path in
+    if can_exec st then
+      run path
+    else
+      lwt () = Lwt_log.error_f "cannot execute `%s'" path in
+      exit 126
+  with Unix.Unix_error (e, _, _) ->
+    let err = Unix.error_message e in
+    lwt () = Lwt_log.error_f "cannot stat `%s': %s" path err in
     exit 126
 
 let handle_proc_death reexec proc =
