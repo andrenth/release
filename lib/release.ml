@@ -1,6 +1,8 @@
 open Lwt
 open Printf
 
+type ipc_handler = (Lwt_unix.file_descr -> unit Lwt.t)
+
 let fork () =
   lwt () = Lwt_io.flush_all () in
   match Lwt_unix.fork () with
@@ -132,18 +134,21 @@ let handle_proc_death reexec proc =
   | Lwt_unix.WSTOPPED s -> log "process %d stopped by signal %d" pid s in
   reexec ()
 
-let rec exec_process path ipc_handler check_death_rate =
-  lwt () = check_death_rate () in
+let link_processes ipc_handler =
   let master_fd, slave_fd =
     Lwt_unix.socketpair Lwt_unix.PF_UNIX Lwt_unix.SOCK_STREAM 0 in
   Lwt_unix.set_close_on_exec master_fd;
   let _ipc_t = ipc_handler master_fd in
+  Lwt_unix.unix_file_descr slave_fd
+
+let rec exec_process path ipc_handler check_death_rate =
+  lwt () = check_death_rate () in
+  let slave_fd = link_processes ipc_handler in
   let run_proc path =
-    let fd = Lwt_unix.unix_file_descr slave_fd in
     let reexec () =
       exec_process path ipc_handler check_death_rate in
     Lwt_process.with_process_none
-      ~stdin:(`FD_move fd)
+      ~stdin:(`FD_move slave_fd)
       (path, [| path |])
       (handle_proc_death reexec) in
   let _slave_t =
@@ -204,12 +209,12 @@ let handle_control_connections (sock_path, handler) =
     exit 1
 
 let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
-                  ?control ~num_slaves ~lock_file ~slave_ipc_handler ~exec () =
+                  ?control ~lock_file ~slaves () =
   if syslog then Lwt_log.default := Lwt_log.syslog ~facility:`Daemon ();
-  let create_procs () =
-    for_lwt i = 1 to num_slaves do
+  let create_slaves (path, ipc_handler, n) =
+    for_lwt i = 1 to n do
       let exec_slave = init_exec_slave num_exec_tries in
-      exec_slave exec slave_ipc_handler
+      exec_slave path ipc_handler
     done in
   let work () =
     ignore (Lwt_unix.on_signal Sys.sigterm handle_sigterm);
@@ -222,14 +227,16 @@ let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
     let idle_t, idle_w = Lwt.wait () in
     let control_t =
       Option.either return handle_control_connections control in
-    lwt () = create_procs () in
+    lwt () = Lwt_list.iter_p create_slaves slaves in
     control_t <&> idle_t in
   let main_t =
     lwt () = if privileged then check_root () else check_nonroot () in
     if background then daemon work else work () in
   Lwt_main.run main_t
 
-let master_slave = master_slaves ~num_slaves:1
+let master_slave ~slave =
+  let (path, ipc_handler) = slave in
+  master_slaves ~slaves:[path, ipc_handler, 1]
 
 let lose_privileges user =
   lwt () = check_root () in

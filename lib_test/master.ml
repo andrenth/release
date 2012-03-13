@@ -21,12 +21,10 @@ let control_connection_handler fd =
 
 let () =
   let slave_exec = sprintf "%s/_build/lib_test/test_slave" (Unix.getcwd ()) in
-  Release.master_slaves
-    ~num_slaves:1
+  Release.master_slave
     ~background:false
     ~syslog:false
     ~lock_file:(sprintf "/var/run/%s.pid" (Filename.basename Sys.argv.(0)))
-    ~slave_ipc_handler:ipc_handler
     ~control:("/tmp/master.socket", control_connection_handler)
-    ~exec:slave_exec
+    ~slave:(slave_exec, ipc_handler)
     ()

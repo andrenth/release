@@ -1,22 +1,21 @@
+type ipc_handler = (Lwt_unix.file_descr -> unit Lwt.t)
+
 val daemon : (unit -> unit Lwt.t) -> unit Lwt.t
 
-val master_slave : ?background:bool
+val master_slave : slave:(string * ipc_handler)
+                -> ?background:bool
                 -> ?syslog:bool
                 -> ?privileged:bool
-                -> ?control:(string * (Lwt_unix.file_descr -> unit Lwt.t))
+                -> ?control:(string * ipc_handler)
                 -> lock_file:string
-                -> slave_ipc_handler:(Lwt_unix.file_descr -> unit Lwt.t)
-                -> exec:string
                 -> unit -> unit
 
 val master_slaves : ?background:bool
                  -> ?syslog:bool
                  -> ?privileged:bool
-                 -> ?control:(string * (Lwt_unix.file_descr -> unit Lwt.t))
-                 -> num_slaves:int
+                 -> ?control:(string * ipc_handler)
                  -> lock_file:string
-                 -> slave_ipc_handler:(Lwt_unix.file_descr -> unit Lwt.t)
-                 -> exec:string
+                 -> slaves:(string * ipc_handler * int) list
                  -> unit -> unit
 
 val me : ?syslog:bool

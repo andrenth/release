@@ -56,14 +56,22 @@ exploited with root escalation is considerably decreased.
 The simple case of a master process and one slave process is implemented in
 the function `Release.master_slave`.
 
-    val master_slave : ?background:bool
+    type ipc_handler = (Lwt_unix.file_descr -> unit Lwt.t)
+    
+    val master_slave : slave:(string * ipc_handler)
+                    -> ?background:bool
                     -> ?syslog:bool
                     -> ?privileged:bool
-                    -> ?control:(string * (Lwt_unix.file_descr -> unit Lwt.t))
+                    -> ?control:(string * ipc_handler)
                     -> lock_file:string
-                    -> slave_ipc_handler:(Lwt_unix.file_descr -> unit Lwt.t)
-                    -> exec:string
                     -> unit -> unit
+
+The `slave` argument is a tuple whose first argument is the path to the slave
+process executable. The second argument is a callback function that is used by
+the master to handle inter-process communication with the slave. This function
+receives the file descriptor to be used as a communication channel with the
+slave process. More details about slave processes and IPC in Release will be
+described in more details below.
 
 The `background` argument indicates whether `Release.daemon` will be called.
 The `syslog` argument indicates if the syslog facilities from the `Lwt_log`
@@ -80,30 +88,22 @@ and a callback function. The master process will create and listen on this
 socket on startup. This is useful for the implementation of control programs
 that communicate with the master process.
 
-Inter-process communication with the slave process is handled in the master
-by a callback function given in the `slave_ipc_handler` argument. This function
-receives a file descriptor that is used for communication with the slave
-process. IPC in Release will be described in more details below.
-
-The `exec` argument must be a path to an executable file that corresponds to
-a program that will be run as the slave process. More about the slave process
-will be described below.
-
 The general case of _n_ slave processes is handled by the function
 `Release.master_slaves`.
 
     val master_slaves : ?background:bool
                      -> ?syslog:bool
                      -> ?privileged:bool
-                     -> ?control:(string * (Lwt_unix.file_descr -> unit Lwt.t))
-                     -> num_slaves:int
+                     -> ?control:(string * ipc_handler)
                      -> lock_file:string
-                     -> ipc_handler:(Lwt_unix.file_descr -> unit Lwt.t)
-                     -> exec:string
+                     -> slaves:(string * ipc_handler * int) list
                      -> unit -> unit
 
-This function works exactly like `Release.master_slave`, but it creates
-`num_slaves` slave processes.
+This function generalizes `Release.master_slave`, allowing the creation of
+heterogeneous groups of slave process via the `slaves` argument. This argument
+is a list of 3-element tuples containing the path to the slave executables,
+the IPC callback function and the number of processes that will be created for
+the given executable.
 
 ### Slaves
 
