@@ -175,13 +175,18 @@ let init_exec_slave max_tries =
   fun path ipc_handler ->
     exec_process path ipc_handler (check_death_rate time tries)
 
-let handle_termination signal _ =
-  ignore_result (Lwt_log.notice_f "got %s, exiting" signal);
+let handle_sigterm lock_file control _ =
+  let log_t =
+    Lwt_log.notice "got sigterm, exiting" in
+  let ctrl_t =
+    Option.either return remove_control_socket control in
+  let lock_t =
+    remove_lock_file lock_file in
+  Sys.set_signal Sys.sigterm Sys.Signal_ignore;
   Unix.kill 0 15;
+  Lwt_main.run (log_t >> (ctrl_t <&> lock_t));
   exit 143
 
-let handle_sigterm = handle_termination "sigterm"
-let handle_sigint = handle_termination "sigint"
 
 let curry f (x, y) = f x y
 
@@ -194,13 +199,8 @@ let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
       exec_slave path ipc_handler
     done in
   let work () =
-    ignore (Lwt_unix.on_signal Sys.sigterm handle_sigterm);
-    ignore (Lwt_unix.on_signal Sys.sigint handle_sigint);
+    ignore (Lwt_unix.on_signal Sys.sigterm (handle_sigterm lock_file control));
     lwt () = create_lock_file lock_file in
-    Lwt_main.at_exit (fun () ->
-      lwt () = Option.either return remove_control_socket control in
-      lwt () = remove_lock_file lock_file in
-      return ());
     let idle_t, idle_w = Lwt.wait () in
     let control_t =
       Option.either return (curry Release_ipc.setup_control_socket) control in
