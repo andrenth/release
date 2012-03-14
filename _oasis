@@ -38,3 +38,11 @@ Executable test_helper
   Install:         false
   CompiledObject:  best
   BuildDepends:    release, lwt, lwt.unix, lwt.syntax, str
+
+Executable masterctl
+  Path:            lib_test
+  BuildTools:      ocamlbuild
+  MainIs:          masterctl.ml
+  Install:         false
+  CompiledObject:  best
+  BuildDepends:    release, lwt, lwt.unix, lwt.syntax, str
