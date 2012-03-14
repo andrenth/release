@@ -89,13 +89,17 @@ struct
       | `Data resp -> `Response (O.response_of_string resp))
 
   let handle_request ?timeout fd handler =
-    match_lwt read ?timeout fd with
-    | `Timeout ->
-        raise_lwt (Failure "read from slave shouldn't timeout")
-    | `EOF ->
-        lwt () = Lwt_log.notice "got EOF on IPC socket" in
-        Lwt_unix.close fd
-    | `Data req ->
-        lwt resp = handler (O.request_of_string req) in
-        write fd (O.string_of_response resp)
+    let rec handle_req () =
+      match_lwt read ?timeout fd with
+      | `Timeout ->
+          raise_lwt (Failure "read from slave shouldn't timeout")
+      | `EOF ->
+          lwt () = Lwt_log.notice "got EOF on IPC socket" in
+          Lwt_unix.close fd
+      | `Data req ->
+          let _resp_t =
+            lwt resp = handler (O.request_of_string req) in
+            write fd (O.string_of_response resp) in
+          handle_req () in
+    handle_req ()
 end

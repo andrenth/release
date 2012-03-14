@@ -2,15 +2,14 @@ open Lwt
 open Printf
 open Ipc
 
-let rec ipc_handler fd =
+let ipc_handler fd =
   let handler req =
     let s = SlaveIpcOps.string_of_request req in
     lwt () = Lwt_log.notice_f "got request: %s" s in
     match req with
     | SlaveIpcOps.Req1 pid -> return (SlaveIpcOps.Resp1 pid)
     | SlaveIpcOps.Req2 pid -> return (SlaveIpcOps.Resp2 pid) in
-  lwt () = SlaveIpc.handle_request fd handler in
-  ipc_handler fd
+  SlaveIpc.handle_request fd handler
 
 let control_connection_handler fd =
   let handler req =
