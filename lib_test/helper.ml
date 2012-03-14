@@ -20,7 +20,7 @@ let control_handler fd =
 
 let main fd =
   let ipc_t =
-    Release_ipc.setup_control_socket "/helper.socket" control_handler in
+    Release_ipc.control_socket "/helper.socket" control_handler in
   lwt () = Lwt.join [ipc_t] in
   exit 0
 

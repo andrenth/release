@@ -203,7 +203,7 @@ let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
     lwt () = create_lock_file lock_file in
     let idle_t, idle_w = Lwt.wait () in
     let control_t =
-      Option.either return (curry Release_ipc.setup_control_socket) control in
+      Option.either return (curry Release_ipc.control_socket) control in
     lwt () = Lwt_list.iter_p create_slaves slaves in
     control_t <&> idle_t in
   let main_t =

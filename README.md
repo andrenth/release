@@ -236,3 +236,13 @@ signatures, is given below.
 * `val read_int32_at : int -> string -> int32`
 * `val read_int32 : string -> int32`
 * `val write_int32 : int32 -> Buffer.t -> unit`
+
+### Control sockets
+
+It may be useful for slaves to have control sockets like the one available
+to the master process. This can be useful for writing control programs or for
+communication between slave processes. The `Release_ipc` module provides the
+`control_socket` function to help setting up the socket and spawning a handler
+thread.
+
+    val control_socket : Lwt_io.file_name -> Release_ipc.handler -> unit Lwt.t

@@ -2,7 +2,7 @@ open Lwt
 
 type handler = (Lwt_unix.file_descr -> unit Lwt.t)
 
-let setup_control_socket path handler =
+let control_socket path handler =
   try_lwt
     let sock = Lwt_unix.socket Lwt_unix.PF_UNIX Lwt_unix.SOCK_STREAM 0 in
     Lwt_unix.setsockopt sock Lwt_unix.SO_REUSEADDR true;
