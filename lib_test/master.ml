@@ -19,12 +19,16 @@ let control_connection_handler fd =
     return (ControlIpcOps.response_of_string (String.uppercase s)) in
   ControlIpc.handle_request ~timeout:5. fd handler
 
+let lwt_ignore _ = return ()
+
 let () =
   let slave_exec = sprintf "%s/_build/lib_test/test_slave" (Unix.getcwd ()) in
-  Release.master_slave
+  let helper_exec = sprintf "%s/_build/lib_test/test_helper" (Unix.getcwd ()) in
+  Release.master_slaves
     ~background:false
     ~syslog:false
     ~lock_file:(sprintf "/var/run/%s.pid" (Filename.basename Sys.argv.(0)))
     ~control:("/tmp/master.socket", control_connection_handler)
-    ~slave:(slave_exec, ipc_handler)
+    ~slaves:[ slave_exec,  ipc_handler, 1
+            ; helper_exec, lwt_ignore,  1 ]
     ()

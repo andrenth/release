@@ -30,3 +30,11 @@ Executable test_slave
   Install:         false
   CompiledObject:  best
   BuildDepends:    release, lwt, lwt.unix, lwt.syntax, str
+
+Executable test_helper
+  Path:            lib_test
+  BuildTools:      ocamlbuild
+  MainIs:          helper.ml
+  Install:         false
+  CompiledObject:  best
+  BuildDepends:    release, lwt, lwt.unix, lwt.syntax, str
