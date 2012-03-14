@@ -53,17 +53,20 @@ minimum amount of code that actually requires root privileges is implemented
 in the master process. Thus, in case of a bug, the likelihood that it can be
 exploited with root escalation is considerably decreased.
 
+Consider the type of an inter-process communication callback function, defined
+as `Release_ipc.handler`:
+
+    type handler = (Lwt_unix.file_descr -> unit Lwt.t)
+
 The simple case of a master process and one slave process is implemented in
 the function `Release.master_slave`.
 
-    type ipc_handler = (Lwt_unix.file_descr -> unit Lwt.t)
-    
-    val master_slave : slave:(string * ipc_handler)
+    val master_slave : slave:(Lwt_io.file_name * Release_ipc.handler)
                     -> ?background:bool
                     -> ?syslog:bool
                     -> ?privileged:bool
-                    -> ?control:(string * ipc_handler)
-                    -> lock_file:string
+                    -> ?control:(Lwt_io.file_name * Release_ipc.handler)
+                    -> lock_file:Lwt_io.file_name
                     -> unit -> unit
 
 The `slave` argument is a tuple whose first argument is the path to the slave
@@ -94,9 +97,9 @@ The general case of _n_ slave processes is handled by the function
     val master_slaves : ?background:bool
                      -> ?syslog:bool
                      -> ?privileged:bool
-                     -> ?control:(string * ipc_handler)
-                     -> lock_file:string
-                     -> slaves:(string * ipc_handler * int) list
+                     -> ?control:(Lwt_io.file_name * Release_ipc.handler)
+                     -> lock_file:Lwt_io.file_name
+                     -> slaves:(Lwt_io.file_name * Release_ipc.handler * int) list
                      -> unit -> unit
 
 This function generalizes `Release.master_slave`, allowing the creation of
