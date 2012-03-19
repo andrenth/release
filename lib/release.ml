@@ -139,6 +139,19 @@ let link_processes ipc_handler =
   let _ipc_t = ipc_handler master_fd in
   Lwt_unix.unix_file_descr slave_fd
 
+let getenv k =
+  try
+    let v = Sys.getenv k in
+    Some (sprintf "%s=%s" k v)
+  with Not_found ->
+    None
+
+let restrict_env () =
+  let allowed = ["TZ"] in
+  let setenv env k =
+    Option.may_default env (fun v -> v::env) (getenv k) in
+  Array.of_list (List.fold_left setenv ["PATH=/bin:/usr/bin"] allowed)
+
 let rec exec_process path ipc_handler check_death_rate =
   lwt () = check_death_rate () in
   let slave_fd = link_processes ipc_handler in
@@ -147,6 +160,7 @@ let rec exec_process path ipc_handler check_death_rate =
       exec_process path ipc_handler check_death_rate in
     Lwt_process.with_process_none
       ~stdin:(`FD_move slave_fd)
+      ~env:(restrict_env ())
       (path, [| path |])
       (handle_proc_death reexec) in
   let _slave_t =
