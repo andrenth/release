@@ -1,0 +1,7 @@
+name = "release"
+version = "0.1.0"
+description = "OCaml daemon framework"
+requires = "lwt, lwt.unix, lwt.syntax"
+archive(byte) = "release.cma"
+archive(native) = "release.cmxa"
+linkopts = ""
