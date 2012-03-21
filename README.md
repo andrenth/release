@@ -16,9 +16,9 @@ All quotes are from the Pearl Jam song _Release - Master/Slave_ :)
 
 After cloning the repository, run the commands below.
 
-    $ make configure
-    $ make
-    $ make install
+    $ ocaml setup.ml -configure
+    $ ocaml setup.ml -build
+    # ocaml setup.ml -install
 
 ## Forking daemons
 

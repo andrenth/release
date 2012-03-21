@@ -1,5 +1,6 @@
 .gitignore
 _build/
-setup.ml
 setup.data
+setup.log
 *.swp
+*.native

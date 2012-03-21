@@ -1,4 +1,64 @@
 # OASIS_START
+# DO NOT EDIT (digest: 9b746c6fd8c055c9ad5ff2b53ef60ed2)
+# Library release
+"lib": include
+<lib/release.{cma,cmxa}>: use_librelease
+<lib/*.ml{,i}>: pkg_uint.uint64
+<lib/*.ml{,i}>: pkg_uint.uint32
+<lib/*.ml{,i}>: pkg_uint.uint128
+<lib/*.ml{,i}>: pkg_lwt.unix
+<lib/*.ml{,i}>: pkg_lwt.syntax
+<lib/*.ml{,i}>: pkg_lwt
+"lib/release_privileges_stubs.c": pkg_uint.uint64
+"lib/release_privileges_stubs.c": pkg_uint.uint32
+"lib/release_privileges_stubs.c": pkg_uint.uint128
+"lib/release_privileges_stubs.c": pkg_lwt.unix
+"lib/release_privileges_stubs.c": pkg_lwt.syntax
+"lib/release_privileges_stubs.c": pkg_lwt
+# Executable test_master
+<lib_test/master.{native,byte}>: use_release
+<lib_test/master.{native,byte}>: pkg_uint.uint64
+<lib_test/master.{native,byte}>: pkg_uint.uint32
+<lib_test/master.{native,byte}>: pkg_uint.uint128
+<lib_test/master.{native,byte}>: pkg_str
+<lib_test/master.{native,byte}>: pkg_lwt.unix
+<lib_test/master.{native,byte}>: pkg_lwt.syntax
+<lib_test/master.{native,byte}>: pkg_lwt
+# Executable masterctl
+<lib_test/masterctl.{native,byte}>: use_release
+<lib_test/masterctl.{native,byte}>: pkg_uint.uint64
+<lib_test/masterctl.{native,byte}>: pkg_uint.uint32
+<lib_test/masterctl.{native,byte}>: pkg_uint.uint128
+<lib_test/masterctl.{native,byte}>: pkg_str
+<lib_test/masterctl.{native,byte}>: pkg_lwt.unix
+<lib_test/masterctl.{native,byte}>: pkg_lwt.syntax
+<lib_test/masterctl.{native,byte}>: pkg_lwt
+# Executable test_helper
+<lib_test/helper.{native,byte}>: use_release
+<lib_test/helper.{native,byte}>: pkg_uint.uint64
+<lib_test/helper.{native,byte}>: pkg_uint.uint32
+<lib_test/helper.{native,byte}>: pkg_uint.uint128
+<lib_test/helper.{native,byte}>: pkg_str
+<lib_test/helper.{native,byte}>: pkg_lwt.unix
+<lib_test/helper.{native,byte}>: pkg_lwt.syntax
+<lib_test/helper.{native,byte}>: pkg_lwt
+# Executable test_slave
+<lib_test/slave.{native,byte}>: use_release
+<lib_test/slave.{native,byte}>: pkg_uint.uint64
+<lib_test/slave.{native,byte}>: pkg_uint.uint32
+<lib_test/slave.{native,byte}>: pkg_uint.uint128
+<lib_test/slave.{native,byte}>: pkg_str
+<lib_test/slave.{native,byte}>: pkg_lwt.unix
+<lib_test/slave.{native,byte}>: pkg_lwt.syntax
+<lib_test/slave.{native,byte}>: pkg_lwt
+<lib_test/*.ml{,i}>: use_release
+<lib_test/*.ml{,i}>: pkg_uint.uint64
+<lib_test/*.ml{,i}>: pkg_uint.uint32
+<lib_test/*.ml{,i}>: pkg_uint.uint128
+<lib_test/*.ml{,i}>: pkg_str
+<lib_test/*.ml{,i}>: pkg_lwt.unix
+<lib_test/*.ml{,i}>: pkg_lwt.syntax
+<lib_test/*.ml{,i}>: pkg_lwt
 # OASIS_STOP
 <lib/*.ml>: syntax_camlp4o
 <lib/*.ml>: annot
