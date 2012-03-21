@@ -210,6 +210,49 @@ to the needs of their respective applications.
 
 ## Extras
 
+### The `Release_io` module
+
+This module exports utility I/O functions that are useful when dealing with
+network I/O.
+
+The first function is `Release_io.read`, which has the following signature.
+
+    val read : ?timeout:float
+            -> Lwt_unix.file_descr
+            -> int
+            -> [`Data of string | `EOF | `Timeout] Lwt.t
+
+Calling `Release_io.read fd n` will try to read at most `n` bytes from `fd`,
+returning the appropriate result. This function is safe against temporary
+errors, retrying on `Unix.EINTR` and `Unix.EAGAIN` automatically.
+
+The second function is `Release_io.write`.
+
+    val write : Lwt_unix.file_descr -> string -> unit Lwt.t
+
+Calling `Release_io.write fd s` will ensure that the full length of the string
+`s` is written on file descriptor `fd`. This function is also safe against
+`Unix.EINTR` and `Unix.EAGAIN`.
+
+### The `Release_socket` module
+
+This module contains utility socket functions. Currently the only exported
+function is `Release_socket.accept_loop`.
+
+    val accept_loop : ?backlog:int
+                   -> ?timeout:float
+                   -> Lwt_unix.socket_type
+                   -> Lwt_unix.sockaddr
+                   -> (Lwt_unix.file_descr -> unit Lwt.t)
+                   -> unit Lwt.t
+
+This function implements a traditional accept loop, spawning one thread per
+client connection. The function creates a socket of the specified type, binds
+it to the given address and listens for client connections. When a new
+connection is accepted, the callback function given as the last argument is
+executed in a separate thread (which may be interrupted depending on the
+`timeout` argument), while `accept_loop` goes back to wait for new connections.
+
 ### The `Release_bytes` module
 
 When writing network-based daemons, the need to implement some kind of binary
