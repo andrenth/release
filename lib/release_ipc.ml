@@ -4,23 +4,8 @@ type handler = (Lwt_unix.file_descr -> unit Lwt.t)
 
 let control_socket path handler =
   try_lwt
-    let sock = Lwt_unix.socket Lwt_unix.PF_UNIX Lwt_unix.SOCK_STREAM 0 in
-    Lwt_unix.setsockopt sock Lwt_unix.SO_REUSEADDR true;
-    let sock_addr = Lwt_unix.ADDR_UNIX path in
-    Lwt_unix.bind sock sock_addr;
-    Lwt_unix.listen sock 10;
-    let rec accept () =
-      lwt cli_sock, _ = Lwt_unix.accept sock in
-      let timeout_t =
-        lwt () = Lwt_unix.sleep 10.0 in
-        lwt () = Lwt_log.warning_f "timeout on control socket" in
-        Lwt_unix.close cli_sock in
-      let handler_t =
-        lwt () = handler cli_sock in
-        Lwt_unix.close cli_sock in
-      ignore (Lwt.pick [handler_t; timeout_t]);
-      accept () in
-    accept ()
+    let sockaddr = Lwt_unix.ADDR_UNIX path in
+    Release_socket.accept_loop Lwt_unix.SOCK_STREAM sockaddr handler
   with Unix.Unix_error (Unix.EADDRINUSE, _, _) ->
     lwt () = Lwt_log.error_f "control socket `%s' already exists" path in
     exit 1

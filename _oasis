@@ -12,7 +12,7 @@ Library release
                    uint.uint64 (>= 1.0.1), uint.uint128 (>= 1.0.1)
   CompiledObject:  best
   Modules:         Release, Release_io, Release_bytes, Release_privileges,
-                   Release_ipc
+                   Release_ipc, Release_socket
   InternalModules: Option
   CSources:        release_privileges_stubs.c
 
