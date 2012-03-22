@@ -8,8 +8,12 @@ License:     BSD3
 Library release
   Path:            lib
   BuildTools:      ocamlbuild
-  BuildDepends:    lwt, lwt.unix, lwt.syntax, uint.uint32 (>= 1.0.1),
-                   uint.uint64 (>= 1.0.1), uint.uint128 (>= 1.0.1)
+  BuildDepends:    lwt (>= 2.3.2),
+                   lwt.unix (>= 2.3.2),
+                   lwt.syntax (>= 2.3.2),
+                   uint.uint32 (>= 1.0.1),
+                   uint.uint64 (>= 1.0.1),
+                   uint.uint128 (>= 1.0.1)
   CompiledObject:  best
   Modules:         Release, Release_io, Release_bytes, Release_privileges,
                    Release_ipc, Release_socket
