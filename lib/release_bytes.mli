@@ -1,3 +1,19 @@
+(** This module contains functions for handling the binary representation of
+    integers.
+
+    Functions in the form [read_<t>_at] will return an integer of type [t] at
+    the offset given as the first argument from the string given as the
+    second argument.
+
+    Functions in the form [read_<t>] are equivalent to [read_<t>_at 0].
+
+    The [write_<t>] functions will append an integer of type [t] given as
+    the first argument to the buffer given as the second argument.
+    
+    The [write_<t>_byte] functions do the same, but a single byte is
+    appended.
+*)
+
 val read_byte_at : int -> string -> int
 val read_byte : string -> int
 val write_byte : int -> Buffer.t -> unit
