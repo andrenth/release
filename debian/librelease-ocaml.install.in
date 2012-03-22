@@ -1,0 +1,3 @@
+@OCamlStdlibDir@/release/*.so @OCamlDllDir@
+@OCamlStdlibDir@/release/*.cm[ao]
+@OCamlStdlibDir@/release/META

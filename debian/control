@@ -1,0 +1,42 @@
+Source: release
+Priority: optional
+Maintainer: Andre Nathan <andre@digirati.com.br>
+Build-Depends:
+ debhelper (>= 7),
+ dh-ocaml (>= 0.9),
+ ocaml-findlib,
+ libfindlib-ocaml-dev,
+ libuint-ocaml-dev,
+ ocaml-nox (>= 3.11)
+Standards-Version: 3.9.2
+Section: ocaml
+Homepage: https://forge.ocamlcore.org/projects/release
+Vcs-Git: git://github.com/andrenth/release.git
+
+Package: librelease-ocaml-dev
+Architecture: any
+Depends:
+ ${ocaml:Depends},
+ ${shlibs:Depends},
+ ${misc:Depends}
+Provides: ${ocaml:Provides}
+Recommends:
+ ocaml-findlib
+Description: Multi-process daemon framework for OCaml
+ Release is a multi-process Lwt-enabled daemon framework for OCaml,
+ providing facilities for type-safe inter-process communication and
+ privilege-dropping.
+
+Package: librelease-ocaml
+Architecture: any
+Depends:
+ ${ocaml:Depends},
+ ${shlibs:Depends},
+ ${misc:Depends}
+Provides: ${ocaml:Provides}
+Description: Multi-process daemon framework for OCaml
+ Release is a multi-process Lwt-enabled daemon framework for OCaml,
+ providing facilities for type-safe inter-process communication and
+ privilege-dropping.
+ .
+ This package contains runtime libraries for programs using release.

@@ -1,0 +1,5 @@
+@OCamlStdlibDir@/release/*.cm[ix]
+@OCamlStdlibDir@/release/*.ml*
+@OCamlStdlibDir@/release/*.a
+OPT: @OCamlStdlibDir@/release/*.cmxa
+usr/share/doc/librelease-ocaml-dev

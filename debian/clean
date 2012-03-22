@@ -1,0 +1,3 @@
+debian/librelease-ocaml-dev.install
+debian/librelease-ocaml.install
+debian/librelease-ocaml.dirs
