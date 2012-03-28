@@ -12,8 +12,6 @@ external setresuid : int -> int -> int -> unit = "ocaml_setresuid"
 
 external setresgid : int -> int -> int -> unit = "ocaml_setresgid"
 
-external setgroups : int array -> unit = "ocaml_setgroups"
-
 let drop user =
   try_lwt
     lwt pw = Lwt_unix.getpwnam user in
@@ -26,7 +24,7 @@ let drop user =
     | _ ->
         lwt () = Lwt_unix.chroot dir in
         lwt () = Lwt_unix.chdir "/" in
-        setgroups [|gid|];
+        Unix.setgroups [|gid|];
         setresgid gid gid gid;
         setresuid uid uid uid;
         return ()

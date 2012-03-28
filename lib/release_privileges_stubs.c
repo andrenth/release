@@ -41,29 +41,3 @@ ocaml_setresgid(value r, value e, value s)
         error(strerror(errno));
     CAMLreturn(Val_unit);
 }
-
-static gid_t *
-array_of_value(value v)
-{
-    CAMLparam1(v);
-    gid_t *arr;
-    mlsize_t size, i;
-
-    size = Wosize_val(v);
-    arr = caml_stat_alloc(size * sizeof(gid_t));
-    for (i = 0; i < size; i++)
-        arr[i] = Int_val(Field(v, i));
-
-    CAMLreturnT (gid_t *, arr);
-}
-
-CAMLprim value
-ocaml_setgroups(value group_list)
-{
-    CAMLparam1(group_list);
-    gid_t *groups = array_of_value(group_list);
-
-    if (setgroups(Wosize_val(group_list), groups) == -1)
-        error(strerror(errno));
-    CAMLreturn(Val_unit);
-}
