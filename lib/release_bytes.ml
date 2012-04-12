@@ -68,7 +68,7 @@ module MakeLittle (I : Integer) : ByteOps with type t = I.t = struct
     Buffer.add_char buf (char_of_int (I.to_int (I.logand b I.byte_max)))
 
   let write i buf =
-    for b = 1 downto I.bytes do
+    for b = 1 to I.bytes do
       let shift = bits - 8 * b in
       write_byte (I.shift_right_logical i shift) buf
     done
