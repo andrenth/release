@@ -18,7 +18,7 @@ val read_byte_at : int -> string -> int
 val read_byte : string -> int
 val write_byte : int -> Buffer.t -> unit
 
-module BigEndian : sig
+module Big_endian : sig
   val read_int16_at : int -> string -> int
   val read_int16 : string -> int
   val write_int16_byte : int -> Buffer.t -> unit
@@ -55,7 +55,7 @@ module BigEndian : sig
   val write_uint128 : Uint128.t -> Buffer.t -> unit
 end
 
-module LittleEndian : sig
+module Little_endian : sig
   val read_int16_at : int -> string -> int
   val read_int16 : string -> int
   val write_int16_byte : int -> Buffer.t -> unit

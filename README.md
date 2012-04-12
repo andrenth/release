@@ -266,7 +266,7 @@ conversions. This module contains a set of functions that take a string as an
 argument and read or write integers of various sizes at a given offset on the
 string. The functions that read and write single bytes are available directly
 `Release_bytes`, while functions for integers of other sizes can be accessed
-from the sub-modules `Release_bytes.BigEndian` and `Release_bytes.LittleEndian`.
+from the modules `Release_bytes.Big_endian` and `Release_bytes.Little_endian`.
 
 The functions available in `Release_bytes`, with their respective
 signatures, are listed below.
@@ -275,8 +275,8 @@ signatures, are listed below.
 * `val read_byte : string -> int`
 * `val write_byte : int -> Buffer.t -> unit`
 
-The following functions are available in both `Release_bytes.LittleEndian` and
-`Release_bytes.LittleEndian`.
+The following functions are available in both `Release_bytes.Little_endian` and
+`Release_bytes.Little_endian`.
 
 * `val read_int16_at : int -> string -> int`
 * `val read_int16 : string -> int`

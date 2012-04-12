@@ -175,7 +175,7 @@ module Int64BigOps = MakeBig(Int64)
 module Uint64BigOps = MakeBig(Uint64)
 module Uint128BigOps = MakeBig(Uint128)
 
-module BigEndian = struct
+module Big_endian = struct
   let read_int16_at = Int16BigOps.read_at
   let read_int16 = read_int16_at 0
   let write_int16_byte = Int16BigOps.write_byte
@@ -220,7 +220,7 @@ module Int64LittleOps = MakeLittle(Int64)
 module Uint64LittleOps = MakeLittle(Uint64)
 module Uint128LittleOps = MakeLittle(Uint128)
 
-module LittleEndian = struct
+module Little_endian = struct
   let read_int16_at = Int16LittleOps.read_at
   let read_int16 = read_int16_at 0
   let write_int16_byte = Int16LittleOps.write_byte
