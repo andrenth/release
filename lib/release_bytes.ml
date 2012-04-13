@@ -69,7 +69,7 @@ module MakeLittle (I : Integer) : ByteOps with type t = I.t = struct
 
   let write i buf =
     for b = 1 to I.bytes do
-      let shift = bits - 8 * b in
+      let shift = 8 * (b - 1) in
       write_byte (I.shift_right_logical i shift) buf
     done
 end
