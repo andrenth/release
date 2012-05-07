@@ -13,12 +13,12 @@ Library release
                    lwt.syntax (>= 2.3.2),
                    uint.uint32 (>= 1.0.1),
                    uint.uint64 (>= 1.0.1),
-                   uint.uint128 (>= 1.0.1)
+                   uint.uint128 (>= 1.0.1),
+                   extunix (>= 0.0.4)
   CompiledObject:  best
   Modules:         Release, Release_io, Release_bytes, Release_privileges,
                    Release_ipc, Release_socket
   InternalModules: Option
-  CSources:        release_privileges_stubs.c
 
 Document release
   Title:                Release documentation

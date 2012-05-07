@@ -3,14 +3,7 @@ open Lwt
 
 exception Release_privileges_error of string
 
-let _ =
-  Callback.register_exception
-    "Release_privileges.Release_privileges_error"
-    (Release_privileges_error "")
-
-external setresuid : int -> int -> int -> unit = "ocaml_setresuid"
-
-external setresgid : int -> int -> int -> unit = "ocaml_setresgid"
+module U = ExtUnix.Specific
 
 let drop user =
   try_lwt
@@ -25,8 +18,8 @@ let drop user =
         lwt () = Lwt_unix.chroot dir in
         lwt () = Lwt_unix.chdir "/" in
         Unix.setgroups [|gid|];
-        setresgid gid gid gid;
-        setresuid uid uid uid;
+        U.setresgid gid gid gid;
+        U.setresuid uid uid uid;
         return ()
   with
   | Not_found ->
