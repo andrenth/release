@@ -63,8 +63,8 @@
 <lib/*.ml>: syntax_camlp4o
 <lib/*.ml>: annot
 <lib/*.ml>: warn_error
-#<lib/*.ml>: ppopt_lwt_debug
+#<lib/*.ml>: lwt_debug
 <lib_test/*.ml>: syntax_camlp4o
 <lib_test/*.ml>: annot
 <lib_test/*.ml>: warn_error
-#<lib_test/*.ml>: ppopt_lwt_debug
+#<lib_test/*.ml>: lwt_debug
