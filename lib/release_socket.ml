@@ -12,7 +12,11 @@ let accept_loop ?(backlog = 10) ?(timeout = 10.0) socktype sockaddr handler =
       lwt () = Lwt_unix.sleep timeout in
       Lwt_log.warning_f "timeout on handler" in
     let handler_t =
-      handler cli_fd in
+      try_lwt
+        handler cli_fd
+      with e ->
+        let err = Printexc.to_string e in
+        Lwt_log.error_f "accept handler exception: %s" err in
     let close_fd () =
       Lwt_unix.close cli_fd in
     ignore (finalize (fun () -> Lwt.pick [timeout_t; handler_t]) close_fd);

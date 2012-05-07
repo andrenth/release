@@ -83,8 +83,13 @@ struct
           Lwt_unix.close fd
       | `Data req ->
           let _resp_t =
-            lwt resp = handler (O.request_of_string req) in
-            write fd (O.string_of_response resp) in
+            try_lwt
+              lwt resp = handler (O.request_of_string req) in
+              write fd (O.string_of_response resp)
+            with e ->
+              let err = Printexc.to_string e in
+              lwt () = Lwt_log.error_f "request handler exception: %s" err in
+              Lwt_unix.close fd in
           handle_req () in
     handle_req ()
 end
