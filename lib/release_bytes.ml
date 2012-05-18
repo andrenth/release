@@ -1,10 +1,10 @@
 let read_byte_at i buf =
-  int_of_char buf.[i]
+  int_of_char (Release_buffer.get buf i)
 
 let read_byte = read_byte_at 0
 
 let write_byte b buf =
-  Buffer.add_char buf (char_of_int (b land 255))
+  Release_buffer.add_char buf (char_of_int (b land 255))
 
 module type Integer = sig
   type t
@@ -21,9 +21,9 @@ end
 
 module type ByteOps = sig
   type t
-  val read_at : int -> string -> t
-  val write_byte : t -> Buffer.t -> unit
-  val write : t -> Buffer.t -> unit
+  val read_at : int -> Release_buffer.t -> t
+  val write_byte : t -> Release_buffer.t -> unit
+  val write : t -> Release_buffer.t -> unit
 end
 
 module MakeBig (I : Integer) : ByteOps with type t = I.t = struct
@@ -41,7 +41,8 @@ module MakeBig (I : Integer) : ByteOps with type t = I.t = struct
     !res
 
   let write_byte b buf =
-    Buffer.add_char buf (char_of_int (I.to_int (I.logand b I.byte_max)))
+    let c = char_of_int (I.to_int (I.logand b I.byte_max)) in
+    Release_buffer.add_char buf c
 
   let write i buf =
     for b = I.bytes downto 1 do
@@ -65,7 +66,8 @@ module MakeLittle (I : Integer) : ByteOps with type t = I.t = struct
     !res
 
   let write_byte b buf =
-    Buffer.add_char buf (char_of_int (I.to_int (I.logand b I.byte_max)))
+    let c = char_of_int (I.to_int (I.logand b I.byte_max)) in
+    Release_buffer.add_char buf c
 
   let write i buf =
     for b = 1 to I.bytes do

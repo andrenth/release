@@ -2,6 +2,8 @@ open Lwt
 
 type handler = (Lwt_unix.file_descr -> unit Lwt.t)
 
+type buffer = Release_buffer.t
+
 let control_socket path handler =
   try_lwt
     let sockaddr = Lwt_unix.ADDR_UNIX path in
@@ -27,9 +29,9 @@ module type S = sig
 
   val read : ?timeout:float
           -> Lwt_unix.file_descr
-          -> [`Data of string | `EOF | `Timeout] Lwt.t
+          -> [`Data of Release_buffer.t | `EOF | `Timeout] Lwt.t
 
-  val write : Lwt_unix.file_descr -> string -> unit Lwt.t
+  val write : Lwt_unix.file_descr -> Release_buffer.t -> unit Lwt.t
 
   val make_request : ?timeout:float
                   -> Lwt_unix.file_descr
@@ -57,21 +59,33 @@ struct
     | other ->
         return other
 
-  let write fd s =
-    let siz = String.length s in
-    let buf = Buffer.create siz in
-    Release_bytes.write_byte siz buf;
-    Buffer.add_string buf s;
-    Release_io.write fd (Buffer.contents buf)
+  let write fd buf =
+    let len = Release_buffer.length buf in
+    let buf' = Release_buffer.create (len + 1) in
+    Release_bytes.write_byte len buf';
+    Release_buffer.blit buf 0 buf' 1 len;
+    Release_io.write fd buf'
+
+  let request_of_buffer buf =
+    O.request_of_string (Release_buffer.to_string buf)
+
+  let buffer_of_request req =
+    Release_buffer.of_string (O.string_of_request req)
+
+  let response_of_buffer buf =
+    O.response_of_string (Release_buffer.to_string buf)
+
+  let buffer_of_response resp =
+    Release_buffer.of_string (O.string_of_response resp)
 
   let make_request ?timeout fd req handler =
-    lwt () = write fd (O.string_of_request req) in
+    lwt () = write fd (buffer_of_request req) in
     lwt res = read ?timeout fd in
     handler
       (match res with
       | `Timeout -> `Timeout
       | `EOF -> `EOF
-      | `Data resp -> `Response (O.response_of_string resp))
+      | `Data resp -> `Response (response_of_buffer resp))
 
   let handle_request ?timeout fd handler =
     let rec handle_req () =
@@ -84,8 +98,9 @@ struct
       | `Data req ->
           let _resp_t =
             try_lwt
-              lwt resp = handler (O.request_of_string req) in
-              write fd (O.string_of_response resp)
+              let s = Release_buffer.to_string req in
+              lwt resp = handler (O.request_of_string s) in
+              write fd (buffer_of_response resp)
             with e ->
               let err = Printexc.to_string e in
               lwt () = Lwt_log.error_f "request handler exception: %s" err in

@@ -17,7 +17,7 @@ Library release
                    extunix (>= 0.0.4)
   CompiledObject:  best
   Modules:         Release, Release_io, Release_bytes, Release_privileges,
-                   Release_ipc, Release_socket
+                   Release_ipc, Release_socket, Release_buffer
   InternalModules: Option
 
 Document release

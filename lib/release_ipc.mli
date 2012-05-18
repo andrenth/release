@@ -40,13 +40,13 @@ module type S = sig
 
   val read : ?timeout:float
           -> Lwt_unix.file_descr
-          -> [`Data of string | `EOF | `Timeout] Lwt.t
-    (** Reads an IPC message from a file descriptor. The returned string
+          -> [`Data of Release_buffer.t | `EOF | `Timeout] Lwt.t
+    (** Reads an IPC message from a file descriptor. The returned buffer
         consists of the payload of the IPC message. *)
 
-  val write : Lwt_unix.file_descr -> string -> unit Lwt.t
+  val write : Lwt_unix.file_descr -> Release_buffer.t -> unit Lwt.t
     (** Writes an IPC message to a file descriptor. The message is created
-        using the string given as the second argument as its payload. *)
+        using the buffer given as the second argument as its payload. *)
 
   val make_request : ?timeout:float
                   -> Lwt_unix.file_descr
