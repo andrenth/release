@@ -177,7 +177,49 @@ module Int64BigOps = MakeBig(Int64)
 module Uint64BigOps = MakeBig(Uint64)
 module Uint128BigOps = MakeBig(Uint128)
 
+module type IntegerOps = sig
+  module Make (I : Integer) : ByteOps with type t = I.t
+
+  val read_int16_at : int -> Release_buffer.t -> int
+  val read_int16 : Release_buffer.t -> int
+  val write_int16_byte : int -> Release_buffer.t -> unit
+  val write_int16 : int -> Release_buffer.t -> unit
+
+  val read_int_at : int -> Release_buffer.t -> int
+  val read_int : Release_buffer.t -> int
+  val write_int_byte : int -> Release_buffer.t -> unit
+  val write_int : int -> Release_buffer.t -> unit
+
+  val read_int32_at : int -> Release_buffer.t -> int32
+  val read_int32 : Release_buffer.t -> int32
+  val write_int32_byte : int32 -> Release_buffer.t -> unit
+  val write_int32 : int32 -> Release_buffer.t -> unit
+
+  val read_uint32_at : int -> Release_buffer.t -> Uint32.t
+  val read_uint32 : Release_buffer.t -> Uint32.t
+  val write_uint32_byte : Uint32.t -> Release_buffer.t -> unit
+  val write_uint32 : Uint32.t -> Release_buffer.t -> unit
+
+  val read_int64_at : int -> Release_buffer.t -> int64
+  val read_int64 : Release_buffer.t -> int64
+  val write_int64_byte : int64 -> Release_buffer.t -> unit
+  val write_int64 : int64 -> Release_buffer.t -> unit
+
+  val read_uint64_at : int -> Release_buffer.t -> Uint64.t
+  val read_uint64 : Release_buffer.t -> Uint64.t
+  val write_uint64_byte : Uint64.t -> Release_buffer.t -> unit
+  val write_uint64 : Uint64.t -> Release_buffer.t -> unit
+
+  val read_uint128_at : int -> Release_buffer.t -> Uint128.t
+  val read_uint128 : Release_buffer.t -> Uint128.t
+  val write_uint128_byte : Uint128.t -> Release_buffer.t -> unit
+  val write_uint128 : Uint128.t -> Release_buffer.t -> unit
+
+end
+
 module Big_endian = struct
+  module Make = MakeBig
+
   let read_int16_at = Int16BigOps.read_at
   let read_int16 = read_int16_at 0
   let write_int16_byte = Int16BigOps.write_byte
@@ -223,6 +265,8 @@ module Uint64LittleOps = MakeLittle(Uint64)
 module Uint128LittleOps = MakeLittle(Uint128)
 
 module Little_endian = struct
+  module Make = MakeLittle
+
   let read_int16_at = Int16LittleOps.read_at
   let read_int16 = read_int16_at 0
   let write_int16_byte = Int16LittleOps.write_byte
