@@ -54,6 +54,23 @@ let sub buf off len =
   let b = Lwt_bytes.proxy buf.bytes off len in
   { bytes = b; len = len }
 
+let index_from buf base c =
+  if base >= 0 && base < buf.len then
+    let rec index i =
+      if i < buf.len then
+        if get buf i = c then
+          Some i
+        else
+          index (i + 1)
+      else
+        None in
+    index base
+  else
+    None
+
+let index buf c =
+  index_from buf 0 c
+
 let read fd buf off len =
   Lwt_bytes.read fd buf.bytes off len
 
