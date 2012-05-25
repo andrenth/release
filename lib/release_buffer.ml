@@ -23,6 +23,12 @@ let set buf i c =
   if len > buf.len then
     buf.len <- len
 
+let size buf =
+  Lwt_bytes.length buf.bytes
+
+let length buf =
+  buf.len
+
 let add_char buf c =
   set buf buf.len c
 
@@ -31,28 +37,25 @@ let add_string buf s =
   Lwt_bytes.blit_string_bytes s 0 buf.bytes buf.len len;
   buf.len <- buf.len + len
 
-let of_string s =
-  { bytes = Lwt_bytes.of_string s; len = String.length s }
-
-let to_string buf =
-  Lwt_bytes.to_string buf.bytes
-
-let size buf =
-  Lwt_bytes.length buf.bytes
-
-let length buf =
-  buf.len
+let sub buf off len =
+  let b = Lwt_bytes.proxy buf.bytes off len in
+  { bytes = b; len = len }
 
 let blit buf1 off1 buf2 off2 len =
   Lwt_bytes.blit buf1.bytes off1 buf2.bytes off2 len;
   buf2.len <- max buf2.len (off2 + len)
 
+let contents buf =
+  Lwt_bytes.to_string buf.bytes
+
+let to_string buf =
+  contents (sub buf 0 (length buf))
+
+let of_string s =
+  { bytes = Lwt_bytes.of_string s; len = String.length s }
+
 let add_buffer buf1 buf2 =
   blit buf2 0 buf1 0 buf2.len
-
-let sub buf off len =
-  let b = Lwt_bytes.proxy buf.bytes off len in
-  { bytes = b; len = len }
 
 let index_from buf base c =
   if base >= 0 && base < buf.len then

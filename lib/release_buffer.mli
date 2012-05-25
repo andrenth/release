@@ -46,11 +46,16 @@ val add_string : t -> string -> unit
 val add_buffer : t -> t -> unit
   (** [add_buffer buf1 buf2] appends buffer [buf2] at the end of [buf1]. *)
 
-val of_string : string -> t
-  (** Converts a string to a buffer. *)
+val contents : t -> string
+  (** [contents buf] converts the contents of a [buf] to a string. The
+      string will be [size buf] bytes long. *)
 
 val to_string : t -> string
-  (** Converts a buffer to a string. *)
+  (** [to_string buf] converts the first [length buf] bytes of [buf] to
+      a string. *)
+
+val of_string : string -> t
+  (** Converts a string to a buffer. *)
 
 val blit : t -> int -> t -> int -> int -> unit
   (** [blit buf1 off1 buf2 off2 len] copies [len] bytes from [buf1], starting
