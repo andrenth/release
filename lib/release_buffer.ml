@@ -55,7 +55,7 @@ let of_string s =
   { bytes = Lwt_bytes.of_string s; len = String.length s }
 
 let add_buffer buf1 buf2 =
-  blit buf2 0 buf1 0 buf2.len
+  blit buf2 0 buf1 buf1.len buf2.len
 
 let index_from buf base c =
   if base >= 0 && base < buf.len then
