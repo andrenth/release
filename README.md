@@ -166,9 +166,9 @@ The output of `Release_ipc.Make` is a module with the signature below.
     
       val read : ?timeout:float
               -> Lwt_unix.file_descr
-              -> [`Data of string | `EOF | `Timeout] Lwt.t
+              -> [`Data of Release_buffer.t | `EOF | `Timeout] Lwt.t
     
-      val write : Lwt_unix.file_descr -> string -> unit Lwt.t
+      val write : Lwt_unix.file_descr -> Release_buffer.t -> unit Lwt.t
     
       val make_request : ?timeout:float
                       -> Lwt_unix.file_descr
@@ -220,7 +220,7 @@ The first function is `Release_io.read`, which has the following signature.
     val read : ?timeout:float
             -> Lwt_unix.file_descr
             -> int
-            -> [`Data of string | `EOF | `Timeout] Lwt.t
+            -> [`Data of Release_buffer.t | `EOF | `Timeout] Lwt.t
 
 Calling `Release_io.read fd n` will try to read at most `n` bytes from `fd`,
 returning the appropriate result. This function is safe against temporary
@@ -228,10 +228,10 @@ errors, retrying on `Unix.EINTR` and `Unix.EAGAIN` automatically.
 
 The second function is `Release_io.write`.
 
-    val write : Lwt_unix.file_descr -> string -> unit Lwt.t
+    val write : Lwt_unix.file_descr -> Release_buffer.t -> unit Lwt.t
 
-Calling `Release_io.write fd s` will ensure that the full length of the string
-`s` is written on file descriptor `fd`. This function is also safe against
+Calling `Release_io.write fd buf` will ensure that the full length of buffer
+`buff` is written on file descriptor `fd`. This function is also safe against
 `Unix.EINTR` and `Unix.EAGAIN`.
 
 ### The `Release_socket` module
@@ -258,58 +258,58 @@ executed in a separate thread (which may be interrupted depending on the
 When writing network-based daemons, the need to implement some kind of binary
 protocol is very common. Very often, these protocols have numeric fields that
 must be read or written by the application. Since the network I/O functions
-take string buffers as arguments, the need to perform conversions from strings
-to integers, and conversely, is quite frequent.
+take buffers as arguments, the need to perform integer reads writes from and
+into buffers, respectively, is quite frequent.
 
 The Release library offers the `Release_bytes` module to help in such
-conversions. This module contains a set of functions that take a string as an
+conversions. This module contains a set of functions that take a buffer as an
 argument and read or write integers of various sizes at a given offset on the
-string. The functions that read and write single bytes are available directly
+buffer. The functions that read and write single bytes are available directly
 `Release_bytes`, while functions for integers of other sizes can be accessed
 from the modules `Release_bytes.Big_endian` and `Release_bytes.Little_endian`.
 
 The functions available in `Release_bytes`, with their respective
 signatures, are listed below.
 
-* `val read_byte_at : int -> string -> int`
-* `val read_byte : string -> int`
+* `val read_byte_at : int -> Release_buffer.t -> int`
+* `val read_byte : Release_buffer.t -> int`
 * `val write_byte : int -> Buffer.t -> unit`
 
 The following functions are available in both `Release_bytes.Little_endian` and
 `Release_bytes.Little_endian`.
 
-* `val read_int16_at : int -> string -> int`
-* `val read_int16 : string -> int`
+* `val read_int16_at : int -> Release_buffer.t -> int`
+* `val read_int16 : Release_buffer.t -> int`
 * `val write_int16_byte : int -> Buffer.t -> unit`
 * `val write_int16 : int -> Buffer.t -> unit`
 
-* `val read_int_at : int -> string -> int`
-* `val read_int : string -> int`
+* `val read_int_at : int -> Release_buffer.t -> int`
+* `val read_int : Release_buffer.t -> int`
 * `val write_int_byte : int -> Buffer.t -> unit`
 * `val write_int : int -> Buffer.t -> unit`
 
-* `val read_int32_at : int -> string -> int32`
-* `val read_int32 : string -> int32`
+* `val read_int32_at : int -> Release_buffer.t -> int32`
+* `val read_int32 : Release_buffer.t -> int32`
 * `val write_int32_byte : int32 -> Buffer.t -> unit`
 * `val write_int32 : int32 -> Buffer.t -> unit`
 
-* `val read_uint32_at : int -> string -> Uint32.t`
-* `val read_uint32 : string -> Uint32.t`
+* `val read_uint32_at : int -> Release_buffer.t -> Uint32.t`
+* `val read_uint32 : Release_buffer.t -> Uint32.t`
 * `val write_uint32_byte : Uint32.t -> Buffer.t -> unit`
 * `val write_uint32 : Uint32.t -> Buffer.t -> unit`
 
-* `val read_int64_at : int -> string -> int64`
-* `val read_int64 : string -> int64`
+* `val read_int64_at : int -> Release_buffer.t -> int64`
+* `val read_int64 : Release_buffer.t -> int64`
 * `val write_int64_byte : int64 -> Buffer.t -> unit`
 * `val write_int64 : int64 -> Buffer.t -> unit`
 
-* `val read_uint64_at : int -> string -> Uint64.t`
-* `val read_uint64 : string -> Uint64.t`
+* `val read_uint64_at : int -> Release_buffer.t -> Uint64.t`
+* `val read_uint64 : Release_buffer.t -> Uint64.t`
 * `val write_uint64_byte : Uint64.t -> Buffer.t -> unit`
 * `val write_uint64 : Uint64.t -> Buffer.t -> unit`
 
-* `val read_uint128_at : int -> string -> Uint128.t`
-* `val read_uint128 : string -> Uint128.t`
+* `val read_uint128_at : int -> Release_buffer.t -> Uint128.t`
+* `val read_uint128 : Release_buffer.t -> Uint128.t`
 * `val write_uint128_byte : Uint128.t -> Buffer.t -> unit`
 * `val write_uint128 : Uint128.t -> Buffer.t -> unit`
 
