@@ -12,12 +12,19 @@ In this documentation, any mention of a "thread" refers to an `Lwt.t`.
 
 All quotes are from the Pearl Jam song _Release - Master/Slave_ :)
 
-## Installation
+## Build and installation
 
-After cloning the repository, run the commands below.
+After cloning the repository, run the commands below to build Release.
 
     $ ocaml setup.ml -configure
     $ ocaml setup.ml -build
+
+Documentation can be generated with the command below.
+
+    $ ocaml setup.ml -doc
+
+To install Release, run
+
     # ocaml setup.ml -install
 
 ## Forking daemons
