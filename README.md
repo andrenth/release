@@ -215,6 +215,12 @@ to the needs of their respective applications.
 This module exports utility I/O functions that are useful when dealing with
 network I/O.
 
+The functions in this module are based on the `Release_buffer.t` type, which
+has already appeared in some function signatures in the IPC module. This
+buffer is a wrapper around the `Lwt_bytes.t` type, which in turn uses OCaml's
+`Bigarray` module to minimize data-copying. See the `Release_buffer` module
+documentation for the list of available buffer-related functions.
+
 The first function is `Release_io.read`, which has the following signature.
 
     val read : ?timeout:float
