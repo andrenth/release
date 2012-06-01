@@ -121,15 +121,28 @@ let try_exec run path =
     lwt () = Lwt_log.error_f "cannot stat `%s': %s" path err in
     exit 126
 
+let posix_signals =
+  [| "SIGABRT"; "SIGALRM"; "SIGFPE"; "SIGHUP"; "SIGILL"; "SIGINT";
+     "SIGKILL"; "SIGPIPE"; "SIGQUIT"; "SIGSEGV"; "SIGTERM"; "SIGUSR1";
+     "SIGUSR2"; "SIGCHLD"; "SIGCONT"; "SIGSTOP"; "SIGTSTP"; "SIGTTIN";
+     "SIGTTOU"; "SIGVTALRM"; "SIGPROF" |]
+
+let signame s =
+  let i = -s - 1 in
+  if i >= 0 && i < Array.length posix_signals then
+    posix_signals.(i)
+  else
+    string_of_int s
+
 let handle_proc_death reexec proc =
-  let log = Lwt_log.notice_f in
+  let log fmt = ksprintf (fun s -> Lwt_log.notice_f "process %s" s) fmt in
   let pid = proc#pid in
   lwt () = log "creating child process %d" pid in
   lwt () = match_lwt proc#status with
-  | Lwt_unix.WEXITED 0 -> log "process %d exited normally" pid
-  | Lwt_unix.WEXITED s -> log "process %d exited with status %d" pid s
-  | Lwt_unix.WSIGNALED s -> log "process %d signaled to death by %d" pid s
-  | Lwt_unix.WSTOPPED s -> log "process %d stopped by signal %d" pid s in
+  | Lwt_unix.WEXITED 0 -> log "%d exited normally" pid
+  | Lwt_unix.WEXITED s -> log "%d exited with status %s" pid (signame s)
+  | Lwt_unix.WSIGNALED s -> log "%d signaled to death by %s" pid (signame s)
+  | Lwt_unix.WSTOPPED s -> log "%d stopped by signal %s" pid (signame s) in
   reexec ()
 
 let link_processes ipc_handler =
