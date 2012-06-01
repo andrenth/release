@@ -48,6 +48,30 @@ module type S = sig
     (** Writes an IPC message to a file descriptor. The message is created
         using the buffer given as the second argument as its payload. *)
 
+  val read_request : ?timeout:float
+                  -> Lwt_unix.file_descr
+                  -> [`Request of request | `EOF | `Timeout] Lwt.t
+    (** Reads an IPC request from a file descriptor. This is a higher-level
+        version of {!read} which automatically converts the buffer to a
+        request type. *)
+
+  val read_response : ?timeout:float
+                   -> Lwt_unix.file_descr
+                   -> [`Response of response | `EOF | `Timeout] Lwt.t
+    (** Reads an IPC response from a file descriptor. This is a higher-level
+        version of {!read} which automatically converts the buffer to a
+        response type. *)
+
+  val write_request : Lwt_unix.file_descr -> request -> unit Lwt.t
+    (** Writes an IPC request to a file descriptor. This is a higher-level
+        version of {!write}, which converts the request to a buffer
+        automatically. *)
+
+  val write_response : Lwt_unix.file_descr -> response -> unit Lwt.t
+    (** Writes an IPC response to a file descriptor. This is a higher-level
+        version of {!write}, which converts the response to a buffer
+        automatically. *)
+
   val make_request : ?timeout:float
                   -> Lwt_unix.file_descr
                   -> request

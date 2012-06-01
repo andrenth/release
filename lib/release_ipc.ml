@@ -33,6 +33,18 @@ module type S = sig
 
   val write : Lwt_unix.file_descr -> Release_buffer.t -> unit Lwt.t
 
+  val read_request : ?timeout:float
+                  -> Lwt_unix.file_descr
+                  -> [`Request of request | `EOF | `Timeout] Lwt.t
+
+  val read_response : ?timeout:float
+                   -> Lwt_unix.file_descr
+                   -> [`Response of response | `EOF | `Timeout] Lwt.t
+
+  val write_request : Lwt_unix.file_descr -> request -> unit Lwt.t
+
+  val write_response : Lwt_unix.file_descr -> response -> unit Lwt.t
+
   val make_request : ?timeout:float
                   -> Lwt_unix.file_descr
                   -> request
@@ -56,7 +68,7 @@ struct
     | `Data b ->
         let siz = Release_bytes.read_byte b in
         Release_io.read ?timeout fd siz
-    | other ->
+    | `Timeout | `EOF as other ->
         return other
 
   let write fd buf =
@@ -77,6 +89,22 @@ struct
 
   let buffer_of_response resp =
     Release_buffer.of_string (O.string_of_response resp)
+
+  let read_request ?timeout fd =
+    match_lwt read ?timeout fd with
+    | `Data buf -> return (`Request (request_of_buffer buf))
+    | `Timeout | `EOF as other -> return other
+
+  let read_response ?timeout fd =
+    match_lwt read ?timeout fd with
+    | `Data buf -> return (`Response (response_of_buffer buf))
+    | `Timeout | `EOF as other -> return other
+
+  let write_request fd req =
+    write fd (buffer_of_request req)
+
+  let write_response fd resp =
+    write fd (buffer_of_response resp)
 
   let make_request ?timeout fd req handler =
     lwt () = write fd (buffer_of_request req) in
