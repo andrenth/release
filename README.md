@@ -73,6 +73,7 @@ the function `Release.master_slave`.
                     -> ?syslog:bool
                     -> ?privileged:bool
                     -> ?control:(Lwt_io.file_name * Release_ipc.handler)
+                    -> ?main:((unit -> Lwt_unix.file_descr list) -> unit Lwt.t)
                     -> lock_file:Lwt_io.file_name
                     -> unit -> unit
 
@@ -98,6 +99,11 @@ and a callback function. The master process will create and listen on this
 socket on startup. This is useful for the implementation of control programs
 that communicate with the master process.
 
+If given, the `main` callback function argument will be called with a function
+that returns the current list of sockets connected to the slave processes.
+This list can be useful to implement broadcast-style messages from the master
+to the slaves.
+
 The general case of _n_ slave processes is handled by the function
 `Release.master_slaves`.
 
@@ -105,6 +111,7 @@ The general case of _n_ slave processes is handled by the function
                      -> ?syslog:bool
                      -> ?privileged:bool
                      -> ?control:(Lwt_io.file_name * Release_ipc.handler)
+                     -> ?main:((unit -> Lwt_unix.file_descr list) -> unit Lwt.t)
                      -> lock_file:Lwt_io.file_name
                      -> slaves:(Lwt_io.file_name * Release_ipc.handler * int) list
                      -> unit -> unit
@@ -176,6 +183,18 @@ The output of `Release_ipc.Make` is a module with the signature below.
               -> [`Data of Release_buffer.t | `EOF | `Timeout] Lwt.t
     
       val write : Lwt_unix.file_descr -> Release_buffer.t -> unit Lwt.t
+
+      val read_request : ?timeout:float
+                      -> Lwt_unix.file_descr
+                      -> [`Request of request | `EOF | `Timeout] Lwt.t
+
+      val read_response : ?timeout:float
+                       -> Lwt_unix.file_descr
+                       -> [`Response of response | `EOF | `Timeout] Lwt.t
+
+      val write_request : Lwt_unix.file_descr -> request -> unit Lwt.t
+
+      val write_response : Lwt_unix.file_descr -> response -> unit Lwt.t
     
       val make_request : ?timeout:float
                       -> Lwt_unix.file_descr
@@ -189,7 +208,11 @@ The output of `Release_ipc.Make` is a module with the signature below.
     end
 
 The functions `read` and `write` will perform these operations on the IPC file
-descriptor given as an argument.
+descriptor given as an argument, and operate on buffers.
+
+The `read_{request,response}` and `write_{request,response}` work similarly,
+but are higher-level, and operate on the `request` and `response` types,
+doing the buffer conversion implicitly.
 
 The functions `make_request` and `handle_request` are IPC helpers wrapping
 `read` and `write`. A slave process can call `make_request fd req handler` to
