@@ -19,10 +19,18 @@ let control_handler fd =
   return ()
 
 let main fd =
-  let ipc_t =
+  let ctrl_ipc_t =
     Release_ipc.control_socket "/helper.socket" control_handler in
-  lwt () = Lwt.join [ipc_t] in
-  exit 0
+  let bcast_ipc_t =
+    let rec bcast_ipc () =
+      lwt () = match_lwt SlaveIpc.read_response fd with
+      | `Response (SlaveIpcOps.Broadcast s) ->
+          Lwt_log.notice_f "got broadcast: %s" s
+      | _ ->
+          Lwt_log.error "helper IPC error" in
+      bcast_ipc () in
+    bcast_ipc () in
+  ctrl_ipc_t <&> bcast_ipc_t
 
 let () =
   ignore (Lwt_unix.on_signal Sys.sigterm handle_sigterm);
