@@ -34,6 +34,7 @@ val master_slave : slave:(Lwt_io.file_name * Release_ipc.handler)
                 -> ?syslog:bool
                 -> ?privileged:bool
                 -> ?control:(Lwt_io.file_name * Release_ipc.handler)
+                -> ?main:((unit -> Lwt_unix.file_descr list) -> unit Lwt.t)
                 -> lock_file:Lwt_io.file_name
                 -> unit -> unit
   (** Sets up a master process with one slave.
@@ -58,6 +59,12 @@ val master_slave : slave:(Lwt_io.file_name * Release_ipc.handler)
       Release will set up a listener thread to deal with IPC on the control
       socket and each connection will be handled by a separate thread.
 
+      [main], if given, is a callback function that works as the main thread
+      of the master process. This function receives as an argument a function
+      that returns the current list of sockets that connect the master process
+      to the slave processes. This is useful for broadcast-style communication
+      from the master to the slaves.
+
       [lock_file] is the path to the lock file created by the master process.
       This file contains the PID of the master process. If the file already
       exists and contains the PID of a running process, the master will refuse
@@ -67,6 +74,7 @@ val master_slaves : ?background:bool
                  -> ?syslog:bool
                  -> ?privileged:bool
                  -> ?control:(Lwt_io.file_name * Release_ipc.handler)
+                 -> ?main:((unit -> Lwt_unix.file_descr list) -> unit Lwt.t)
                  -> lock_file:Lwt_io.file_name
                  -> slaves:(Lwt_io.file_name * Release_ipc.handler * int) list
                  -> unit -> unit

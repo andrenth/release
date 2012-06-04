@@ -134,7 +134,30 @@ let signame s =
   else
     string_of_int s
 
-let handle_proc_death reexec proc =
+module ConnSet = Set.Make(struct
+  type t = Lwt_unix.file_descr
+  let compare = compare
+end)
+
+let slave_connection_set = ref ConnSet.empty
+let slave_connection_set_mtx = Lwt_mutex.create ()
+
+let add_slave_connection fd =
+  lwt () = Lwt_mutex.lock slave_connection_set_mtx in
+  slave_connection_set := ConnSet.add fd !slave_connection_set;
+  Lwt_mutex.unlock slave_connection_set_mtx;
+  return ()
+
+let remove_slave_connection fd =
+  lwt () = Lwt_mutex.lock slave_connection_set_mtx in
+  slave_connection_set := ConnSet.remove fd !slave_connection_set;
+  Lwt_mutex.unlock slave_connection_set_mtx;
+  return ()
+
+let slave_connections () =
+  ConnSet.elements !slave_connection_set
+
+let handle_process master_fd reexec proc =
   let log fmt = ksprintf (fun s -> Lwt_log.notice_f "process %s" s) fmt in
   let pid = proc#pid in
   lwt () = log "creating child process %d" pid in
@@ -143,14 +166,15 @@ let handle_proc_death reexec proc =
   | Lwt_unix.WEXITED s -> log "%d exited with status %s" pid (signame s)
   | Lwt_unix.WSIGNALED s -> log "%d signaled to death by %s" pid (signame s)
   | Lwt_unix.WSTOPPED s -> log "%d stopped by signal %s" pid (signame s) in
+  lwt () = remove_slave_connection master_fd in
   reexec ()
 
-let link_processes ipc_handler =
+let setup_ipc ipc_handler =
   let master_fd, slave_fd =
     Lwt_unix.socketpair Lwt_unix.PF_UNIX Lwt_unix.SOCK_STREAM 0 in
   Lwt_unix.set_close_on_exec master_fd;
   let _ipc_t = ipc_handler master_fd in
-  Lwt_unix.unix_file_descr slave_fd
+  master_fd, slave_fd
 
 let getenv k =
   try
@@ -167,15 +191,16 @@ let restrict_env () =
 
 let rec exec_process path ipc_handler check_death_rate =
   lwt () = check_death_rate () in
-  let slave_fd = link_processes ipc_handler in
+  let master_fd, slave_fd = setup_ipc ipc_handler in
+  lwt () = add_slave_connection master_fd in
   let run_proc path =
     let reexec () =
       exec_process path ipc_handler check_death_rate in
     Lwt_process.with_process_none
-      ~stdin:(`FD_move slave_fd)
+      ~stdin:(`FD_move (Lwt_unix.unix_file_descr slave_fd))
       ~env:(restrict_env ())
       (path, [| path |])
-      (handle_proc_death reexec) in
+      (handle_process master_fd reexec) in
   let _slave_t =
     try_exec run_proc path in
   return ()
@@ -218,7 +243,7 @@ let handle_sigterm lock_file control _ =
 let curry f (x, y) = f x y
 
 let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
-                  ?control ~lock_file ~slaves () =
+                  ?control ?main ~lock_file ~slaves () =
   if syslog then Lwt_log.default := Lwt_log.syslog ~facility:`Daemon ();
   let create_slaves (path, ipc_handler, n) =
     for_lwt i = 1 to n do
@@ -228,11 +253,13 @@ let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
   let work () =
     ignore (Lwt_unix.on_signal Sys.sigterm (handle_sigterm lock_file control));
     lwt () = create_lock_file lock_file in
-    let idle_t, idle_w = Lwt.wait () in
+    let idle_t, _idle_w = Lwt.wait () in
     let control_t =
       Option.either return (curry Release_ipc.control_socket) control in
     lwt () = Lwt_list.iter_p create_slaves slaves in
-    control_t <&> idle_t in
+    let main_t =
+      Option.either return (fun f -> f slave_connections) main in
+    main_t <&> control_t <&> idle_t in
   let main_t =
     lwt () = if privileged then check_root () else check_nonroot () in
     if background then daemon work else work () in
