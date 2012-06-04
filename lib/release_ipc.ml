@@ -107,13 +107,9 @@ struct
     write fd (buffer_of_response resp)
 
   let make_request ?timeout fd req handler =
-    lwt () = write fd (buffer_of_request req) in
-    lwt res = read ?timeout fd in
-    handler
-      (match res with
-      | `Timeout -> `Timeout
-      | `EOF -> `EOF
-      | `Data resp -> `Response (response_of_buffer resp))
+    lwt () = write_request fd req in
+    lwt res = read_response ?timeout fd in
+    handler res
 
   let handle_request ?timeout fd handler =
     let rec handle_req () =
@@ -128,7 +124,7 @@ struct
             try_lwt
               let s = Release_buffer.to_string req in
               lwt resp = handler (O.request_of_string s) in
-              write fd (buffer_of_response resp)
+              write_response fd resp
             with e ->
               let err = Printexc.to_string e in
               lwt () = Lwt_log.error_f "request handler exception: %s" err in
