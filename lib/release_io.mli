@@ -16,7 +16,7 @@ val read : ?timeout:float
         -> Lwt_unix.file_descr
         -> int
         -> [`Data of Release_buffer.t | `EOF | `Timeout] Lwt.t
-   (** [read fd n] will read at most [n] bytes from file descriptor [fd].
+   (** [read fd n] will try to read [n] bytes from file descriptor [fd].
        Data will be read until [n] bytes are read or an end-of-file condition
        occurs. An optional [timeout] argument may be given, in which case
        [read] is interrupted after the specified amount of seconds. *)
