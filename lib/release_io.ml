@@ -11,13 +11,16 @@ let rec interrupt_safe f =
 let eintr_safe op fd buf offset remain =
   interrupt_safe (fun () -> op fd buf offset remain)
 
+let read_once fd buf offset n =
+  eintr_safe Release_buffer.read fd buf offset n
+
 let read ?(timeout) fd n =
   let buf = Release_buffer.create n in
   let rec read offset remain =
     if remain = 0 then
       return offset
     else
-      lwt k = eintr_safe Release_buffer.read fd buf offset remain in
+      lwt k = read_once fd buf offset remain in
       read (offset + k) (if k = 0 then 0 else remain - k) in
   let timeout = match timeout with None -> infinity | Some t -> t in
   let timeout_t = (* XXX doesn't this raise??? *)

@@ -3,6 +3,15 @@
     retried when [Unix.EINTR] or [Unix.EAGAIN] errors are caught.
 *)
 
+val read_once : Lwt_unix.file_descr
+             -> Release_buffer.t
+             -> int
+             -> int
+             -> int Lwt.t
+  (** [read_once fd buf off n] reads at most [n] bytes from file
+      descriptor [fd] into buffer [buf], starting at offset [off] in the
+      buffer. The actual number of bytes read is returned. *)
+
 val read : ?timeout:float
         -> Lwt_unix.file_descr
         -> int
