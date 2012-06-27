@@ -75,7 +75,9 @@ let index buf c =
   index_from buf 0 c
 
 let read fd buf off len =
-  Lwt_bytes.read fd buf.bytes off len
+  lwt k = Lwt_bytes.read fd buf.bytes off len in
+  buf.len <- buf.len + k;
+  return k
 
 let write fd buf off len =
   lwt n = Lwt_bytes.write fd buf.bytes off len in
