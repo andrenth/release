@@ -42,6 +42,7 @@ let sub buf off len =
   { bytes = b; len = len }
 
 let blit buf1 off1 buf2 off2 len =
+  Printf.printf "off1:%d off2:%d len:%d\n%!" off1 off2 len;
   Lwt_bytes.blit buf1.bytes off1 buf2.bytes off2 len;
   buf2.len <- max buf2.len (off2 + len)
 

@@ -1,61 +1,78 @@
-OASISFormat: 0.2
+OASISFormat: 0.3
 Name:        release
 Version:     0.1.0
 Synopsis:    OCaml daemon framework
 Authors:     Andre Nathan
 License:     BSD3
 
+BuildTools:  ocamlbuild
+
 Library release
   Path:            lib
-  BuildTools:      ocamlbuild
-  BuildDepends:    lwt (>= 2.3.2),
+  BuildDepends:    extunix (>= 0.0.4),
+                   lwt (>= 2.3.2),
                    lwt.unix (>= 2.3.2),
                    lwt.syntax (>= 2.3.2),
                    uint.uint32 (>= 1.0.1),
                    uint.uint64 (>= 1.0.1),
-                   uint.uint128 (>= 1.0.1),
-                   extunix (>= 0.0.4)
+                   uint.uint128 (>= 1.0.1)
   CompiledObject:  best
-  Modules:         Release, Release_io, Release_bytes, Release_privileges,
-                   Release_ipc, Release_socket, Release_buffer
+  Modules:         Release,
+                   Release_buffer,
+                   Release_bytes,
+                   Release_io,
+                   Release_ipc,
+                   Release_privileges,
+                   Release_socket
   InternalModules: Option
 
 Document release
   Title:                Release documentation
-  Type:                 ocamlbuild (0.2)
-  BuildTools:           ocamlbuild
+  Type:                 ocamlbuild (0.3)
   BuildTools+:          ocamldoc
   XOCamlbuildPath:      lib
   XOCamlbuildLibraries: release
 
 Executable test_master
   Path:            lib_test
-  BuildTools:      ocamlbuild
   MainIs:          master.ml
   Install:         false
   CompiledObject:  best
-  BuildDepends:    release, lwt, lwt.unix, lwt.syntax, str
+  BuildDepends:    release,
+                   lwt,
+                   lwt.unix,
+                   lwt.syntax,
+                   str
 
 Executable test_slave
   Path:            lib_test
-  BuildTools:      ocamlbuild
   MainIs:          slave.ml
   Install:         false
   CompiledObject:  best
-  BuildDepends:    release, lwt, lwt.unix, lwt.syntax, str
+  BuildDepends:    release,
+                   lwt,
+                   lwt.unix,
+                   lwt.syntax,
+                   str
 
 Executable test_helper
   Path:            lib_test
-  BuildTools:      ocamlbuild
   MainIs:          helper.ml
   Install:         false
   CompiledObject:  best
-  BuildDepends:    release, lwt, lwt.unix, lwt.syntax, str
+  BuildDepends:    release,
+                   lwt,
+                   lwt.unix,
+                   lwt.syntax,
+                   str
 
 Executable masterctl
   Path:            lib_test
-  BuildTools:      ocamlbuild
   MainIs:          masterctl.ml
   Install:         false
   CompiledObject:  best
-  BuildDepends:    release, lwt, lwt.unix, lwt.syntax, str
+  BuildDepends:    release,
+                   lwt,
+                   lwt.unix,
+                   lwt.syntax,
+                   str
