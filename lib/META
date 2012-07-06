@@ -1,7 +1,13 @@
-name = "release"
+# OASIS_START
+# DO NOT EDIT (digest: 9c968c8f0fb10a8672280e8f00f56a07)
 version = "0.1.0"
 description = "OCaml daemon framework"
-requires = "lwt, lwt.unix, lwt.syntax, uint.uint32, uint.uint64, uint.uint128, extunix"
+requires =
+"extunix lwt lwt.unix lwt.syntax uint.uint32 uint.uint64 uint.uint128"
 archive(byte) = "release.cma"
+archive(byte, plugin) = "release.cma"
 archive(native) = "release.cmxa"
-linkopts = ""
+archive(native, plugin) = "release.cmxs"
+exists_if = "release.cma"
+# OASIS_STOP
+
