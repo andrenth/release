@@ -21,3 +21,7 @@ let may_default z f = function
 let map f = function
   | None -> None
   | Some x -> Some (f x)
+
+let apply z x = function
+  | None -> z
+  | Some f -> f x

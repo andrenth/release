@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 73d72a2f7c56d0d423cbb389c3aa92d9)
+# DO NOT EDIT (digest: 3611e9779bb14b348c8f76b7aacce394)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -22,6 +22,8 @@
 <lib/*.ml{,i}>: pkg_uint.uint32
 <lib/*.ml{,i}>: pkg_uint.uint64
 <lib/*.ml{,i}>: pkg_uint.uint128
+# Library release-config
+"lib/release-config.cmxs": use_release-config
 # Executable test_master
 <lib_test/master.{native,byte}>: use_release
 <lib_test/master.{native,byte}>: pkg_lwt
@@ -71,6 +73,9 @@
 <lib_test/*.ml{,i}>: pkg_uint.uint32
 <lib_test/*.ml{,i}>: pkg_uint.uint64
 <lib_test/*.ml{,i}>: pkg_uint.uint128
+# Executable test_config
+<lib_test/config_test.{native,byte}>: use_release-config
+<lib_test/*.ml{,i}>: use_release-config
 # OASIS_STOP
 <lib/*.ml>: syntax_camlp4o
 <lib/*.ml>: annot

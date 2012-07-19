@@ -28,6 +28,19 @@ Library release
   InternalModules:  Option
   XMETADescription: OCaml daemon framework
 
+Library "release-config"
+  FindlibName:      config
+  FindlibParent:    release
+  Path:             lib
+  BuildTools+:      ocamllex, ocamlyacc
+  CompiledObject:   best
+  Modules:          Release_config
+  InternalModules:  Config_parser,
+                    Config_lexer,
+                    Config,
+                    Option
+  XMETADescription: Configuration file support for Release daemons
+
 Document release
   Title:                Release documentation
   Type:                 ocamlbuild (0.3)
@@ -78,3 +91,11 @@ Executable masterctl
                    lwt.unix,
                    lwt.syntax,
                    str
+
+Executable test_config
+  Path:            lib_test
+  MainIs:          config_test.ml
+  Install:         false
+  CompiledObject:  best
+  BuildTools+:     ocamllex, ocamlyacc
+  BuildDepends:    release.config

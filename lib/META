@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 9c968c8f0fb10a8672280e8f00f56a07)
+# DO NOT EDIT (digest: e9a989a5b4408442f07078c19eb6b726)
 version = "0.1.0"
 description = "OCaml daemon framework"
 requires =
@@ -9,5 +9,14 @@ archive(byte, plugin) = "release.cma"
 archive(native) = "release.cmxa"
 archive(native, plugin) = "release.cmxs"
 exists_if = "release.cma"
+package "config" (
+ version = "0.1.0"
+ description = "Configuration file support for Release daemons"
+ archive(byte) = "release-config.cma"
+ archive(byte, plugin) = "release-config.cma"
+ archive(native) = "release-config.cmxa"
+ archive(native, plugin) = "release-config.cmxs"
+ exists_if = "release-config.cma"
+)
 # OASIS_STOP
 
