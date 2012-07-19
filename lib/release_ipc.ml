@@ -58,7 +58,7 @@ module type S = sig
 end
 
 module Make (O : Ops) : S
-    with type request = O.request and type response = O.response =
+  with type request = O.request and type response = O.response =
 struct
   type request = O.request
   type response = O.response
