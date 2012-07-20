@@ -63,10 +63,16 @@ struct
   type request = O.request
   type response = O.response
 
+  let read_byte buf =
+    int_of_char (Release_buffer.get buf 0)
+
+  let write_byte b buf =
+    Release_buffer.add_char buf (char_of_int (b land 255))
+
   let read ?timeout fd =
     match_lwt Release_io.read ?timeout fd 1 with
     | `Data b ->
-        let siz = Release_bytes.read_byte b in
+        let siz = read_byte b in
         Release_io.read ?timeout fd siz
     | `Timeout | `EOF as other ->
         return other
@@ -74,7 +80,7 @@ struct
   let write fd buf =
     let len = Release_buffer.length buf in
     let buf' = Release_buffer.create (len + 1) in
-    Release_bytes.write_byte len buf';
+    write_byte len buf';
     Release_buffer.blit buf 0 buf' 1 len;
     Release_io.write fd buf'
 
