@@ -13,20 +13,28 @@ Library release
   BuildDepends:     extunix (>= 0.0.4),
                     lwt (>= 2.3.2),
                     lwt.unix (>= 2.3.2),
-                    lwt.syntax (>= 2.3.2),
-                    uint.uint32 (>= 1.0.1),
-                    uint.uint64 (>= 1.0.1),
-                    uint.uint128 (>= 1.0.1)
+                    lwt.syntax (>= 2.3.2)
   CompiledObject:   best
   Modules:          Release,
                     Release_buffer,
-                    Release_bytes,
                     Release_io,
                     Release_ipc,
                     Release_privileges,
                     Release_socket
   InternalModules:  Option
   XMETADescription: OCaml daemon framework
+
+Library "release-bytes"
+  FindlibName:      bytes
+  FindlibParent:    release
+  Path:             lib
+  BuildDepends:     release,
+                    uint.uint32 (>= 1.0.1),
+                    uint.uint64 (>= 1.0.1),
+                    uint.uint128 (>= 1.0.1)
+  CompiledObject:   best
+  Modules:          Release_bytes
+  XMETADescription: Binary operations for Release daemons
 
 Library "release-config"
   FindlibName:      config
