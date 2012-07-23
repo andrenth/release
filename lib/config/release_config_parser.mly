@@ -50,8 +50,8 @@ line: NEWLINE                { }
     | keyval COMMENT         { }
     ;
 
-keyval: WORD EQUALS INTEGER  { key $1 (Int $3) }
-      | WORD EQUALS FLOAT    { key $1 (Float $3) }
-      | WORD EQUALS BOOL     { key $1 (Bool $3) }
-      | WORD EQUALS WORD     { key $1 (String $3) }
+keyval: WORD EQUALS INTEGER  { key $1 (`Int $3) }
+      | WORD EQUALS FLOAT    { key $1 (`Float $3) }
+      | WORD EQUALS BOOL     { key $1 (`Bool $3) }
+      | WORD EQUALS WORD     { key $1 (`Str $3) }
       ;

@@ -1,10 +1,9 @@
 open Printf
-open Release_config_types
 
 let path = "./lib_test"
 
 let validate_global_parameter = function
-  | Int i ->
+  | `Int i ->
       if i = 0 || i = 1 then `Valid
       else `Invalid ("global_parameter must be a binary number")
   | _ -> `Invalid ("global_parameter must be a binary number")
@@ -31,9 +30,9 @@ let spec =
 let getg c k = Release_config.get c k ()
 let get c s k = Release_config.get c ~section:s k ()
 
-let some_int i = (Some (Int i))
-let some_bool b = (Some (Bool b))
-let some_string s = (Some (String s))
+let some_int i = (Some (`Int i))
+let some_bool b = (Some (`Bool b))
+let some_string s = (Some (`Str s))
 
 let () =
   Release_config.reset ();

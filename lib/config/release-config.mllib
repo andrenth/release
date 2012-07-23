@@ -1,8 +1,9 @@
 # OASIS_START
-# DO NOT EDIT (digest: 62cfa5158548cc2bbec2cfab7c745e51)
+# DO NOT EDIT (digest: 598029d3789cc09db76ba39efd7c3614)
 Release_config
 Release_config_lexer
 Release_config_parser
 Release_config_global
 Release_config_types
+Release_config_validations
 # OASIS_STOP
