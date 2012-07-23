@@ -12,7 +12,7 @@ let validate_global_parameter = function
 let spec =
   [ `Global
       [ `Required ("global_parameter", validate_global_parameter)
-      ; `Optional ("another_global_parameter", string)
+      ; `Optional ("another_global_parameter", bool)
       ]
   ; `Required ("my-required-section",
       [ `Required ("my-required-param", string)
