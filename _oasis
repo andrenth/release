@@ -9,7 +9,7 @@ BuildTools:  ocamlbuild
 Plugins:     META (0.3)
 
 Library "release"
-  Path:             lib
+  Path:             lib/core
   BuildDepends:     extunix (>= 0.0.4),
                     lwt (>= 2.3.2),
                     lwt.unix (>= 2.3.2),
@@ -77,7 +77,7 @@ Document release
   Title:                Release documentation
   Type:                 ocamlbuild (0.3)
   BuildTools+:          ocamldoc
-  XOCamlbuildPath:      lib
+  XOCamlbuildPath:      lib/core
   XOCamlbuildLibraries: release
 
 Executable test_master
