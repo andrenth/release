@@ -1,6 +1,8 @@
 open Printf
 open Release_config_types
 
+module Option = Release_option
+
 type validation = value -> [`Valid | `Invalid of string]
 
 type key =
@@ -21,6 +23,8 @@ type t = (string, (string, value) Hashtbl.t) Hashtbl.t
 let hash_find h k =
   try Some (Hashtbl.find h k)
   with Not_found -> None
+
+let global_section = Release_config_global.global_section
 
 let validate_and cont validation value =
   match Option.apply `Valid value validation with
@@ -61,7 +65,7 @@ let rec validate_sections conf spec =
         `Invalid (sprintf "section '%s' missing" s) in
       let name, keys, deal_with_missing =
         match section with
-        | `Global ks -> Config.global_section, ks, keep_validating
+        | `Global ks -> global_section, ks, keep_validating
         | `Required (s, ks) -> s, ks, missing_required_section s
         | `Optional (s, ks) -> s, ks, keep_validating in
       Option.either
@@ -86,15 +90,15 @@ let parse file spec =
   try
     let lexbuf = Lexing.from_channel ch in
     while true do
-      Config_parser.input Config_lexer.token lexbuf
+      Release_config_parser.input Release_config_lexer.token lexbuf
     done;
     assert false (* not reached *)
   with End_of_file ->
     close_in ch;
-    match Config.errors () with
+    match Release_config_global.errors () with
     | [] ->
         (try
-          let conf = Config.configuration in
+          let conf = Release_config_global.configuration in
           match validate conf spec with
           | `Valid -> `Configuration conf
           | `Invalid reason -> `Error reason
@@ -106,12 +110,12 @@ let parse file spec =
 let has_section conf section =
   Hashtbl.mem conf section
 
-let get conf ?(section = Config.global_section) key () =
+let get conf ?(section = global_section) key () =
   match hash_find conf section with
   | Some settings -> hash_find settings key
   | None -> None
 
-let get_exn conf ?(section = Config.global_section) key () =
+let get_exn conf ?(section = global_section) key () =
   Hashtbl.find (Hashtbl.find conf section) key
 
-let reset = Config.reset
+let reset = Release_config_global.reset

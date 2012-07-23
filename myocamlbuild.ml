@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 62e2939402e015ffef3daca3045b8c01) *)
+(* DO NOT EDIT (digest: 9f974b025c60a229c20b27740e77f10c) *)
 module OASISGettext = struct
 # 21 "/home/andre/src/oasis-0.3.0/src/oasis/OASISGettext.ml"
 
@@ -479,19 +479,27 @@ let package_default =
   {
      MyOCamlbuildBase.lib_ocaml =
        [
-          ("release", ["lib"]);
-          ("release-bytes", ["lib"]);
-          ("release-config", ["lib"])
+          ("release-buffer", ["lib/buffer"]);
+          ("release-bytes", ["lib/bytes"]);
+          ("release-option", ["lib/option"]);
+          ("release-config", ["lib/config"]);
+          ("release", ["lib"])
        ];
      lib_c = [];
      flags = [];
-     includes = [("lib_test", ["lib"])];
+     includes =
+       [
+          ("lib_test", ["lib"; "lib/config"]);
+          ("lib/config", ["lib/option"]);
+          ("lib/bytes", ["lib/buffer"]);
+          ("lib", ["lib/buffer"; "lib/option"])
+       ];
      }
   ;;
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default package_default;;
 
-# 495 "myocamlbuild.ml"
+# 503 "myocamlbuild.ml"
 (* OASIS_STOP *)
 (*flag ["ocaml"; "compile"; "ppopt_lwt_debug"] & S[A"-ppopt"; A"-lwt-debug"];*)
 flag ["ocaml"; "compile"; "warn_error"] & S[A"-warn-error"; A"A"];

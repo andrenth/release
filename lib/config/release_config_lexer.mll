@@ -1,6 +1,6 @@
 {
 
-open Config_parser
+open Release_config_parser
 
 let incr_line_number lexbuf =
   let pos = lexbuf.Lexing.lex_curr_p in

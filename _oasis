@@ -8,27 +8,38 @@ License:     BSD3
 BuildTools:  ocamlbuild
 Plugins:     META (0.3)
 
-Library release
+Library "release"
   Path:             lib
   BuildDepends:     extunix (>= 0.0.4),
                     lwt (>= 2.3.2),
                     lwt.unix (>= 2.3.2),
-                    lwt.syntax (>= 2.3.2)
+                    lwt.syntax (>= 2.3.2),
+                    release.option,
+                    release.buffer
   CompiledObject:   best
   Modules:          Release,
-                    Release_buffer,
                     Release_io,
                     Release_ipc,
                     Release_privileges,
                     Release_socket
-  InternalModules:  Option
   XMETADescription: OCaml daemon framework
+
+Library "release-buffer"
+  Path:             lib/buffer
+  FindlibName:      buffer
+  FindlibParent:    release
+  CompiledObject:   best
+  BuildDepends:     lwt (>= 2.3.2),
+                    lwt.unix (>= 2.3.2),
+                    lwt.syntax (>= 2.3.2)
+  Modules:          Release_buffer
+  XMETADescription: Buffer type for Release
 
 Library "release-bytes"
   FindlibName:      bytes
   FindlibParent:    release
-  Path:             lib
-  BuildDepends:     release,
+  Path:             lib/bytes
+  BuildDepends:     release.buffer,
                     uint.uint32 (>= 1.0.1),
                     uint.uint64 (>= 1.0.1),
                     uint.uint128 (>= 1.0.1)
@@ -39,15 +50,25 @@ Library "release-bytes"
 Library "release-config"
   FindlibName:      config
   FindlibParent:    release
-  Path:             lib
+  Path:             lib/config
+  BuildDepends:     lwt,
+                    release.option
   BuildTools+:      ocamllex, ocamlyacc
   CompiledObject:   best
-  Modules:          Release_config
-  InternalModules:  Config_parser,
-                    Config_lexer,
-                    Config,
-                    Option
+  Modules:          Release_config,
+                    Release_config_lexer,
+                    Release_config_parser,
+                    Release_config_global,
+                    Release_config_types
   XMETADescription: Configuration file support for Release daemons
+
+Library "release-option"
+  Path:             lib/option
+  FindlibName:      option
+  FindlibParent:    release
+  CompiledObject:   best
+  Modules:          Release_option
+  XMETADescription: Utility functions on option types
 
 Document release
   Title:                Release documentation

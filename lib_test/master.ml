@@ -2,6 +2,8 @@ open Lwt
 open Printf
 open Ipc
 
+module Option = Release_option
+
 let slave_connections = ref None
 
 let ipc_handler fd =

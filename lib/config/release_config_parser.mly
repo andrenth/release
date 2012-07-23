@@ -1,24 +1,25 @@
 %{
 
 open Release_config_types
+module G = Release_config_global
 
 let current_line () =
   let start_pos = Parsing.symbol_start_pos () in
   start_pos.Lexing.pos_lnum
 
 let section s =
-  if Config.is_new_section s then
-    Config.section s
+  if G.is_new_section s then
+    G.section s
   else
-    Config.duplicate_section s (current_line ())
+    G.duplicate_section s (current_line ())
 
 let key k v =
-  if Config.is_new_key k then
-    Config.add k v
+  if G.is_new_key k then
+    G.add k v
   else
-    Config.duplicate_key k (current_line ())
+    G.duplicate_key k (current_line ())
 
-let () = section Config.global_section
+let () = section G.global_section
 
 %}
 
@@ -39,7 +40,7 @@ let () = section Config.global_section
 
 input: /* empty */           { }
      | input line            { }
-     | error NEWLINE         { Config.syntax_error (current_line ()) }
+     | error NEWLINE         { G.syntax_error (current_line ()) }
      ;
 
 line: NEWLINE                { }
