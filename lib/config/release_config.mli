@@ -1,10 +1,8 @@
 open Release_config_types
 
-type validation = value -> [`Valid | `Invalid of string]
-
 type key =
-  [ `Required of (string * validation option)
-  | `Optional of (string * validation option)
+  [ `Required of (string * validation)
+  | `Optional of (string * validation)
   ]
 
 type section =

@@ -5,6 +5,8 @@ type value =
   | `Str of string
   ]
 
+type validation = value -> [`Valid | `Invalid of string]
+
 let bool_value = function
   | `Bool b -> b
   | _ -> invalid_arg "bool_value"

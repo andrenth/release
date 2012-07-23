@@ -3,11 +3,9 @@ open Release_config_types
 
 module Option = Release_option
 
-type validation = value -> [`Valid | `Invalid of string]
-
 type key =
-  [ `Required of (string * validation option)
-  | `Optional of (string * validation option)
+  [ `Required of (string * validation)
+  | `Optional of (string * validation)
   ]
 
 type section =
@@ -27,7 +25,7 @@ let hash_find h k =
 let global_section = Release_config_global.global_section
 
 let validate_and cont validation value =
-  match Option.apply `Valid value validation with
+  match validation value with
   | `Valid -> cont ()
   | `Invalid r -> `Invalid r
 

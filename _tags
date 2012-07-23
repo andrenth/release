@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 3e89be7b4e0e923bf8c83544e0bc5902)
+# DO NOT EDIT (digest: e24a7b846f408701d222a9ab56179da2)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -33,6 +33,8 @@
 "lib/config/release-config.cmxs": use_release-config
 <lib/config/*.ml{,i}>: use_release-option
 <lib/config/*.ml{,i}>: pkg_lwt
+<lib/config/*.ml{,i}>: pkg_str
+<lib/config/*.ml{,i}>: pkg_unix
 # Library release
 "lib/release.cmxs": use_release
 <lib/*.ml{,i}>: use_release-buffer
@@ -81,18 +83,23 @@
 <lib_test/*.ml{,i}>: use_release-buffer
 <lib_test/*.ml{,i}>: pkg_lwt.unix
 <lib_test/*.ml{,i}>: pkg_lwt.syntax
-<lib_test/*.ml{,i}>: pkg_str
 <lib_test/*.ml{,i}>: pkg_extunix
 # Executable test_config
 <lib_test/config_test.{native,byte}>: use_release-config
 <lib_test/config_test.{native,byte}>: use_release-option
 <lib_test/config_test.{native,byte}>: pkg_lwt
+<lib_test/config_test.{native,byte}>: pkg_str
+<lib_test/config_test.{native,byte}>: pkg_unix
 <lib_test/*.ml{,i}>: use_release-config
 <lib_test/*.ml{,i}>: use_release-option
 <lib_test/*.ml{,i}>: pkg_lwt
+<lib_test/*.ml{,i}>: pkg_str
+<lib_test/*.ml{,i}>: pkg_unix
 # OASIS_STOP
 <lib/option/*.ml>: annot
 <lib/option/*.ml>: warn_error
+<lib/config/*.ml>: annot
+<lib/config/*.ml>: warn_error
 <lib/buffer/*.ml>: syntax_camlp4o
 <lib/buffer/*.ml>: annot
 <lib/buffer/*.ml>: warn_error
