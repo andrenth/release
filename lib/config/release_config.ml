@@ -83,6 +83,8 @@ let join_errors errors =
   let concat msg (err, line) = msg ^ (sprintf "%s in line %d\n" err line) in
   List.fold_left concat "" errors
 
+let reset = Release_config_global.reset
+
 let parse file spec =
   let ch = open_in file in
   try
@@ -96,7 +98,8 @@ let parse file spec =
     match Release_config_global.errors () with
     | [] ->
         (try
-          let conf = Release_config_global.configuration in
+          let conf = Hashtbl.copy Release_config_global.configuration in
+          reset ();
           match validate conf spec with
           | `Valid -> `Configuration conf
           | `Invalid reason -> `Error reason
@@ -115,5 +118,3 @@ let get conf ?(section = global_section) key () =
 
 let get_exn conf ?(section = global_section) key () =
   Hashtbl.find (Hashtbl.find conf section) key
-
-let reset = Release_config_global.reset

@@ -36,7 +36,6 @@ let some_bool b = (Some (`Bool b))
 let some_string s = (Some (`Str s))
 
 let () =
-  Release_config.reset ();
   match Release_config.parse (path ^ "/complete.conf") spec with
   | `Configuration conf ->
       assert (getg conf "global_parameter" = some_int 0);
@@ -60,7 +59,6 @@ let () =
       assert false
 
 let () =
-  Release_config.reset ();
   match Release_config.parse (path ^ "/missing-optional-values.conf") spec with
   | `Configuration conf ->
       assert (getg conf "global_parameter" = some_int 0);
@@ -76,19 +74,16 @@ let () =
       assert false
 
 let () =
-  Release_config.reset ();
   match Release_config.parse (path ^ "/validation-error.conf") spec with
   | `Configuration _ -> assert false
   | `Error err -> assert (err = "global_parameter must be a binary number")
 
 let () =
-  Release_config.reset ();
   match Release_config.parse (path ^ "/missing-required-section.conf") spec with
   | `Configuration _ -> assert false
   | `Error err -> assert (err = "section 'my-required-section' missing")
 
 let () =
-  Release_config.reset ();
   match Release_config.parse (path ^ "/missing-required-param.conf") spec with
   | `Configuration _ -> assert false
   | `Error err -> assert (err = "directive 'required-parameter-1' unspecified")
