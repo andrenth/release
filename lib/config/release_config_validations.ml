@@ -52,14 +52,14 @@ let existing_directory = function
         `Invalid (sprintf "existing_file: %s: %s" f (Unix.error_message e)))
   | _ -> `Invalid "existing_directory: not a string"
 
-let existing_basename = function
+let existing_dirname = function
   | `Str p ->
       (try
-        ignore (Unix.lstat (Filename.basename p));
+        ignore (Unix.lstat (Filename.dirname p));
         `Valid
       with Unix.Unix_error (e, _, _) ->
-        `Invalid (sprintf "existing_basename: %s %s" p (Unix.error_message e)))
-  | _ -> `Invalid "existing_basename: not a string"
+        `Invalid (sprintf "existing_dirname: %s %s" p (Unix.error_message e)))
+  | _ -> `Invalid "existing_dirname: not a string"
 
 let existing_user = function
   | `Str u ->
