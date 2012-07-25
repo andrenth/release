@@ -195,13 +195,16 @@ let rec exec_process path ipc_handler check_death_rate =
   lwt () = check_death_rate () in
   let master_fd, slave_fd = setup_ipc ipc_handler in
   lwt () = add_slave_connection master_fd in
+  let argv =
+    Array.init (Array.length Sys.argv)
+    (fun i -> if i = 0 then path else Sys.argv.(i)) in
   let run_proc path =
     let reexec () =
       exec_process path ipc_handler check_death_rate in
     Lwt_process.with_process_none
       ~stdin:(`FD_move (Lwt_unix.unix_file_descr slave_fd))
       ~env:(restrict_env ())
-      (path, [| path |])
+      (path, argv)
       (handle_process master_fd reexec) in
   let _slave_t =
     try_exec run_proc path in
