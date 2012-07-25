@@ -40,6 +40,16 @@ let existing_file = function
         `Invalid (sprintf "existing_file: %s" (Unix.error_message e)))
   | _ -> `Invalid "existing_file: not a string"
 
+let existing_directory = function
+  | `Str f ->
+      (try
+        let st = Unix.lstat f in
+        if st.Unix.st_kind = Unix.S_DIR then `Valid
+        else `Invalid "existing_directory: not a directory"
+      with Unix.Unix_error (e, _, _) ->
+        `Invalid (sprintf "existing_file: %s" (Unix.error_message e)))
+  | _ -> `Invalid "existing_directory: not a string"
+
 let existing_basename = function
   | `Str p ->
       (try
