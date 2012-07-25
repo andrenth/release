@@ -73,6 +73,18 @@ let existing_user = function
         `Invalid (sprintf "existing_user: %s: user not found" u))
   | _ -> `Invalid "existing_user: not a string"
 
+let existing_group = function
+  | `Str g ->
+      (try
+        ignore (Unix.getgrnam g);
+        `Valid
+      with
+      | Unix.Unix_error (e, _, _) ->
+        `Invalid (sprintf "existing_group: %s: %s" g (Unix.error_message e))
+      | Not_found ->
+        `Invalid (sprintf "existing_group: %s: group not found" g))
+  | _ -> `Invalid "existing_group: not a string"
+
 let one_of_ints l = function
   | `Int i ->
       if List.mem i l then
