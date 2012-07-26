@@ -41,7 +41,7 @@ let rec validate_keys keys settings =
       let keep_validating () =
         validate_keys rest settings in
       let missing_required_key k () =
-        `Invalid (sprintf "directive '%s' unspecified" k) in
+        `Invalid (sprintf "configuration directive '%s' missing" k) in
       let name, validations, deal_with_missing =
         match key with
         | `Required (k, vs) -> k, vs, missing_required_key k
