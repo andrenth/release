@@ -22,6 +22,30 @@ let hash_find h k =
   try Some (Hashtbl.find h k)
   with Not_found -> None
 
+let hash_fetch h k =
+  try
+    let v = Hashtbl.find h k in
+    Hashtbl.remove h k;
+    Some v
+  with Not_found ->
+    None
+
+let hash_join h sep =
+  let s = Hashtbl.fold (fun k v s -> k ^ sep ^ s) h "" in
+  String.sub s 0 (String.length s - 2)
+
+let unknown_config kind conf =
+  let unknown = hash_join conf ", " in
+  sprintf "unknown %s: %s" kind unknown
+
+let validate_missing msg conf =
+  let len = Hashtbl.length conf in
+  if len = 0 then
+    `Valid
+  else
+    let msg = if len = 1 then msg else msg ^ "s" in
+    `Invalid (unknown_config msg conf)
+
 let global_section = Release_config_global.global_section
 
 let validate_and cont validations value =
@@ -36,7 +60,7 @@ let validate_and cont validations value =
 let rec validate_keys keys settings =
   match keys with
   | [] ->
-      `Valid
+      validate_missing "configuration directive" settings
   | key::rest ->
       let keep_validating () =
         validate_keys rest settings in
@@ -49,7 +73,7 @@ let rec validate_keys keys settings =
       Option.either
         deal_with_missing
         (validate_and keep_validating validations)
-        (hash_find settings name)
+        (hash_fetch settings name)
 
 let validate_keys_and cont keys settings =
   match validate_keys keys settings with
@@ -59,7 +83,7 @@ let validate_keys_and cont keys settings =
 let rec validate_sections conf spec =
   match spec with
   | [] ->
-    `Valid
+      validate_missing "section" conf
   | section::sections ->
       let keep_validating () =
         validate_sections conf sections in
@@ -73,10 +97,11 @@ let rec validate_sections conf spec =
       Option.either
         deal_with_missing
         (validate_keys_and keep_validating keys)
-        (hash_find conf name)
+        (hash_fetch conf name)
 
-let validate =
-  validate_sections
+let validate conf =
+  (* Validation is destructive, so make a copy of the configuration *)
+  validate_sections (Hashtbl.copy conf)
 
 let join_with sep l =
   List.fold_left (fun joined i -> joined ^ sep ^ (string_of_int i)) "" l
