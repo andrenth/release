@@ -32,15 +32,48 @@ let string_matching re = function
   | _ ->
       `Invalid "string_matching: not a string"
 
-let existing_file = function
-  | `Str f ->
+let file_with f name err = function
+  | `Str file ->
       (try
-        let st = Unix.lstat f in
-        if st.Unix.st_kind = Unix.S_REG then `Valid
-        else `Invalid (sprintf "existing_file: %s is not a regular file" f)
-      with Unix.Unix_error (e, _, _) ->
-        `Invalid (sprintf "existing_file: %s: %s" f (Unix.error_message e)))
-  | _ -> `Invalid "existing_file: not a string"
+        let st = Unix.lstat file in
+        if f st then `Valid
+        else `Invalid (sprintf "%s: %s %s" name file err)
+      with
+      | Unix.Unix_error (e, _, _) ->
+        `Invalid (sprintf "%s: %s: %s" name file (Unix.error_message e))
+      | e ->
+        `Invalid (sprintf "%s: %s: %s" name file (Printexc.to_string e)))
+  | _ -> `Invalid (sprintf "%s: not a string" name)
+
+let existing_file =
+  file_with
+    (fun st -> st.Unix.st_kind = Unix.S_REG) 
+    "existing_file"
+    "is not a regular file"
+
+let file_with_mode m =
+  file_with
+    (fun st -> st.Unix.st_perm = m)
+    "file_with_mode"
+    (sprintf "must have mode 0%o" m)
+
+let nonempty_file =
+  file_with
+    (fun st -> st.Unix.st_size > 0) 
+    "nonempty_file"
+    "is empty"
+
+let file_with_owner u =
+  file_with
+    (fun st -> st.Unix.st_uid = (Unix.getpwnam u).Unix.pw_uid)
+    "file_with_owner"
+    (sprintf "must be owned by %s" u)
+
+let file_with_group g =
+  file_with
+    (fun st -> st.Unix.st_gid = (Unix.getgrnam g).Unix.gr_gid)
+    "file_with_group"
+    (sprintf "must have group %s" g)
 
 let existing_directory = function
   | `Str f ->
@@ -72,6 +105,19 @@ let existing_user = function
       | Not_found ->
         `Invalid (sprintf "existing_user: %s: user not found" u))
   | _ -> `Invalid "existing_user: not a string"
+
+let unprivileged_user = function
+  | `Str u ->
+      (try
+        let pw = Unix.getpwnam u in
+        if pw.Unix.pw_uid <> 0 then `Valid
+        else `Invalid (sprintf "user %s is privileged" u)
+      with
+      | Unix.Unix_error (e, _, _) ->
+        `Invalid (sprintf "unprivileged_user: %s: %s" u (Unix.error_message e))
+      | Not_found ->
+        `Invalid (sprintf "unprivileged_user: %s: user not found" u))
+  | _ -> `Invalid "unprivileged_user: not a string"
 
 let existing_group = function
   | `Str g ->
