@@ -4,8 +4,8 @@ open Release_config_types
 module Option = Release_option
 
 type key =
-  [ `Required of (string * validation)
-  | `Optional of (string * validation)
+  [ `Required of (string * validation list)
+  | `Optional of (string * validation list)
   ]
 
 type section =
@@ -24,10 +24,14 @@ let hash_find h k =
 
 let global_section = Release_config_global.global_section
 
-let validate_and cont validation value =
-  match validation value with
-  | `Valid -> cont ()
-  | `Invalid r -> `Invalid r
+let validate_and cont validations value =
+  let rec validate = function
+    | [] -> cont ()
+    | v::vs ->
+        match v value with
+        | `Valid -> validate vs
+        | `Invalid r -> `Invalid r in
+  validate validations
 
 let rec validate_keys keys settings =
   match keys with
@@ -38,13 +42,13 @@ let rec validate_keys keys settings =
         validate_keys rest settings in
       let missing_required_key k () =
         `Invalid (sprintf "directive '%s' unspecified" k) in
-      let name, validation, deal_with_missing =
+      let name, validations, deal_with_missing =
         match key with
-        | `Required (k, v) -> k, v, missing_required_key k
-        | `Optional (k, v) -> k, v, keep_validating in
+        | `Required (k, vs) -> k, vs, missing_required_key k
+        | `Optional (k, vs) -> k, vs, keep_validating in
       Option.either
         deal_with_missing
-        (validate_and keep_validating validation)
+        (validate_and keep_validating validations)
         (hash_find settings name)
 
 let validate_keys_and cont keys settings =

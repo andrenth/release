@@ -1,8 +1,8 @@
 open Release_config_types
 
 type key =
-  [ `Required of (string * validation)
-  | `Optional of (string * validation)
+  [ `Required of (string * validation list)
+  | `Optional of (string * validation list)
   ]
 
 type section =
