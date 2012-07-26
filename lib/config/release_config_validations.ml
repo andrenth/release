@@ -85,7 +85,7 @@ let existing_group = function
         `Invalid (sprintf "existing_group: %s: group not found" g))
   | _ -> `Invalid "existing_group: not a string"
 
-let one_of_ints l = function
+let int_in l = function
   | `Int i ->
       if List.mem i l then
         `Valid
@@ -94,7 +94,7 @@ let one_of_ints l = function
   | _ ->
       `Invalid "one_of_ints: not an int"
 
-let one_of_strings l = function
+let string_in l = function
   | `Str s ->
       if List.mem s l then
         `Valid
