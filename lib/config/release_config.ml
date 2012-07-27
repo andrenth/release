@@ -50,7 +50,8 @@ let global_section = Release_config_global.global_section
 
 let validate_and cont validations value =
   let rec validate = function
-    | [] -> cont ()
+    | [] ->
+        cont ()
     | v::vs ->
         match v value with
         | `Valid -> validate vs
@@ -76,7 +77,7 @@ let rec validate_keys keys settings =
         (hash_fetch settings name)
 
 let validate_keys_and cont keys settings =
-  match validate_keys keys settings with
+  match validate_keys keys (Hashtbl.copy settings) with
   | `Valid -> cont ()
   | `Invalid r -> `Invalid r
 
