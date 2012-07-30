@@ -76,7 +76,6 @@ let () =
       assert (get conf "second-optional-section" "required-parameter-2"
               = some_string "value2")
   | `Error reason ->
-      printf "### %s\n%!" reason;
       assert false
 
 let () =
