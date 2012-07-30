@@ -16,6 +16,20 @@ let string = function
   | `Str _ -> `Valid
   | _ -> `Invalid "string: not a string"
 
+let any_list name f = function
+  | `List l ->
+      if List.exists (fun x -> f x <> `Valid) l then
+        `Invalid (sprintf "%s_list: not a %s list" name name)
+      else
+        `Valid
+  | _ ->
+      `Invalid (sprintf "%s_list: not a list" name)
+
+let bool_list = any_list "bool" bool
+let int_list = any_list "int" int
+let float_list = any_list "float" float
+let string_list = any_list "string" string
+
 let int_in_range (min, max) = function
   | `Int x ->
       if x >= min && x <= max then `Valid
