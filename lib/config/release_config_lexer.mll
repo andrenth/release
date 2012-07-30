@@ -13,7 +13,7 @@ let incr_line_number lexbuf =
 
 let digit = ['0'-'9']
 let boolean = "true" | "false"
-let word = [^ '=' '[' ']' ' ' '\t' '\n']+
+let word = [^ '=' '[' ']' ',' ' ' '\t' '\n']+
 let comment = '#'[^ '\n']*
 
 rule token = parse
@@ -22,6 +22,7 @@ rule token = parse
   | '='                    { EQUALS }
   | '['                    { LBRACKET }
   | ']'                    { RBRACKET }
+  | ','                    { COMMA }
   | comment                { COMMENT }
   | digit+ as i            { INTEGER (int_of_string i) }
   | "." digit+

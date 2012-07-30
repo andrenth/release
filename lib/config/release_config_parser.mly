@@ -32,6 +32,7 @@ let () = section G.global_section
 %token COMMENT
 %token LBRACKET
 %token RBRACKET
+%token COMMA
 
 %start input
 %type <unit> input
@@ -50,8 +51,16 @@ line: NEWLINE                { }
     | keyval COMMENT         { }
     ;
 
-keyval: WORD EQUALS INTEGER  { key $1 (`Int $3) }
-      | WORD EQUALS FLOAT    { key $1 (`Float $3) }
-      | WORD EQUALS BOOL     { key $1 (`Bool $3) }
-      | WORD EQUALS WORD     { key $1 (`Str $3) }
+keyval: WORD EQUALS value    { key $1 $3 }
+      | WORD EQUALS listval  { key $1 (`List $3) }
       ;
+
+value: INTEGER               { `Int $1 }
+     | FLOAT                 { `Float $1 }
+     | BOOL                  { `Bool $1 }
+     | WORD                  { `Str $1 }
+     ;
+
+listval: value               { [$1] }
+       | value COMMA listval { $1::$3 }
+       ;

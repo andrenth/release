@@ -9,10 +9,28 @@ let validate_global_parameter = function
       else `Invalid ("global_parameter must be a binary number")
   | _ -> `Invalid ("global_parameter must be a binary number")
 
+let validate_list_element = function
+  | `Int i ->
+      if i >= 0 && i <= 5 then `Valid
+      else `Invalid ("global-list elements be 0 <= x <= 5")
+  | _ -> `Invalid ("global-list must be a list of integers")
+
+let validate_global_list = function
+  | `List l ->
+      let rec validate = function
+        | [] ->
+            `Valid
+        | x::xs ->
+            let res = validate_list_element x in
+            if res = `Valid then validate xs else res in
+      validate l
+  | _ -> `Invalid ("global-list must be a list")
+
 let spec =
   [ `Global
       [ `Required ("global_parameter", [validate_global_parameter])
       ; `Optional ("another_global_parameter", Some (`Bool true), [bool])
+      ; `Optional ("global-list", None, [validate_global_list])
       ]
   ; `Required ("my-required-section",
       [ `Required ("my-required-param", [string])
@@ -34,12 +52,14 @@ let get c s k = Release_config.get c ~section:s k ()
 let some_int i = (Some (`Int i))
 let some_bool b = (Some (`Bool b))
 let some_string s = (Some (`Str s))
+let some_int_list l = (Some (`List (List.map (fun x -> `Int x) l)))
 
 let () =
   match Release_config.parse (path ^ "/complete.conf") spec with
   | `Configuration conf ->
       assert (getg conf "global_parameter" = some_int 0);
       assert (getg conf "another_global_parameter" = some_bool true);
+      assert (getg conf "global-list" = some_int_list [1;2;3;4]);
 
       assert (get conf "my-required-section" "my-required-param"
               = some_string "required-value");
@@ -85,5 +105,7 @@ let () =
 
 let () =
   match Release_config.parse (path ^ "/missing-required-param.conf") spec with
-  | `Configuration _ -> assert false
-  | `Error err -> assert (err = "directive 'required-parameter-1' unspecified")
+  | `Configuration _ ->
+      assert false
+  | `Error err ->
+      assert (err = "configuration directive 'required-parameter-1' missing")
