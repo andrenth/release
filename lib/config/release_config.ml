@@ -22,13 +22,10 @@ let hash_find h k =
   try Some (Hashtbl.find h k)
   with Not_found -> None
 
-let hash_fetch h k =
-  try
-    let v = Hashtbl.find h k in
-    Hashtbl.remove h k;
-    Some v
-  with Not_found ->
-    None
+let key_table h =
+  let h' = Hashtbl.create (Hashtbl.length h) in
+  Hashtbl.iter (fun k _ -> Hashtbl.replace h' k true) h;
+  h'
 
 let hash_join h sep =
   let s = Hashtbl.fold (fun k v s -> k ^ sep ^ s) h "" in
@@ -38,7 +35,7 @@ let unknown_config kind conf =
   let unknown = hash_join conf ", " in
   sprintf "unknown %s: %s" kind unknown
 
-let validate_missing msg conf =
+let validate_unknown msg conf =
   let len = Hashtbl.length conf in
   if len = 0 then
     `Valid
@@ -58,67 +55,68 @@ let validate_and cont validations value =
         | `Invalid r -> `Invalid r in
   validate validations
 
-let rec validate_keys keys settings =
-  match keys with
-  | [] ->
-      validate_missing "configuration directive" settings
-  | key::rest ->
-      let keep_validating () =
-        validate_keys rest settings in
-      let validate_default value validations () =
+let validate_keys keys_spec settings =
+  let unknown = key_table settings in
+  let rec validate = function
+    | [] ->
+        validate_unknown "configuration directive" unknown
+    | key::keys ->
+        let keep_validating () =
+          validate keys in
+        let validate_default value validations k () =
+          Option.either
+            keep_validating
+            (fun v ->
+              Hashtbl.replace settings k v;
+              validate_and keep_validating validations v)
+            value in
+        let missing_key k () =
+          `Invalid (sprintf "configuration directive '%s' missing" k) in
+        let name, validations, deal_with_missing =
+          match key with
+          | `Required (k, vs) -> k, vs, missing_key
+          | `Optional (k, def, vs) -> k, vs, validate_default def vs in
+        Hashtbl.remove unknown name;
         Option.either
-          keep_validating
+          (deal_with_missing name)
           (validate_and keep_validating validations)
-          value in
-      let missing_required_key k () =
-        `Invalid (sprintf "configuration directive '%s' missing" k) in
-      let name, validations, deal_with_missing =
-        match key with
-        | `Required (k, vs) -> k, vs, missing_required_key k
-        | `Optional (k, def, vs) -> k, vs, validate_default def vs in
-      Option.either
-        deal_with_missing
-        (validate_and keep_validating validations)
-        (hash_fetch settings name)
+          (hash_find settings name) in
+  validate keys_spec
 
 let validate_keys_and cont keys settings =
-  match validate_keys keys (Hashtbl.copy settings) with
+  match validate_keys keys settings with
   | `Valid -> cont ()
   | `Invalid r -> `Invalid r
 
-let rec validate_sections conf spec =
-  match spec with
-  | [] ->
-      validate_missing "section" conf
-  | section::sections ->
-      let keep_validating () =
-        validate_sections conf sections in
-      let missing_required_section s () =
-        `Invalid (sprintf "section '%s' missing" s) in
-      let name, keys, deal_with_missing =
-        match section with
-        | `Global ks -> global_section, ks, keep_validating
-        | `Required (s, ks) -> s, ks, missing_required_section s
-        | `Optional (s, ks) -> s, ks, keep_validating in
-      Option.either
-        deal_with_missing
-        (validate_keys_and keep_validating keys)
-        (hash_fetch conf name)
+let validate_sections conf spec =
+  let unknown = key_table conf in
+  let rec validate = function
+    | [] ->
+        validate_unknown "section" unknown
+    | section::sections ->
+        let keep_validating () =
+          validate sections in
+        let missing_section s () =
+          `Invalid (sprintf "section '%s' missing" s) in
+        let name, keys, deal_with_missing =
+          match section with
+          | `Global ks -> global_section, ks, keep_validating
+          | `Required (s, ks) -> s, ks, missing_section s
+          | `Optional (s, ks) -> s, ks, keep_validating in
+        Hashtbl.remove unknown name;
+        Option.either
+          deal_with_missing
+          (validate_keys_and keep_validating keys)
+          (hash_find conf name) in
+  validate spec
 
-let validate conf =
-  (* Validation is destructive, so make a copy of the configuration *)
-  validate_sections (Hashtbl.copy conf)
-
-let join_with sep l =
-  List.fold_left (fun joined i -> joined ^ sep ^ (string_of_int i)) "" l
+let validate = validate_sections
 
 exception Error of string
 
 let join_errors errors =
   let concat msg (err, line) = msg ^ (sprintf "%s in line %d\n" err line) in
   List.fold_left concat "" errors
-
-let reset = Release_config_global.reset
 
 let parse file spec =
   let ch = open_in file in
@@ -133,8 +131,7 @@ let parse file spec =
     match Release_config_global.errors () with
     | [] ->
         (try
-          let conf = Hashtbl.copy Release_config_global.configuration in
-          reset ();
+          let conf = Release_config_global.copy () in
           match validate conf spec with
           | `Valid -> `Configuration conf
           | `Invalid reason -> `Error reason

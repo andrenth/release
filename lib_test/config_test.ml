@@ -1,4 +1,5 @@
 open Printf
+open Release_config_types
 open Release_config_validations
 
 let path = "./lib_test"
@@ -26,11 +27,16 @@ let validate_global_list = function
       validate l
   | _ -> `Invalid ("global-list must be a list")
 
+let some_int i = (Some (`Int i))
+let some_bool b = (Some (`Bool b))
+let some_string s = (Some (`Str s))
+let some_int_list l = (Some (`List (List.map (fun x -> `Int x) l)))
+
 let spec =
   [ `Global
       [ `Required ("global_parameter", [validate_global_parameter])
       ; `Optional ("another_global_parameter", Some (`Bool true), [bool])
-      ; `Optional ("global-list", None, [validate_global_list])
+      ; `Optional ("global-list", some_int_list [1], [validate_global_list])
       ]
   ; `Required ("my-required-section",
       [ `Required ("my-required-param", [string])
@@ -48,11 +54,6 @@ let spec =
 
 let getg c k = Release_config.get c k ()
 let get c s k = Release_config.get c ~section:s k ()
-
-let some_int i = (Some (`Int i))
-let some_bool b = (Some (`Bool b))
-let some_string s = (Some (`Str s))
-let some_int_list l = (Some (`List (List.map (fun x -> `Int x) l)))
 
 let () =
   match Release_config.parse (path ^ "/complete.conf") spec with
@@ -76,12 +77,14 @@ let () =
       assert (get conf "second-optional-section" "required-parameter-2"
               = some_string "value2")
   | `Error reason ->
+      printf ">>> %s\n%!" reason;
       assert false
 
 let () =
   match Release_config.parse (path ^ "/missing-optional-values.conf") spec with
   | `Configuration conf ->
       assert (getg conf "global_parameter" = some_int 0);
+      assert (getg conf "global-list" = some_int_list [1]);
 
       assert (get conf "my-required-section" "my-required-param"
               = some_string "required-value");
@@ -91,6 +94,7 @@ let () =
       assert (get conf "first-optional-section" "optional-parameter-2"
               = some_string "value2");
   | `Error reason ->
+      printf ">>> %s\n%!" reason;
       assert false
 
 let () =

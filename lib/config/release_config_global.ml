@@ -1,7 +1,9 @@
 open Printf
 open Release_config_types
 
-let configuration : (string, (string, value) Hashtbl.t) Hashtbl.t =
+type configuration = (string, (string, value) Hashtbl.t) Hashtbl.t
+
+let configuration : configuration =
   Hashtbl.create 10
 
 let configuration_errors : (string * int) Stack.t = Stack.create ()
@@ -49,3 +51,9 @@ let reset () =
   Stack.clear configuration_errors;
   current_section := global_section;
   section global_section
+
+let copy () =
+  let s = Marshal.to_string configuration [] in
+  let c = (Marshal.from_string s 0 : configuration) in
+  reset ();
+  c
