@@ -1,8 +1,10 @@
 open Release_config_types
 
+type t
+
 type key =
   [ `Required of (string * validation list)
-  | `Optional of (string * validation list)
+  | `Optional of (string * value option * validation list)
   ]
 
 type section =
@@ -12,8 +14,6 @@ type section =
   ]
 
 type spec = section list
-
-type t
 
 val parse : Lwt_io.file_name -> spec -> [`Configuration of t | `Error of string]
 val has_section : t -> string -> bool

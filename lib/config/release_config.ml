@@ -5,7 +5,7 @@ module Option = Release_option
 
 type key =
   [ `Required of (string * validation list)
-  | `Optional of (string * validation list)
+  | `Optional of (string * value option * validation list)
   ]
 
 type section =
@@ -65,12 +65,17 @@ let rec validate_keys keys settings =
   | key::rest ->
       let keep_validating () =
         validate_keys rest settings in
+      let validate_default value validations () =
+        Option.either
+          keep_validating
+          (validate_and keep_validating validations)
+          value in
       let missing_required_key k () =
         `Invalid (sprintf "configuration directive '%s' missing" k) in
       let name, validations, deal_with_missing =
         match key with
         | `Required (k, vs) -> k, vs, missing_required_key k
-        | `Optional (k, vs) -> k, vs, keep_validating in
+        | `Optional (k, def, vs) -> k, vs, validate_default def vs in
       Option.either
         deal_with_missing
         (validate_and keep_validating validations)
