@@ -27,24 +27,19 @@ let validate_global_list = function
       validate l
   | _ -> `Invalid ("global-list must be a list")
 
-let some_int i = (Some (`Int i))
-let some_bool b = (Some (`Bool b))
-let some_string s = (Some (`Str s))
-let some_int_list l = (Some (`List (List.map (fun x -> `Int x) l)))
-
 let spec =
   [ `Global
       [ `Required ("global_parameter", [validate_global_parameter])
       ; `Optional ("another_global_parameter", Some (`Bool true), [bool])
-      ; `Optional ("global-list", some_int_list [1], [validate_global_list])
+      ; `Optional ("global-list", default_int_list [1], [validate_global_list])
       ]
   ; `Required ("my-required-section",
       [ `Required ("my-required-param", [string])
-      ; `Optional ("my-optional-param", Some (`Str "opt"), [string])
+      ; `Optional ("my-optional-param", default_string "opt", [string])
       ])
   ; `Optional ("first-optional-section",
-      [ `Optional ("optional-parameter-1", Some (`Str "opt1"), [string])
-      ; `Optional ("optional-parameter-2", Some (`Str "opt2"), [string])
+      [ `Optional ("optional-parameter-1", default_string "opt1", [string])
+      ; `Optional ("optional-parameter-2", default_string "opt2", [string])
       ])
   ; `Optional ("second-optional-section",
       [ `Required ("required-parameter-1", [string])
@@ -52,30 +47,30 @@ let spec =
       ])
   ]
 
-let getg c k = Release_config.get c k ()
-let get c s k = Release_config.get c ~section:s k ()
+let getg c k = Release_config.get_exn c k ()
+let get c s k = Release_config.get_exn c ~section:s k ()
 
 let () =
   match Release_config.parse (path ^ "/complete.conf") spec with
   | `Configuration conf ->
-      assert (getg conf "global_parameter" = some_int 0);
-      assert (getg conf "another_global_parameter" = some_bool true);
-      assert (getg conf "global-list" = some_int_list [1;2;3;4]);
+      assert (getg conf "global_parameter" = `Int 0);
+      assert (getg conf "another_global_parameter" = `Bool true);
+      assert (getg conf "global-list" = `List [`Int 1; `Int 2; `Int 3; `Int 4]);
 
       assert (get conf "my-required-section" "my-required-param"
-              = some_string "required-value");
+              = `Str "required-value");
       assert (get conf "my-required-section" "my-optional-param"
-              = some_string "optional-value");
+              = `Str "optional-value");
 
       assert (get conf "first-optional-section" "optional-parameter-1"
-              = some_string "value1");
+              = `Str "value1");
       assert (get conf "first-optional-section" "optional-parameter-2"
-              = some_string "value2");
+              = `Str "value2");
 
       assert (get conf "second-optional-section" "required-parameter-1"
-              = some_string "value1");
+              = `Str "value1");
       assert (get conf "second-optional-section" "required-parameter-2"
-              = some_string "value2")
+              = `Str "value2")
   | `Error reason ->
       printf ">>> %s\n%!" reason;
       assert false
@@ -83,16 +78,16 @@ let () =
 let () =
   match Release_config.parse (path ^ "/missing-optional-values.conf") spec with
   | `Configuration conf ->
-      assert (getg conf "global_parameter" = some_int 0);
-      assert (getg conf "global-list" = some_int_list [1]);
+      assert (getg conf "global_parameter" = `Int 0);
+      assert (getg conf "global-list" = `List [`Int 1]);
 
       assert (get conf "my-required-section" "my-required-param"
-              = some_string "required-value");
+              = `Str "required-value");
 
       assert (get conf "first-optional-section" "optional-parameter-1"
-              = some_string "value1");
+              = `Str "value1");
       assert (get conf "first-optional-section" "optional-parameter-2"
-              = some_string "value2");
+              = `Str "value2");
   | `Error reason ->
       printf ">>> %s\n%!" reason;
       assert false
