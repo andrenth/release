@@ -39,3 +39,12 @@ let float_list_value = function
 let string_list_value = function
   | `List l -> List.map string_value l
   | _ -> invalid_arg "string_list_value"
+
+let default_bool b = Some (`Bool b)
+let default_int i = Some (`Int i)
+let default_float f = Some (`Float f)
+let default_string s = Some (`Str s)
+let default_bool_list l = Some (`List (List.map (fun b -> `Bool b) l))
+let default_int_list l = Some (`List (List.map (fun i -> `Int i) l))
+let default_float_list l = Some (`List (List.map (fun f -> `Float f) l))
+let default_string_list l = Some (`List (List.map (fun s -> `Str s) l))
