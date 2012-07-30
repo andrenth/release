@@ -39,28 +39,31 @@ let () = section G.global_section
 
 %%
 
-input: /* empty */           { }
-     | input line            { }
-     | error NEWLINE         { G.syntax_error (current_line ()) }
+input: /* empty */                { }
+     | input line                 { }
+     | error NEWLINE              { G.syntax_error (current_line ()) }
      ;
 
-line: NEWLINE                { }
-    | COMMENT                { }
-    | LBRACKET WORD RBRACKET { section $2 }
-    | keyval NEWLINE         { }
-    | keyval COMMENT         { }
+line: NEWLINE                     { }
+    | COMMENT                     { }
+    | LBRACKET WORD RBRACKET      { section $2 }
+    | keyval NEWLINE              { }
+    | keyval COMMENT              { }
     ;
 
-keyval: WORD EQUALS value    { key $1 $3 }
-      | WORD EQUALS listval  { key $1 (`List $3) }
+keyval: WORD EQUALS value         { key $1 $3 }
+      | WORD EQUALS listval       { key $1 $3 }
       ;
 
-value: INTEGER               { `Int $1 }
-     | FLOAT                 { `Float $1 }
-     | BOOL                  { `Bool $1 }
-     | WORD                  { `Str $1 }
+value: INTEGER                    { `Int $1 }
+     | FLOAT                      { `Float $1 }
+     | BOOL                       { `Bool $1 }
+     | WORD                       { `Str $1 }
      ;
 
-listval: value               { [$1] }
-       | value COMMA listval { $1::$3 }
+listval: LBRACKET values RBRACKET { `List (List.rev $2) }
        ;
+
+values: values COMMA value { $3::$1 }
+      | value              { [$1] }
+      ;
