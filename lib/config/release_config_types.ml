@@ -24,21 +24,14 @@ let string_value = function
   | `Str s -> s
   | _ -> invalid_arg "string_value"
 
-let bool_list_value = function
-  | `List l -> List.map bool_value l
-  | _ -> invalid_arg "bool_list_value"
+let list_value name f = function
+  | `List l -> List.map f l
+  | _ -> invalid_arg name
 
-let int_list_value = function
-  | `List l -> List.map int_value l
-  | _ -> invalid_arg "int_list_value"
-
-let float_list_value = function
-  | `List l -> List.map float_value l
-  | _ -> invalid_arg "float_list_value"
-
-let string_list_value = function
-  | `List l -> List.map string_value l
-  | _ -> invalid_arg "string_list_value"
+let bool_list_value l = list_value "bool_list_value" bool_value l
+let int_list_value l = list_value "int_list_value" int_value l
+let float_list_value l = list_value "float_list_value" float_value l
+let string_list_value l = list_value "string_list_value" string_value l
 
 let default_bool b = Some (`Bool b)
 let default_int i = Some (`Int i)
