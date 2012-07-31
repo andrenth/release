@@ -22,6 +22,9 @@ let map f = function
   | None -> None
   | Some x -> Some (f x)
 
+let choose o1 o2 =
+  if o1 = None then o2 else o1
+
 let apply z x = function
   | None -> z
   | Some f -> f x
