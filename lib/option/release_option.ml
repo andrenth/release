@@ -3,7 +3,7 @@ let either g f = function
   | Some x -> f x
 
 let some = function
-  | None -> failwith "Option.some: None value"
+  | None -> failwith "Release_option.some: None value"
   | Some x -> x
 
 let default z = function
