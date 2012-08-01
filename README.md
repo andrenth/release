@@ -202,7 +202,9 @@ The output of `Release_ipc.Make` is a module with the signature below.
                       -> ([`Response of response | `EOF | `Timeout] -> 'a Lwt.t)
                       -> 'a Lwt.t
     
-      val handle_request : Lwt_unix.file_descr
+      val handle_request : ?timeout:float
+                        -> ?eof_warning:bool
+                        -> Lwt_unix.file_descr
                         -> (request -> response Lwt.t)
                         -> unit Lwt.t
     end

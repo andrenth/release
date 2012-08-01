@@ -81,6 +81,7 @@ module type S = sig
         as a parameter and automatically converts it to an IPC message. *)
 
   val handle_request : ?timeout:float
+                    -> ?eof_warning:bool
                     -> Lwt_unix.file_descr
                     -> (request -> response Lwt.t)
                     -> unit Lwt.t

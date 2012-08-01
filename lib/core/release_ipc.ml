@@ -52,6 +52,7 @@ module type S = sig
                   -> 'a Lwt.t
 
   val handle_request : ?timeout:float
+                    -> ?eof_warning:bool
                     -> Lwt_unix.file_descr
                     -> (request -> response Lwt.t)
                     -> unit Lwt.t
@@ -117,13 +118,15 @@ struct
     lwt res = read_response ?timeout fd in
     handler res
 
-  let handle_request ?timeout fd handler =
+  let handle_request ?timeout ?(eof_warning = true) fd handler =
     let rec handle_req () =
       match_lwt read ?timeout fd with
       | `Timeout ->
           raise_lwt (Failure "read from slave shouldn't timeout")
       | `EOF ->
-          lwt () = Lwt_log.notice "got EOF on IPC socket" in
+          lwt () =
+            if eof_warning then Lwt_log.warning "got EOF on IPC socket"
+            else return () in
           Lwt_unix.close fd
       | `Data req ->
           let _resp_t =
