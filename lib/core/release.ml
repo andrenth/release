@@ -290,9 +290,9 @@ let lose_privileges user =
     exit 1
 
 let me ?(syslog = true) ?user ~main () =
-  if syslog then setup_syslog ();
   let main_t =
     lwt () = Option.either check_nonroot lose_privileges user in
+    if syslog then setup_syslog ();
     let ipc_fd = Lwt_unix.dup Lwt_unix.stdin in
     lwt () = Lwt_unix.close Lwt_unix.stdin in
     lwt () = Lwt_log.info "starting up" in
