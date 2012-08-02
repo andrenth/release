@@ -244,12 +244,19 @@ let handle_sigterm lock_file control _ =
   Lwt_main.run (log_t >> (ctrl_t <&> lock_t));
   exit 143
 
-
 let curry f (x, y) = f x y
+
+let setup_syslog () =
+  try
+    Lwt_log.default := Lwt_log.syslog ~facility:`Daemon ()
+  with e ->
+    let err = Printexc.to_string e in
+    fprintf stderr "could not setup syslog: %s" err;
+    exit 1
 
 let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
                   ?control ?main ~lock_file ~slaves () =
-  if syslog then Lwt_log.default := Lwt_log.syslog ~facility:`Daemon ();
+  if syslog then setup_syslog ();
   let create_slaves (path, ipc_handler, n) =
     for_lwt i = 1 to n do
       let exec_slave = init_exec_slave num_exec_tries in
@@ -283,7 +290,7 @@ let lose_privileges user =
     exit 1
 
 let me ?(syslog = true) ?user ~main () =
-  if syslog then Lwt_log.default := Lwt_log.syslog ~facility:`Daemon ();
+  if syslog then setup_syslog ();
   let main_t =
     lwt () = Option.either check_nonroot lose_privileges user in
     let ipc_fd = Lwt_unix.dup Lwt_unix.stdin in
