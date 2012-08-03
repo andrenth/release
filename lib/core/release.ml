@@ -90,9 +90,6 @@ let remove_lock_file path =
           "pid mismatch in lock file: found %d, mine is %d; not removing"
           pid mypid
 
-let remove_control_socket (path, _) =
-  Lwt_unix.unlink path
-
 let check_user test msg =
   if not (test (Unix.getuid ())) then
     lwt () = Lwt_log.error_f "%s %s" Sys.argv.(0) msg in
@@ -235,13 +232,9 @@ let init_exec_slave max_tries =
 let handle_sigterm lock_file control _ =
   let log_t =
     Lwt_log.notice "got sigterm, exiting" in
-  let ctrl_t =
-    Option.either return remove_control_socket control in
-  let lock_t =
-    remove_lock_file lock_file in
   Sys.set_signal Sys.sigterm Sys.Signal_ignore;
   Unix.kill 0 15;
-  Lwt_main.run (log_t >> (ctrl_t <&> lock_t));
+  Lwt_main.run log_t;
   exit 143
 
 let curry f (x, y) = f x y
@@ -253,6 +246,11 @@ let setup_syslog () =
     let err = Printexc.to_string e in
     fprintf stderr "could not setup syslog: %s" err;
     exit 1
+
+let master_cleanup control lock_file () =
+  lwt () = Option.either return (fun (s, _) -> Lwt_unix.unlink s) control in
+  lwt () = remove_lock_file lock_file in
+  return ()
 
 let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
                   ?control ?main ~lock_file ~slaves () =
@@ -275,6 +273,7 @@ let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
   let main_t =
     lwt () = if privileged then check_root () else check_nonroot () in
     if background then daemon work else work () in
+  Lwt_main.at_exit (master_cleanup control lock_file);
   Lwt_main.run main_t
 
 let master_slave ~slave =
