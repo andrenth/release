@@ -37,6 +37,41 @@ let int_in_range (min, max) = function
   | _ ->
       `Invalid "int_in_range: not an int"
 
+let int_greater_than min = function
+  | `Int x ->
+      if x > min then `Valid
+      else `Invalid (sprintf "int_greater_than: %d not greater than %d" x min)
+  | _ ->
+      `Invalid "int_greater_than: not an int"
+
+let int_less_than max = function
+  | `Int x ->
+      if x < max then `Valid
+      else `Invalid (sprintf "int_less_than: %d not less than %d" x max)
+  | _ ->
+      `Invalid "int_less_than: not an int"
+
+let float_in_range (min, max) = function
+  | `Float x ->
+      if x >= min && x <= max then `Valid
+      else `Invalid "float_in_range: not in range"
+  | _ ->
+      `Invalid "float_in_range: not a float"
+
+let float_greater_than min = function
+  | `Float x ->
+      if x > min then `Valid
+      else `Invalid (sprintf "float_greater_than: %f not greater than %f" x min)
+  | _ ->
+      `Invalid "float_greater_than: not a float"
+
+let float_less_than max = function
+  | `Float x ->
+      if x < max then `Valid
+      else `Invalid (sprintf "float_less_than: %f not less than %f" x max)
+  | _ ->
+      `Invalid "float_less_than: not a float"
+
 let string_matching re = function
   | `Str s ->
       if Str.string_match (Str.regexp re) s 0 then
