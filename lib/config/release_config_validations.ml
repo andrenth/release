@@ -100,43 +100,43 @@ let file_with f name err = function
 
 let existing_file =
   file_with
-    (fun _ -> true) 
+    (fun _ -> true)
     "existing_file"
     "does not exist"
 
 let regular_file =
   file_with
-    (fun st -> st.Unix.st_kind = Unix.S_REG) 
+    (fun st -> st.Unix.st_kind = Unix.S_REG)
     "regular_file"
     "is not a regular file"
 
 let block_device =
   file_with
-    (fun st -> st.Unix.st_kind = Unix.S_BLK) 
+    (fun st -> st.Unix.st_kind = Unix.S_BLK)
     "block_device"
     "is not a block device"
 
 let character_device =
   file_with
-    (fun st -> st.Unix.st_kind = Unix.S_CHR) 
+    (fun st -> st.Unix.st_kind = Unix.S_CHR)
     "character_device"
     "is not a character device"
 
 let symbolic_link =
   file_with
-    (fun st -> st.Unix.st_kind = Unix.S_LNK) 
+    (fun st -> st.Unix.st_kind = Unix.S_LNK)
     "symbolic_link"
     "is not a symbolic link"
 
 let named_pipe =
   file_with
-    (fun st -> st.Unix.st_kind = Unix.S_FIFO) 
+    (fun st -> st.Unix.st_kind = Unix.S_FIFO)
     "named_pipe"
     "is not a named pipe"
 
 let unix_socket =
   file_with
-    (fun st -> st.Unix.st_kind = Unix.S_SOCK) 
+    (fun st -> st.Unix.st_kind = Unix.S_SOCK)
     "unix_socket"
     "is not a unix socket"
 
@@ -148,7 +148,7 @@ let file_with_mode m =
 
 let nonempty_file =
   file_with
-    (fun st -> st.Unix.st_size > 0) 
+    (fun st -> st.Unix.st_size > 0)
     "nonempty_file"
     "is empty"
 
