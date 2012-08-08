@@ -32,8 +32,10 @@ let string_list = any_list "string" string
 
 let int_in_range (min, max) = function
   | `Int x ->
-      if x >= min && x <= max then `Valid
-      else `Invalid "int_in_range: not in range"
+      if x >= min && x <= max then
+        `Valid
+      else
+        `Invalid (sprintf "int_in_range: %d not in range [%d, %d]" x min max)
   | _ ->
       `Invalid "int_in_range: not an int"
 
@@ -53,8 +55,10 @@ let int_less_than max = function
 
 let float_in_range (min, max) = function
   | `Float x ->
-      if x >= min && x <= max then `Valid
-      else `Invalid "float_in_range: not in range"
+      if x >= min && x <= max then
+        `Valid
+      else
+        `Invalid (sprintf "float_in_range: %f not in range [%f, %f]" x min max)
   | _ ->
       `Invalid "float_in_range: not a float"
 
