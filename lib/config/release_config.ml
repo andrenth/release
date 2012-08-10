@@ -132,6 +132,9 @@ let parse file spec =
     | [] ->
         (try
           let conf = Release_config_global.copy () in
+          let global = Hashtbl.find conf global_section in
+          if Hashtbl.length global = 0 then
+            Hashtbl.remove conf global_section;
           match validate conf spec with
           | `Valid -> `Configuration conf
           | `Invalid reason -> `Error reason
