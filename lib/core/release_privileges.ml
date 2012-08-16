@@ -3,8 +3,6 @@ open Lwt
 
 exception Release_privileges_error of string
 
-module U = ExtUnix.Specific
-
 let drop user =
   try_lwt
     lwt pw = Lwt_unix.getpwnam user in
@@ -18,8 +16,8 @@ let drop user =
         lwt () = Lwt_unix.chroot dir in
         lwt () = Lwt_unix.chdir "/" in
         Unix.setgroups [|gid|];
-        U.setresgid gid gid gid;
-        U.setresuid uid uid uid;
+        Unix.setgid gid;
+        Unix.setuid uid;
         return ()
   with
   | Not_found ->
