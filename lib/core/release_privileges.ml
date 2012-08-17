@@ -3,6 +3,12 @@ open Lwt
 
 exception Release_privileges_error of string
 
+let check_priv name f exp =
+  if f () <> exp then 
+    raise_lwt (Release_privileges_error name)
+  else
+    return ()
+
 let drop user =
   try_lwt
     lwt pw = Lwt_unix.getpwnam user in
@@ -18,6 +24,10 @@ let drop user =
         Unix.setgroups [|gid|];
         Unix.setgid gid;
         Unix.setuid uid;
+        lwt () = check_priv "getgid" Unix.getgid gid in
+        lwt () = check_priv "getegid" Unix.getegid gid in
+        lwt () = check_priv "getuid" Unix.getuid uid in
+        lwt () = check_priv "geteuid" Unix.geteuid uid in
         return ()
   with
   | Not_found ->
