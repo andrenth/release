@@ -1,8 +1,9 @@
 # OASIS_START
-# DO NOT EDIT (digest: 833924ae3bf1157fce67533c4a793e3e)
+# DO NOT EDIT (digest: e77b1c95f474dd3f867a7c40be13877c)
 version = "0.1.0"
 description = "OCaml daemon framework"
-requires = "lwt lwt.unix lwt.syntax release.option release.buffer"
+requires =
+"lwt lwt.preemptive lwt.unix lwt.syntax release.option release.buffer threads"
 archive(byte) = "release.cma"
 archive(byte, plugin) = "release.cma"
 archive(native) = "release.cmxa"
