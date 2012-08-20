@@ -8,7 +8,7 @@ let validate_global_parameter = function
   | `Int i ->
       if i = 0 || i = 1 then `Valid
       else `Invalid ("global_parameter must be a binary number")
-  | _ -> `Invalid ("global_parameter must be a binary number")
+  | _ -> `Invalid ("global_parameter must be a number")
 
 let validate_list_element = function
   | `Int i ->
@@ -27,11 +27,17 @@ let validate_global_list = function
       validate l
   | _ -> `Invalid ("global-list must be a list")
 
+let validate_empty_list = function
+  | `List [] -> `Valid
+  | `List _ -> `Invalid ("empty list not empty")
+  | _ -> `Invalid ("global-list must be a list")
+
 let spec =
   [ `Global
       [ `Required ("global_parameter", [validate_global_parameter])
       ; `Optional ("another_global_parameter", Some (`Bool true), [bool])
       ; `Optional ("global-list", default_int_list [1], [validate_global_list])
+      ; `Optional ("empty-list", default_string_list [], [validate_empty_list])
       ]
   ; `Required ("my-required-section",
       [ `Required ("my-required-param", [string])
@@ -75,6 +81,7 @@ let () =
       printf ">>> %s\n%!" reason;
       assert false
 
+(*
 let () =
   match Release_config.parse (path ^ "/missing-optional-values.conf") spec with
   | `Configuration conf ->
@@ -108,3 +115,4 @@ let () =
       assert false
   | `Error err ->
       assert (err = "configuration directive 'required-parameter-1' missing")
+*)

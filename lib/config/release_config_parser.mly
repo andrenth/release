@@ -61,7 +61,8 @@ value: INTEGER                    { `Int $1 }
      | WORD                       { `Str $1 }
      ;
 
-listval: LBRACKET values RBRACKET { `List (List.rev $2) }
+listval: LBRACKET RBRACKET        { `List [] }
+       | LBRACKET values RBRACKET { `List (List.rev $2) }
        ;
 
 values: values COMMA value { $3::$1 }
