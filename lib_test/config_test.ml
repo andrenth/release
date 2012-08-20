@@ -14,6 +14,7 @@ let validate_list_element = function
   | `Int i ->
       if i >= 0 && i <= 5 then `Valid
       else `Invalid ("global-list elements be 0 <= x <= 5")
+  | `Str x -> `Invalid ("foo " ^ x)
   | _ -> `Invalid ("global-list must be a list of integers")
 
 let validate_global_list = function
@@ -62,6 +63,7 @@ let () =
       assert (getg conf "global_parameter" = `Int 0);
       assert (getg conf "another_global_parameter" = `Bool true);
       assert (getg conf "global-list" = `List [`Int 1; `Int 2; `Int 3; `Int 4]);
+      assert (getg conf "empty-list" = `List []);
 
       assert (get conf "my-required-section" "my-required-param"
               = `Str "required-value");
@@ -81,7 +83,6 @@ let () =
       printf ">>> %s\n%!" reason;
       assert false
 
-(*
 let () =
   match Release_config.parse (path ^ "/missing-optional-values.conf") spec with
   | `Configuration conf ->
@@ -115,4 +116,3 @@ let () =
       assert false
   | `Error err ->
       assert (err = "configuration directive 'required-parameter-1' missing")
-*)
