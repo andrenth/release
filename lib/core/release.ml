@@ -234,7 +234,7 @@ let handle_sigterm lock_file control _ =
     Lwt_log.notice "got sigterm, exiting" in
   Sys.set_signal Sys.sigterm Sys.Signal_ignore;
   Unix.kill 0 15;
-  Lwt_preemptive.run_in_main (fun () -> log_t);
+  Lwt_main.run log_t;
   exit 143
 
 let curry f (x, y) = f x y

@@ -10,13 +10,11 @@ Plugins:     META (0.3)
 
 Library "release"
   Path:             lib/core
-  BuildDepends:     lwt (>= 2.4.0),
-                    lwt.preemptive (>= 2.4.0),
-                    lwt.unix (>= 2.4.0),
-                    lwt.syntax (>= 2.4.0),
+  BuildDepends:     lwt (>= 2.3.2),
+                    lwt.unix (>= 2.3.2),
+                    lwt.syntax (>= 2.3.2),
                     release.option,
-                    release.buffer,
-                    threads
+                    release.buffer
   CompiledObject:   best
   Modules:          Release,
                     Release_io,
@@ -30,9 +28,9 @@ Library "release-buffer"
   FindlibName:      buffer
   FindlibParent:    release
   CompiledObject:   best
-  BuildDepends:     lwt (>= 2.4.0),
-                    lwt.unix (>= 2.4.0),
-                    lwt.syntax (>= 2.4.0)
+  BuildDepends:     lwt (>= 2.3.2),
+                    lwt.unix (>= 2.3.2),
+                    lwt.syntax (>= 2.3.2)
   Modules:          Release_buffer
   XMETADescription: Buffer type for Release
 
