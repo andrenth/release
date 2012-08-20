@@ -28,6 +28,7 @@ let () = section G.global_section
 %token <float> FLOAT
 %token <bool> BOOL
 %token <string> STRING
+%token <Str.regexp> REGEXP
 %token EQUALS
 %token NEWLINE
 %token LBRACKET
@@ -57,6 +58,7 @@ value: INTEGER                    { `Int $1 }
      | FLOAT                      { `Float $1 }
      | BOOL                       { `Bool $1 }
      | STRING                     { `Str $1 }
+     | REGEXP                     { `Regexp $1 }
      ;
 
 listval: LBRACKET RBRACKET        { `List [] }

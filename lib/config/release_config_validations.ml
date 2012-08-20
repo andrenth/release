@@ -16,6 +16,10 @@ let string = function
   | `Str _ -> `Valid
   | _ -> `Invalid "string: not a string"
 
+let regexp = function
+  | `Regexp _ -> `Valid
+  | _ -> `Invalid "regexp: not a regular expression"
+
 let any_list name f = function
   | `List l ->
       if List.exists (fun x -> f x <> `Valid) l then

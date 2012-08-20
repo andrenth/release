@@ -3,6 +3,7 @@ type value =
   | `Float of float
   | `Bool of bool
   | `Str of string
+  | `Regexp of Str.regexp
   | `List of (value list)
   ]
 
@@ -24,6 +25,10 @@ let string_value = function
   | `Str s -> s
   | _ -> invalid_arg "string_value"
 
+let regexp_value = function
+  | `Regexp r -> r
+  | _ -> invalid_arg "regexp_value"
+
 let list_value name f = function
   | `List l -> List.map f l
   | _ -> invalid_arg name
@@ -37,6 +42,7 @@ let default_bool b = Some (`Bool b)
 let default_int i = Some (`Int i)
 let default_float f = Some (`Float f)
 let default_string s = Some (`Str s)
+let default_regexp r = Some (`Regexp r)
 let default_bool_list l = Some (`List (List.map (fun b -> `Bool b) l))
 let default_int_list l = Some (`List (List.map (fun i -> `Int i) l))
 let default_float_list l = Some (`List (List.map (fun f -> `Float f) l))

@@ -47,6 +47,7 @@ rule token = parse
   | digit+ "." digit+ as f { FLOAT (float_of_string f) }
   | boolean as b           { BOOL (bool_of_string b) }               
   | '"'                    { STRING (str (Buffer.create 16) lexbuf) }
+  | '/'                    { REGEXP (regexp (Buffer.create 16) lexbuf) }
   | ident as id            { IDENT id }
   | _                      { token lexbuf }
   | eof                    { raise End_of_file }
@@ -79,4 +80,33 @@ and str buf = parse
       {
         Buffer.add_char buf c;
         str buf lexbuf
+      }
+
+and regexp buf = parse
+  | '/'
+      {
+        Str.regexp (Buffer.contents buf)
+      }
+  | '(' as p
+  | ')' as p
+  | '|' as p
+      {
+        Buffer.add_string buf "\\";
+        Buffer.add_char buf p;
+        regexp buf lexbuf
+      }
+  | '\\' '/'
+      {
+        Buffer.add_char buf '/';
+        regexp buf lexbuf
+      }
+  | '\\' ['\\' '\'' '"' 'n' 't' 'b' 'r' ' ']
+      {
+        Buffer.add_char buf (char_for_backslash (Lexing.lexeme_char lexbuf 1));
+        regexp buf lexbuf
+      }
+  | _ as c
+      {
+        Buffer.add_char buf c;
+        regexp buf lexbuf
       }

@@ -39,6 +39,7 @@ let spec =
       ; `Optional ("another_global_parameter", Some (`Bool true), [bool])
       ; `Optional ("global-list", default_int_list [1], [validate_global_list])
       ; `Optional ("empty-list", default_string_list [], [validate_empty_list])
+      ; `Optional ("a-regexp", default_regexp (Str.regexp "."), [regexp])
       ]
   ; `Required ("my-required-section",
       [ `Required ("my-required-param", [string])
@@ -64,6 +65,7 @@ let () =
       assert (getg conf "another_global_parameter" = `Bool true);
       assert (getg conf "global-list" = `List [`Int 1; `Int 2; `Int 3; `Int 4]);
       assert (getg conf "empty-list" = `List []);
+      assert (Str.string_match (regexp_value (getg conf "a-regexp")) "foo" 0);
 
       assert (get conf "my-required-section" "my-required-param"
               = `Str "required-value");
