@@ -25,7 +25,7 @@ let control_connection_handler fd =
         let get_conns = Option.some !slave_connections in
         let slave_conns = get_conns () in
         lwt () = Lwt_list.iter_p
-          (fun fd -> SlaveIpc.write_response fd (SlaveIpcOps.Broadcast s))
+          (fun (_, fd) -> SlaveIpc.write_response fd (SlaveIpcOps.Broadcast s))
           slave_conns in
         return (ControlIpcOps.Broadcast_sent) in
   ControlIpc.handle_request ~timeout:5. fd handler

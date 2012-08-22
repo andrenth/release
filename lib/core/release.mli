@@ -29,14 +29,15 @@ val daemon : (unit -> unit Lwt.t) -> unit Lwt.t
           redirects [stdin], [stdout] and [stderr] to [/dev/null] and
           calls [f]. *)
 
-val master_slave : slave:(Lwt_io.file_name * Release_ipc.handler)
-                -> ?background:bool
-                -> ?syslog:bool
-                -> ?privileged:bool
-                -> ?control:(Lwt_io.file_name * Release_ipc.handler)
-                -> ?main:((unit -> Lwt_unix.file_descr list) -> unit Lwt.t)
-                -> lock_file:Lwt_io.file_name
-                -> unit -> unit
+val master_slave :
+       slave:(Lwt_io.file_name * Release_ipc.handler)
+    -> ?background:bool
+    -> ?syslog:bool
+    -> ?privileged:bool
+    -> ?control:(Lwt_io.file_name * Release_ipc.handler)
+    -> ?main:((unit -> (int * Lwt_unix.file_descr) list) -> unit Lwt.t)
+    -> lock_file:Lwt_io.file_name
+    -> unit -> unit
   (** Sets up a master process with one slave.
 
       [slave] is a tuple whose first element contains the path to the slave
@@ -70,14 +71,15 @@ val master_slave : slave:(Lwt_io.file_name * Release_ipc.handler)
       exists and contains the PID of a running process, the master will refuse
       to start. *)
 
-val master_slaves : ?background:bool
-                 -> ?syslog:bool
-                 -> ?privileged:bool
-                 -> ?control:(Lwt_io.file_name * Release_ipc.handler)
-                 -> ?main:((unit -> Lwt_unix.file_descr list) -> unit Lwt.t)
-                 -> lock_file:Lwt_io.file_name
-                 -> slaves:(Lwt_io.file_name * Release_ipc.handler * int) list
-                 -> unit -> unit
+val master_slaves :
+       ?background:bool
+    -> ?syslog:bool
+    -> ?privileged:bool
+    -> ?control:(Lwt_io.file_name * Release_ipc.handler)
+    -> ?main:((unit -> (int * Lwt_unix.file_descr) list) -> unit Lwt.t)
+    -> lock_file:Lwt_io.file_name
+    -> slaves:(Lwt_io.file_name * Release_ipc.handler * int) list
+    -> unit -> unit
    (** This function generalizes {!master_slave}, taking the same arguments,
        except for [slave], which is substituted by [slaves]. This argument is
        a list of 3-element tuples. The first element of the tuple is the path

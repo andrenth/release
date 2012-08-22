@@ -133,39 +133,40 @@ let signame s =
   else
     string_of_int s
 
-module ConnSet = Set.Make(struct
-  type t = Lwt_unix.file_descr
+module ConnMap = Map.Make(struct
+  type t = int
   let compare = compare
 end)
 
-let slave_connection_set = ref ConnSet.empty
-let slave_connection_set_mtx = Lwt_mutex.create ()
+let slave_connection_map = ref ConnMap.empty
+let slave_connection_map_mtx = Lwt_mutex.create ()
 
-let add_slave_connection fd =
-  lwt () = Lwt_mutex.lock slave_connection_set_mtx in
-  slave_connection_set := ConnSet.add fd !slave_connection_set;
-  Lwt_mutex.unlock slave_connection_set_mtx;
+let add_slave_connection pid fd =
+  lwt () = Lwt_mutex.lock slave_connection_map_mtx in
+  slave_connection_map := ConnMap.add pid fd !slave_connection_map;
+  Lwt_mutex.unlock slave_connection_map_mtx;
   return ()
 
-let remove_slave_connection fd =
-  lwt () = Lwt_mutex.lock slave_connection_set_mtx in
-  slave_connection_set := ConnSet.remove fd !slave_connection_set;
-  Lwt_mutex.unlock slave_connection_set_mtx;
+let remove_slave_connection pid =
+  lwt () = Lwt_mutex.lock slave_connection_map_mtx in
+  slave_connection_map := ConnMap.remove pid !slave_connection_map;
+  Lwt_mutex.unlock slave_connection_map_mtx;
   return ()
 
 let slave_connections () =
-  ConnSet.elements !slave_connection_set
+  ConnMap.bindings !slave_connection_map
 
 let handle_process master_fd reexec proc =
   let log fmt = ksprintf (fun s -> Lwt_log.notice_f "process %s" s) fmt in
   let pid = proc#pid in
+  lwt () = add_slave_connection pid master_fd in
   lwt () = log "creating child process %d" pid in
   lwt () = match_lwt proc#status with
   | Lwt_unix.WEXITED 0 -> log "%d exited normally" pid
   | Lwt_unix.WEXITED s -> log "%d exited with status %s" pid (signame s)
   | Lwt_unix.WSIGNALED s -> log "%d signaled to death by %s" pid (signame s)
   | Lwt_unix.WSTOPPED s -> log "%d stopped by signal %s" pid (signame s) in
-  lwt () = remove_slave_connection master_fd in
+  lwt () = remove_slave_connection pid in
   reexec ()
 
 let setup_ipc ipc_handler =
@@ -191,7 +192,6 @@ let restrict_env () =
 let rec exec_process path ipc_handler check_death_rate =
   lwt () = check_death_rate () in
   let master_fd, slave_fd = setup_ipc ipc_handler in
-  lwt () = add_slave_connection master_fd in
   let argv =
     Array.init (Array.length Sys.argv)
     (fun i -> if i = 0 then path else Sys.argv.(i)) in
