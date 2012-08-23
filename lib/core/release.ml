@@ -237,9 +237,12 @@ let signal_slaves signum =
     (slave_connections ())
 
 let handle_sigterm lock_file control _ =
-  ignore_result (Lwt_log.notice "got sigterm, exiting");
-  ignore_result (signal_slaves 15);
-  exit 143
+  Lwt.async
+    (fun () ->
+      lwt () = Lwt_log.notice "got sigterm, signaling child processes" in
+      lwt () = signal_slaves 15 in
+      lwt () = Lwt_log.notice "exiting" in
+      exit 143)
 
 let curry f (x, y) = f x y
 

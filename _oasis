@@ -10,9 +10,9 @@ Plugins:     META (0.3)
 
 Library "release"
   Path:             lib/core
-  BuildDepends:     lwt (>= 2.3.2),
-                    lwt.unix (>= 2.3.2),
-                    lwt.syntax (>= 2.3.2),
+  BuildDepends:     lwt (>= 2.4.0),
+                    lwt.syntax (>= 2.4.0),
+                    lwt.unix (>= 2.4.0),
                     release.option,
                     release.buffer
   CompiledObject:   best
@@ -28,9 +28,9 @@ Library "release-buffer"
   FindlibName:      buffer
   FindlibParent:    release
   CompiledObject:   best
-  BuildDepends:     lwt (>= 2.3.2),
-                    lwt.unix (>= 2.3.2),
-                    lwt.syntax (>= 2.3.2)
+  BuildDepends:     lwt (>= 2.4.0),
+                    lwt.syntax (>= 2.4.0),
+                    lwt.unix (>= 2.4.0)
   Modules:          Release_buffer
   XMETADescription: Buffer type for Release
 
@@ -50,10 +50,10 @@ Library "release-config"
   FindlibName:      config
   FindlibParent:    release
   Path:             lib/config
-  BuildDepends:     str,
-                    unix,
-                    lwt,
-                    release.option
+  BuildDepends:     lwt,
+                    release.option,
+                    str,
+                    unix
   BuildTools+:      ocamllex, ocamlyacc
   CompiledObject:   best
   Modules:          Release_config,
@@ -84,10 +84,10 @@ Executable test_master
   MainIs:          master.ml
   Install:         false
   CompiledObject:  best
-  BuildDepends:    release,
-                   lwt,
+  BuildDepends:    lwt,
                    lwt.unix,
                    lwt.syntax,
+                   release,
                    str
 
 Executable test_slave
@@ -95,10 +95,10 @@ Executable test_slave
   MainIs:          slave.ml
   Install:         false
   CompiledObject:  best
-  BuildDepends:    release,
-                   lwt,
+  BuildDepends:    lwt,
                    lwt.unix,
                    lwt.syntax,
+                   release,
                    str
 
 Executable test_helper
@@ -106,10 +106,10 @@ Executable test_helper
   MainIs:          helper.ml
   Install:         false
   CompiledObject:  best
-  BuildDepends:    release,
-                   lwt,
+  BuildDepends:    lwt,
                    lwt.unix,
                    lwt.syntax,
+                   release,
                    str
 
 Executable masterctl
@@ -117,10 +117,10 @@ Executable masterctl
   MainIs:          masterctl.ml
   Install:         false
   CompiledObject:  best
-  BuildDepends:    release,
-                   lwt,
+  BuildDepends:    lwt,
                    lwt.unix,
                    lwt.syntax,
+                   release,
                    str
 
 Executable test_config
