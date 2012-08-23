@@ -236,7 +236,7 @@ let signal_slaves signum =
       return ())
     (slave_connections ())
 
-let handle_sigterm lock_file control _ =
+let handle_sigterm _ =
   Lwt.async
     (fun () ->
       lwt () = Lwt_log.notice "got sigterm, signaling child processes" in
@@ -268,7 +268,7 @@ let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
       exec_slave path ipc_handler
     done in
   let work () =
-    ignore (Lwt_unix.on_signal Sys.sigterm (handle_sigterm lock_file control));
+    ignore (Lwt_unix.on_signal Sys.sigterm handle_sigterm);
     lwt () = create_lock_file lock_file in
     let idle_t, _idle_w = Lwt.wait () in
     let control_t =
