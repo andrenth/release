@@ -64,25 +64,50 @@ struct
   type request = O.request
   type response = O.response
 
-  let read_byte buf =
-    int_of_char (Release_buffer.get buf 0)
+  (*
+   * Do the header operations by hand to avoid forcing a
+   * dependency on Release_bytes.
+   *
+   * IPC header is a 4-byte field containing the payload
+   * size, stored in network byte order.
+   *)
 
-  let write_byte b buf =
+  let header_length = 4
+
+  let read_byte_at i buf = 
+    int_of_char (Release_buffer.get buf i)
+
+  let read_header buf =
+    let res = ref 0 in
+    for b = 1 to 4 do
+      let pos = b - 1 in
+      let byte = read_byte_at pos buf in
+      res := !res lor (byte lsl (32 - 8 * b))
+    done;
+    !res
+
+  let write_byte b buf = 
     Release_buffer.add_char buf (char_of_int (b land 255))
 
+  let write_header len buf =
+    for b = 4 downto 1 do
+      let shift = 8 * (b - 1) in
+      write_byte (len lsr shift) buf
+    done
+
   let read ?timeout fd =
-    match_lwt Release_io.read ?timeout fd 1 with
+    match_lwt Release_io.read ?timeout fd header_length with
     | `Data b ->
-        let siz = read_byte b in
+        let siz = read_header b in
         Release_io.read ?timeout fd siz
     | `Timeout | `EOF as other ->
         return other
 
   let write fd buf =
     let len = Release_buffer.length buf in
-    let buf' = Release_buffer.create (len + 1) in
-    write_byte len buf';
-    Release_buffer.blit buf 0 buf' 1 len;
+    let buf' = Release_buffer.create (len + header_length) in
+    write_header len buf';
+    Release_buffer.blit buf 0 buf' header_length len;
     Release_io.write fd buf'
 
   let request_of_buffer buf =
