@@ -30,11 +30,11 @@ let control_connection_handler fd =
         return (ControlIpcOps.Broadcast_sent) in
   ControlIpc.handle_request ~timeout:5. fd handler
 
-let lwt_ignore _ = return ()
+let lwt_ignore _ = return_unit
 
 let store_slave_connections get_conns =
   slave_connections := Some (get_conns);
-  return ()
+  return_unit
 
 let () =
   let slave_exec = sprintf "%s/_build/lib_test/test_slave" (Unix.getcwd ()) in

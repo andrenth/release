@@ -7,7 +7,7 @@ let check_priv name f exp =
   if f () <> exp then 
     raise_lwt (Release_privileges_error name)
   else
-    return ()
+    return_unit
 
 let drop user =
   try_lwt
@@ -28,7 +28,7 @@ let drop user =
         lwt () = check_priv "getegid" Unix.getegid gid in
         lwt () = check_priv "getuid" Unix.getuid uid in
         lwt () = check_priv "geteuid" Unix.geteuid uid in
-        return ()
+        return_unit
   with
   | Not_found ->
       raise_lwt (Release_privileges_error (sprintf "user `%s' not found" user))

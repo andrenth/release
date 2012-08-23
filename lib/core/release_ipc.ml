@@ -151,7 +151,7 @@ struct
       | `EOF ->
           lwt () =
             if eof_warning then Lwt_log.warning "got EOF on IPC socket"
-            else return () in
+            else return_unit in
           Lwt_unix.close fd
       | `Data req ->
           let _resp_t =

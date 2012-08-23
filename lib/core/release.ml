@@ -19,7 +19,7 @@ let daemon f =
     let close_and_dup fd =
       lwt () = Lwt_unix.close fd in
       Lwt_unix.dup2 dev_null fd;
-      return () in
+      return_unit in
     let descrs = [Lwt_unix.stdin; Lwt_unix.stdout; Lwt_unix.stderr] in 
     lwt () = Lwt_list.iter_p close_and_dup descrs in
     lwt () = Lwt_unix.close dev_null in
@@ -41,19 +41,19 @@ let read_lock_file path =
     Lwt_io.with_file Lwt_io.input path (fun ch ->
       match_lwt Lwt_io.read_line_opt ch with
       | None ->
-          return None
+          return_none
       | Some l ->
           try_lwt
             return (Some (int_of_string l))
           with _ ->
-            return None)
+            return_none)
   with
   | Unix.Unix_error (Unix.ENOENT, _, _) ->
-      return None
+      return_none
   | Unix.Unix_error (e, _, _) ->
       let err = Unix.error_message e in
       lwt () = Lwt_log.error_f "cannot read lock file: %s: %s" path err in
-      return None
+      return_none
 
 let write_pid path =
   try_lwt
@@ -95,7 +95,7 @@ let check_user test msg =
     lwt () = Lwt_log.error_f "%s %s" Sys.argv.(0) msg in
     exit 1
   else
-    return ()
+    return_unit
 
 let check_root () =
   check_user ((=) 0) "must be run by root"
@@ -145,13 +145,13 @@ let add_slave_connection pid fd =
   lwt () = Lwt_mutex.lock slave_connection_map_mtx in
   slave_connection_map := ConnMap.add pid fd !slave_connection_map;
   Lwt_mutex.unlock slave_connection_map_mtx;
-  return ()
+  return_unit
 
 let remove_slave_connection pid =
   lwt () = Lwt_mutex.lock slave_connection_map_mtx in
   slave_connection_map := ConnMap.remove pid !slave_connection_map;
   Lwt_mutex.unlock slave_connection_map_mtx;
-  return ()
+  return_unit
 
 let slave_connections () =
   ConnMap.bindings !slave_connection_map
@@ -205,7 +205,7 @@ let rec exec_process path ipc_handler check_death_rate =
       (handle_process master_fd reexec) in
   let _slave_t =
     try_exec run_proc path in
-  return ()
+  return_unit
 
 let num_exec_tries = 10
 
@@ -221,7 +221,7 @@ let check_death_rate time tries () =
       exit 1
   | _ ->
       decr tries;
-      return ()
+      return_unit
 
 let init_exec_slave max_tries =
   let tries = ref max_tries in
@@ -233,7 +233,7 @@ let signal_slaves signum =
   Lwt_list.iter_p
     (fun (pid, _) ->
       Unix.kill pid signum;
-      return ())
+      return_unit)
     (slave_connections ())
 
 let async_exit signame signum =
@@ -263,7 +263,7 @@ let setup_syslog () =
 let master_cleanup control lock_file () =
   lwt () = Option.either return (fun (s, _) -> Lwt_unix.unlink s) control in
   lwt () = remove_lock_file lock_file in
-  return ()
+  return_unit
 
 let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
                   ?control ?main ~lock_file ~slaves () =
@@ -311,5 +311,5 @@ let me ?(syslog = true) ?user ~main () =
     lwt () = Lwt_log.info "starting up" in
     lwt () = main ipc_fd in
     lwt () = Lwt_log.info "stopping" in
-    return () in
+    return_unit in
   Lwt_main.run main_t

@@ -36,7 +36,7 @@ let write fd buf =
   let len = Release_buffer.length buf in
   let rec write offset remain =
     if remain = 0 then
-      return ()
+      return_unit
     else
       lwt k = eintr_safe Release_buffer.write fd buf offset remain in
       write (offset + k) (if k = 0 then 0 else remain - k) in
