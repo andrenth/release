@@ -236,13 +236,19 @@ let signal_slaves signum =
       return ())
     (slave_connections ())
 
-let handle_sigterm _ =
+let async_exit signame signum =
   Lwt.async
     (fun () ->
-      lwt () = Lwt_log.notice "got sigterm, signaling child processes" in
-      lwt () = signal_slaves 15 in
+      lwt () = Lwt_log.notice_f "got %s, signaling child processes" signame in
+      lwt () = signal_slaves signum in
       lwt () = Lwt_log.notice "exiting" in
-      exit 143)
+      exit (128 + signum))
+
+let handle_sigint _ =
+  async_exit "sigint" 2
+
+let handle_sigterm _ =
+  async_exit "sigterm" 15
 
 let curry f (x, y) = f x y
 
@@ -268,6 +274,7 @@ let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
       exec_slave path ipc_handler
     done in
   let work () =
+    ignore (Lwt_unix.on_signal Sys.sigint handle_sigint);
     ignore (Lwt_unix.on_signal Sys.sigterm handle_sigterm);
     lwt () = create_lock_file lock_file in
     let idle_t, _idle_w = Lwt.wait () in
