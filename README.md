@@ -68,14 +68,15 @@ as `Release_ipc.handler`:
 The simple case of a master process and one slave process is implemented in
 the function `Release.master_slave`.
 
-    val master_slave : slave:(Lwt_io.file_name * Release_ipc.handler)
-                    -> ?background:bool
-                    -> ?syslog:bool
-                    -> ?privileged:bool
-                    -> ?control:(Lwt_io.file_name * Release_ipc.handler)
-                    -> ?main:((unit -> Lwt_unix.file_descr list) -> unit Lwt.t)
-                    -> lock_file:Lwt_io.file_name
-                    -> unit -> unit
+    val master_slave :
+         slave:(Lwt_io.file_name * Release_ipc.handler)
+      -> ?background:bool
+      -> ?syslog:bool
+      -> ?privileged:bool
+      -> ?control:(Lwt_io.file_name * Release_ipc.handler)
+      -> ?main:((unit -> (int * Lwt_unix.file_descr) list) -> unit Lwt.t)
+      -> lock_file:Lwt_io.file_name
+      -> unit -> unit
 
 The `slave` argument is a tuple whose first argument is the path to the slave
 process executable. The second argument is a callback function that is used by
@@ -100,21 +101,24 @@ socket on startup. This is useful for the implementation of control programs
 that communicate with the master process.
 
 If given, the `main` callback function argument will be called with a function
-that returns the current list of sockets connected to the slave processes.
-This list can be useful to implement broadcast-style messages from the master
+that returns a list of PID and file descriptors pairs corresponding to the
+currently running slave processes and the IPC sockets that can be used by the
+master process for communication.
+This list can be useful to implement broadcast-style messaging from the master
 to the slaves.
 
 The general case of _n_ slave processes is handled by the function
 `Release.master_slaves`.
 
-    val master_slaves : ?background:bool
-                     -> ?syslog:bool
-                     -> ?privileged:bool
-                     -> ?control:(Lwt_io.file_name * Release_ipc.handler)
-                     -> ?main:((unit -> Lwt_unix.file_descr list) -> unit Lwt.t)
-                     -> lock_file:Lwt_io.file_name
-                     -> slaves:(Lwt_io.file_name * Release_ipc.handler * int) list
-                     -> unit -> unit
+    val master_slaves :
+         ?background:bool
+      -> ?syslog:bool
+      -> ?privileged:bool
+      -> ?control:(Lwt_io.file_name * Release_ipc.handler)
+      -> ?main:((unit -> (int * Lwt_unix.file_descr) list) -> unit Lwt.t)
+      -> lock_file:Lwt_io.file_name
+      -> slaves:(Lwt_io.file_name * Release_ipc.handler * int) list
+      -> unit -> unit
 
 This function generalizes `Release.master_slave`, allowing the creation of
 heterogeneous groups of slave process via the `slaves` argument. This argument
@@ -224,6 +228,16 @@ be passed as an argument to the `handler` callback. The master process can call
 request will be passed to the callback function, which must return a response
 that will be written back to the slave.
 
+#### Control sockets
+
+It may be useful for slaves to have control sockets like the one available
+to the master process. This can be useful for writing control programs or for
+communication between slave processes. The `Release_ipc` module provides the
+`control_socket` function to help setting up the socket and spawning a handler
+thread.
+
+    val control_socket : Lwt_io.file_name -> Release_ipc.handler -> unit Lwt.t
+
 #### The IPC protocol
 
 Release uses a very simple IPC protocol. This information is not necessary for
@@ -231,9 +245,9 @@ writing applications using this library, but it is useful for creating control
 programs or scripts in languages other than OCaml, which can't use Release
 (see the `control` argument described above).
 
-Every Release IPC message consists of a 1-byte field containing the length of
+Every Release IPC message consists of a 4-byte field containing the length of
 the payload portion of the message and a payload field of variable length.
-Thus, a message containing the payload string "hello" will have the length byte
+Thus, a message containing the payload string "hello" will have the length field
 set to `5` (the length of the string) and the payload field will be the string
 itself.
 
@@ -241,6 +255,17 @@ Higher-level protocols are left for the library users to implement according
 to the needs of their respective applications.
 
 ## Extras
+
+### The `Release_buffer` module
+
+`Release_buffer` is provided in a separate, `release.buffer`, but it is loaded
+by default when `Release` is used.
+
+This module provides a buffer whose implementation is based on OCaml's
+`Bigarray` type to minimize data copying. It is used by Release in its I/O
+functions.
+
+Please check the `ocamldoc` documentation for the module interface.
 
 ### The `Release_io` module
 
@@ -253,7 +278,21 @@ buffer is a wrapper around the `Lwt_bytes.t` type, which in turn uses OCaml's
 `Bigarray` module to minimize data-copying. See the `Release_buffer` module
 documentation for the list of available buffer-related functions.
 
-The first function is `Release_io.read`, which has the following signature.
+The first function in the module is `Release_io.read_once`. It has similar
+semantics to the usual `Unix.read`, but works on `Release_buffer.t`.
+
+    val read_once : Lwt_unix.file_descr
+                 -> Release_buffer.t
+                 -> int
+                 -> int
+                 -> int Lwt.t
+
+Calling `Release_io.read_once fd buf off n` will read at most `n` bytes
+from `fd` and store them into `buf` starting at offset `off`. This function
+is safe against temporary errors, retrying on `Unix.EINTR` and `Unix.EAGAIN`
+automatically.
+
+The second function is `Release_io.read`, which has the following signature.
 
     val read : ?timeout:float
             -> Lwt_unix.file_descr
@@ -261,10 +300,10 @@ The first function is `Release_io.read`, which has the following signature.
             -> [`Data of Release_buffer.t | `EOF | `Timeout] Lwt.t
 
 Calling `Release_io.read fd n` will try to read at most `n` bytes from `fd`,
-returning the appropriate result. This function is safe against temporary
-errors, retrying on `Unix.EINTR` and `Unix.EAGAIN` automatically.
+returning the appropriate result. Like `Release_io.read_once`, this function
+is safe against temporary errors.
 
-The second function is `Release_io.write`.
+The third function is `Release_io.write`.
 
     val write : Lwt_unix.file_descr -> Release_buffer.t -> unit Lwt.t
 
@@ -290,6 +329,8 @@ it to the given address and listens for client connections. When a new
 connection is accepted, the callback function given as the last argument is
 executed in a separate thread (which may be interrupted depending on the
 `timeout` argument), while `accept_loop` goes back to wait for new connections.
+
+## Release sub-packages
 
 ### The `Release_bytes` module
 
@@ -351,12 +392,129 @@ The following functions are available in both `Release_bytes.Little_endian` and
 * `val write_uint128_byte : Uint128.t -> Buffer.t -> unit`
 * `val write_uint128 : Uint128.t -> Buffer.t -> unit`
 
-### Control sockets
+### The `Release_config` module
 
-It may be useful for slaves to have control sockets like the one available
-to the master process. This can be useful for writing control programs or for
-communication between slave processes. The `Release_ipc` module provides the
-`control_socket` function to help setting up the socket and spawning a handler
-thread.
+This module provides an interface to help dealing with configuration files in
+Release applications. A Release configuration file uses a simple `key = value`
+format with support for sections, similar to `.ini` configuration files.
 
-    val control_socket : Lwt_io.file_name -> Release_ipc.handler -> unit Lwt.t
+`Release_config` values can be integers, floats, strings, booleans, regular
+expressions or lists containing one of those types. Configuration files are
+validated against a specification provided by the application, which state
+the default value, if any, and a list of validations for each configuration
+directive.
+
+The `Release_config_values` module provides some helpers for setting default
+values in configuration specifications:
+
+* `default_bool`
+* `default_int`
+* `default_float`
+* `default_string`
+* `default_regexp`
+* `default_bool_list`
+* `default_int_list`
+* `default_float_list`
+* `default_string_list`
+
+The `Release_config_validations` provides helpers for specifying validation
+lists in a configuration:
+
+* `bool`: the value is a boolean
+* `int`: the value is an integer
+* `float`: the value is a float
+* `string`: the value is a string
+* `regexp`: the value is a regular expression
+* `bool_list`: the value is a list of booleans
+* `int_list`: the value is a list of integers
+* `float_list`: the value is a list of floats
+* `string_list`: the value is a list of strings
+* `int_in_range`: the value is an integer in the given inclusive range
+* `int_greater_than`: the value is greater than the given integer
+* `int_less_than`: the value is less than the given integer
+* `float_in_range`: the value is a float in the given range
+* `float_greater_than`: the value is greater than the given float
+* `float_less_than`: the value is less than the given float
+* `string_matching`: the value matches a regexp built from the given string 
+* `int_in`: the value is one of the integers in the given list
+* `string_in`: the value is one of the strings in the given list
+* `existing_file`: the value is an existing file
+* `nonempty_file`: the value is a non-empty file
+* `file_with_mode`: the value is a file with the given mode
+* `file_with_owner`: the value is a file with the given owner
+* `file_with_group`: the value is a file with the given group
+* `existing_directory`: the value is an existing directory
+* `existing_dirname`: the values's directory name of exists
+* `block_device`: the value is a block device
+* `character_device`: the value is a character device
+* `symbolic_link`: the value is a symbolic link
+* `named_pipe`: the value is a named pipe
+* `unix_socket`: the value is a socket
+* `existing_user`: the value is an existing user
+* `unprivileged_user`: the value is a non-root user
+* `existing_group`: the value is an existing group
+* `list_of`: the value is a list of values passing the given validation
+
+Please refer to the `ocamldoc` documentation for the types of the above helpers.
+
+Configuration specifications are values of type `Release_config.spec`,
+constructed as below.
+
+    type value =
+      [ `Int of int
+      | `Float of float
+      | `Bool of bool
+      | `Str of string
+      | `Regexp of Str.regexp
+      | `List of (value list)
+      ]
+
+    type validation = value -> [`Valid | `Invalid of string]
+
+    type key = string * value option * validation list
+    
+    type section =
+      [ `Global of key list
+      | `Section of (string * key list)
+      ]
+
+    type spec = section list
+
+Below is an example of a configuration specification and its respective
+configuration file.
+
+    open Release_config_values
+    open Release_config_validations
+
+    let spec =
+      [ `Global (* Settings which don't belong to any section *)
+          [ "user", None (* required parameter *), [unprivileged_user]
+          ; "privileged", default_bool true, [bool]
+          ; "read_timeout", default_int 5, int_in_range (0, 10)
+          ]
+      ; `Section ("some-section",
+          [ "match_with", default_regexp /^[a-z]+$/, [regexp]
+          ; "tmp", default_string "/tmp", one_of_strings ["/tmp"; "/var/tmp"]
+          ])
+      ; `Section ("another-section",
+          [ "privileged_users", default_string_list ["root"], [list_of existing_user]
+          ])
+      ]
+
+With the specification above, every parameter can be ommited, with the exception
+of the first global directive, which has no default value and therefore must
+be present in the file.
+
+Below is a possible configuration file that matches the above specification.
+
+    # Global settings
+    user         = "foo"  # string
+    privileged   = false  # boolean
+    read_timeout = 1      # integer
+
+    [some-section]  # section declaration
+    match_with  = /^.+$/  # regular expression
+    tmp         = "/tmp"  # string
+
+    [another-section]  # another section declaration
+    privileged_users = ["root", "admin"]  # list of strings
