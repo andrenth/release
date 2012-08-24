@@ -50,9 +50,12 @@ Library "release-config"
   FindlibName:      config
   FindlibParent:    release
   Path:             lib/config
-  BuildDepends:     lwt,
+  BuildDepends:     lwt (>= 2.4.0),
+                    lwt.preemptive (>= 2.4.0),
+                    lwt.syntax (>= 2.4.0),
                     release.option,
                     str,
+                    threads,
                     unix
   BuildTools+:      ocamllex, ocamlyacc
   CompiledObject:   best
@@ -129,4 +132,6 @@ Executable test_config
   Install:         false
   CompiledObject:  best
   BuildTools+:     ocamllex, ocamlyacc
-  BuildDepends:    release.config
+  BuildDepends:    lwt (>= 2.4.0),
+                   lwt.syntax (>= 2.4.0),
+                   release.config

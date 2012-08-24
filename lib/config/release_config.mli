@@ -11,7 +11,9 @@ type section =
 
 type spec = section list
 
-val parse : Lwt_io.file_name -> spec -> [`Configuration of t | `Error of string]
+val parse : Lwt_io.file_name
+         -> spec
+         -> [`Configuration of t | `Error of string] Lwt.t
 val defaults : spec -> t
 val has_section : t -> string -> bool
 val get : t -> ?section:string -> string -> unit -> value option

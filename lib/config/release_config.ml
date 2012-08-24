@@ -1,3 +1,4 @@
+open Lwt
 open Printf
 open Release_config_types
 
@@ -148,22 +149,24 @@ let remove_empty_global_section conf =
   | Some g -> if Hashtbl.length g = 0 then Hashtbl.remove conf global_section
 
 let parse file spec =
-  let ch = open_in file in
-  try
-    let lexbuf = Lexing.from_channel ch in
-    while true do
-      Release_config_parser.input Release_config_lexer.token lexbuf
-    done;
-    assert false (* not reached *)
-  with End_of_file ->
-    close_in ch;
-    match Release_config_global.errors () with
-    | [] ->
-        let conf = Release_config_global.copy () in
-        remove_empty_global_section conf;
-        validate conf spec
-    | errors ->
-        `Error (join_errors errors)
+  let input () =
+    let ch = open_in file in
+    try
+      let lexbuf = Lexing.from_channel ch in
+      while true do
+        Release_config_parser.input Release_config_lexer.token lexbuf
+      done;
+      assert false (* not reached *)
+    with End_of_file ->
+      close_in ch in
+  lwt () = Lwt_preemptive.detach input () in
+  match Release_config_global.errors () with
+  | [] ->
+      let conf = Release_config_global.copy () in
+      remove_empty_global_section conf;
+      return (validate conf spec)
+  | errors ->
+      return (`Error (join_errors errors))
 
 let has_section conf section =
   Hashtbl.mem conf section

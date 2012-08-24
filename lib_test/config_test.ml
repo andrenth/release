@@ -1,6 +1,9 @@
+open Lwt
 open Printf
 open Release_config_types
 open Release_config_validations
+
+module C = Release_config
 
 let path = "./lib_test"
 
@@ -55,57 +58,71 @@ let spec =
       ])
   ]
 
-let getg c k = Release_config.get_exn c k ()
-let get c s k = Release_config.get_exn c ~section:s k ()
+let getg c k = C.get_exn c k ()
+let get c s k = C.get_exn c ~section:s k ()
 
 let () =
-  match Release_config.parse (path ^ "/complete.conf") spec with
-  | `Configuration conf ->
-      assert (getg conf "global_parameter" = `Int 0);
-      assert (getg conf "another_global_parameter" = `Bool true);
-      assert (getg conf "global-list" = `List [`Int 1; `Int 2; `Int 3; `Int 4]);
-      assert (getg conf "empty-list" = `List []);
-      assert (Str.string_match (regexp_value (getg conf "a-regexp")) "foo" 0);
+  Lwt_main.run
+    (match_lwt C.parse (path ^ "/complete.conf") spec with
+    | `Configuration conf ->
+        assert (getg conf "global_parameter" = `Int 0);
+        assert (getg conf "another_global_parameter" = `Bool true);
+        assert (getg conf "global-list" = `List [`Int 1;`Int 2;`Int 3;`Int 4]);
+        assert (getg conf "empty-list" = `List []);
+        assert (Str.string_match (regexp_value (getg conf "a-regexp")) "foo" 0);
 
-      assert (get conf "section1" "my-required-param" = `Str "required-value");
-      assert (get conf "section1" "my-optional-param" = `Str "optional-value");
+        assert (get conf "section1" "my-required-param" = `Str"required-value");
+        assert (get conf "section1" "my-optional-param" = `Str"optional-value");
 
-      assert (get conf "section2" "optional-parameter-1" = `Str "value1");
-      assert (get conf "section2" "optional-parameter-2" = `Str "value2");
+        assert (get conf "section2" "optional-parameter-1" = `Str "value1");
+        assert (get conf "section2" "optional-parameter-2" = `Str "value2");
 
-      assert (get conf "section3" "optional-parameter-1" = `Str "value1");
-      assert (get conf "section3" "optional-parameter-2" = `Str "value2")
-  | `Error reason ->
-      assert false
-
-let () =
-  match Release_config.parse (path ^ "/missing-optional-values.conf") spec with
-  | `Configuration conf ->
-      assert (getg conf "global_parameter" = `Int 0);
-      assert (getg conf "global-list" = `List [`Int 1]);
-      assert (get conf "section1" "my-required-param" = `Str "required-value");
-      assert (get conf "section2" "optional-parameter-1" = `Str "value1");
-      assert (get conf "section2" "optional-parameter-2" = `Str "value2");
-  | `Error reason ->
-      assert false
+        assert (get conf "section3" "optional-parameter-1" = `Str "value1");
+        assert (get conf "section3" "optional-parameter-2" = `Str "value2");
+        return_unit
+    | `Error reason ->
+        assert false)
 
 let () =
-  match Release_config.parse (path ^ "/validation-error.conf") spec with
-  | `Configuration _ -> assert false
-  | `Error err -> assert (err = "global_parameter must be a binary number")
+  Lwt_main.run
+    (match_lwt C.parse (path ^ "/missing-opt-values.conf") spec with
+    | `Configuration conf ->
+        assert (getg conf "global_parameter" = `Int 0);
+        assert (getg conf "global-list" = `List [`Int 1]);
+        assert (get conf "section1" "my-required-param" = `Str"required-value");
+        assert (get conf "section2" "optional-parameter-1" = `Str "value1");
+        assert (get conf "section2" "optional-parameter-2" = `Str "value2");
+        return_unit
+    | `Error reason ->
+        assert false)
 
 let () =
-  match Release_config.parse (path ^ "/missing-required-param.conf") spec with
-  | `Configuration _ ->
-      assert false
-  | `Error err ->
-      assert (err = "configuration directive 'my-required-param' missing " ^
-                    "in section 'section1'") 
+  Lwt_main.run
+    (match_lwt C.parse (path ^ "/validation-error.conf") spec with
+    | `Configuration _ ->
+        assert false
+    | `Error err ->
+        assert (err = "global_parameter must be a binary number");
+        return_unit)
 
 let () =
-  match Release_config.parse (path ^ "/unknown-param.conf") spec with
-  | `Configuration _ -> assert false
-  | `Error err -> assert (err = "unknown configuration directive 'foo'")
+  Lwt_main.run
+    (match_lwt C.parse (path ^ "/missing-req-param.conf") spec with
+    | `Configuration _ ->
+        assert false
+    | `Error err ->
+        assert (err = "configuration directive 'my-required-param' missing " ^
+                      "in section 'section1'");
+        return_unit)
+
+let () =
+  Lwt_main.run
+    (match_lwt C.parse (path ^ "/unknown-param.conf") spec with
+    | `Configuration _ ->
+        assert false
+    | `Error err ->
+        assert (err = "unknown configuration directive 'foo'");
+        return_unit)
 
 let optspec =
   [ `Global
@@ -130,7 +147,7 @@ let optspec =
   ]
 
 let () =
-  let conf = Release_config.defaults optspec in
+  let conf = C.defaults optspec in
   assert (getg conf "global_parameter" = `Int 0);
   assert (getg conf "another_global_parameter" = `Bool true);
   assert (getg conf "global-list" = `List [`Int 1]);
