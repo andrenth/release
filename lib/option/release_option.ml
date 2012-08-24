@@ -14,6 +14,10 @@ let may f = function
   | None -> ()
   | Some x -> f x
 
+let maybe f = function
+  | None -> None
+  | Some x -> f x
+
 let may_default z f = function
   | None -> z
   | Some x -> f x
