@@ -89,6 +89,24 @@ let string_matching re = function
   | _ ->
       `Invalid "string_matching: not a string"
 
+let int_in l = function
+  | `Int i ->
+      if List.mem i l then
+        `Valid
+      else
+        `Invalid (sprintf "one_of_ints: %d not found" i)
+  | _ ->
+      `Invalid "one_of_ints: not an int"
+
+let string_in l = function
+  | `Str s ->
+      if List.mem s l then
+        `Valid
+      else
+        `Invalid (sprintf "one_of_strings: %s not found" s)
+  | _ ->
+      `Invalid "one_of_strings: not a string"
+
 let file_with f name err = function
   | `Str file ->
       (try
@@ -224,20 +242,15 @@ let existing_group = function
         `Invalid (sprintf "existing_group: %s: group not found" g))
   | _ -> `Invalid "existing_group: not a string"
 
-let int_in l = function
-  | `Int i ->
-      if List.mem i l then
-        `Valid
-      else
-        `Invalid (sprintf "one_of_ints: %d not found" i)
+let list_of validation = function
+  | `List l ->
+      let rec validate = function
+        | [] ->
+            `Valid
+        | v::vs ->
+            match validation v with
+            | `Valid -> validate vs
+            | `Invalid reason -> `Invalid reason in
+      validate l
   | _ ->
-      `Invalid "one_of_ints: not an int"
-
-let string_in l = function
-  | `Str s ->
-      if List.mem s l then
-        `Valid
-      else
-        `Invalid (sprintf "one_of_strings: %s not found" s)
-  | _ ->
-      `Invalid "one_of_strings: not a string"
+      `Invalid "list_of: not a list"
