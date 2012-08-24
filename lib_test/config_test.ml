@@ -35,23 +35,23 @@ let validate_empty_list = function
 
 let spec =
   [ `Global
-      [ `Required ("global_parameter", [validate_global_parameter])
-      ; `Optional ("another_global_parameter", Some (`Bool true), [bool])
-      ; `Optional ("global-list", default_int_list [1], [validate_global_list])
-      ; `Optional ("empty-list", default_string_list [], [validate_empty_list])
-      ; `Optional ("a-regexp", default_regexp (Str.regexp "."), [regexp])
+      [ "global_parameter", None, [validate_global_parameter]
+      ; "another_global_parameter", Some (`Bool true), [bool]
+      ; "global-list", default_int_list [1], [validate_global_list]
+      ; "empty-list", default_string_list [], [validate_empty_list]
+      ; "a-regexp", default_regexp (Str.regexp "."), [regexp]
       ]
-  ; `Required ("my-required-section",
-      [ `Required ("my-required-param", [string])
-      ; `Optional ("my-optional-param", default_string "opt", [string])
+  ; `Section ("section1",
+      [ "my-required-param", None, [string]
+      ; "my-optional-param", default_string "opt", [string]
       ])
-  ; `Optional ("first-optional-section",
-      [ `Optional ("optional-parameter-1", default_string "opt1", [string])
-      ; `Optional ("optional-parameter-2", default_string "opt2", [string])
+  ; `Section ("section2",
+      [ "optional-parameter-1", default_string "opt1", [string]
+      ; "optional-parameter-2", default_string "opt2", [string]
       ])
-  ; `Optional ("second-optional-section",
-      [ `Required ("required-parameter-1", [string])
-      ; `Required ("required-parameter-2", [string])
+  ; `Section ("section3",
+      [ "optional-parameter-1", default_string "x", [string]
+      ; "optional-parameter-2", default_string "y", [string]
       ])
   ]
 
@@ -67,22 +67,15 @@ let () =
       assert (getg conf "empty-list" = `List []);
       assert (Str.string_match (regexp_value (getg conf "a-regexp")) "foo" 0);
 
-      assert (get conf "my-required-section" "my-required-param"
-              = `Str "required-value");
-      assert (get conf "my-required-section" "my-optional-param"
-              = `Str "optional-value");
+      assert (get conf "section1" "my-required-param" = `Str "required-value");
+      assert (get conf "section1" "my-optional-param" = `Str "optional-value");
 
-      assert (get conf "first-optional-section" "optional-parameter-1"
-              = `Str "value1");
-      assert (get conf "first-optional-section" "optional-parameter-2"
-              = `Str "value2");
+      assert (get conf "section2" "optional-parameter-1" = `Str "value1");
+      assert (get conf "section2" "optional-parameter-2" = `Str "value2");
 
-      assert (get conf "second-optional-section" "required-parameter-1"
-              = `Str "value1");
-      assert (get conf "second-optional-section" "required-parameter-2"
-              = `Str "value2")
+      assert (get conf "section3" "optional-parameter-1" = `Str "value1");
+      assert (get conf "section3" "optional-parameter-2" = `Str "value2")
   | `Error reason ->
-      printf ">>> %s\n%!" reason;
       assert false
 
 let () =
@@ -90,16 +83,10 @@ let () =
   | `Configuration conf ->
       assert (getg conf "global_parameter" = `Int 0);
       assert (getg conf "global-list" = `List [`Int 1]);
-
-      assert (get conf "my-required-section" "my-required-param"
-              = `Str "required-value");
-
-      assert (get conf "first-optional-section" "optional-parameter-1"
-              = `Str "value1");
-      assert (get conf "first-optional-section" "optional-parameter-2"
-              = `Str "value2");
+      assert (get conf "section1" "my-required-param" = `Str "required-value");
+      assert (get conf "section2" "optional-parameter-1" = `Str "value1");
+      assert (get conf "section2" "optional-parameter-2" = `Str "value2");
   | `Error reason ->
-      printf ">>> %s\n%!" reason;
       assert false
 
 let () =
@@ -108,13 +95,53 @@ let () =
   | `Error err -> assert (err = "global_parameter must be a binary number")
 
 let () =
-  match Release_config.parse (path ^ "/missing-required-section.conf") spec with
-  | `Configuration _ -> assert false
-  | `Error err -> assert (err = "section 'my-required-section' missing")
-
-let () =
   match Release_config.parse (path ^ "/missing-required-param.conf") spec with
   | `Configuration _ ->
       assert false
   | `Error err ->
-      assert (err = "configuration directive 'required-parameter-1' missing")
+      assert (err = "configuration directive 'my-required-param' missing " ^
+                    "in section 'section1'") 
+
+let () =
+  match Release_config.parse (path ^ "/unknown-param.conf") spec with
+  | `Configuration _ -> assert false
+  | `Error err -> assert (err = "unknown configuration directive 'foo'")
+
+let optspec =
+  [ `Global
+      [ "global_parameter", default_int 0, [validate_global_parameter]
+      ; "another_global_parameter", default_bool true, [bool]
+      ; "global-list", default_int_list [1], [validate_global_list]
+      ; "empty-list", default_string_list [], [validate_empty_list]
+      ; "a-regexp", default_regexp (Str.regexp "^x$"), [regexp]
+      ]
+  ; `Section ("section1",
+      [ "my-required-param", default_string "required-value", [string]
+      ; "my-optional-param", default_string "opt", [string]
+      ])
+  ; `Section ("section2",
+      [ "optional-parameter-1", default_string "opt1", [string]
+      ; "optional-parameter-2", default_string "opt2", [string]
+      ])
+  ; `Section ("section3",
+      [ "optional-parameter-1", default_string "value1", [string]
+      ; "optional-parameter-2", default_string "value2", [string]
+      ])
+  ]
+
+let () =
+  let conf = Release_config.defaults optspec in
+  assert (getg conf "global_parameter" = `Int 0);
+  assert (getg conf "another_global_parameter" = `Bool true);
+  assert (getg conf "global-list" = `List [`Int 1]);
+  assert (getg conf "empty-list" = `List []);
+  assert (Str.string_match (regexp_value (getg conf "a-regexp")) "x" 0);
+
+  assert (get conf "section1" "my-required-param" = `Str "required-value");
+  assert (get conf "section1" "my-optional-param" = `Str "opt");
+
+  assert (get conf "section2" "optional-parameter-1" = `Str "opt1");
+  assert (get conf "section2" "optional-parameter-2" = `Str "opt2");
+
+  assert (get conf "section3" "optional-parameter-1" = `Str "value1");
+  assert (get conf "section3" "optional-parameter-2" = `Str "value2")
