@@ -75,12 +75,33 @@ Library "release-option"
   Modules:          Release_option
   XMETADescription: Utility functions on option types
 
-Document release
+Document "release"
   Title:                Release documentation
   Type:                 ocamlbuild (0.3)
   BuildTools+:          ocamldoc
   XOCamlbuildPath:      lib/core
   XOCamlbuildLibraries: release
+
+Document "release-buffer"
+  Title:                Release_buffer documentation
+  Type:                 ocamlbuild (0.3)
+  BuildTools+:          ocamldoc
+  XOCamlbuildPath:      lib/buffer
+  XOCamlbuildLibraries: release.buffer
+
+Document "release-bytes"
+  Title:                Release_bytes documentation
+  Type:                 ocamlbuild (0.3)
+  BuildTools+:          ocamldoc
+  XOCamlbuildPath:      lib/bytes
+  XOCamlbuildLibraries: release.bytes
+
+Document "release-config"
+  Title:                Release_config documentation
+  Type:                 ocamlbuild (0.3)
+  BuildTools+:          ocamldoc
+  XOCamlbuildPath:      lib/config
+  XOCamlbuildLibraries: release.config
 
 Executable test_master
   Path:            lib_test
