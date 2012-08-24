@@ -1,4 +1,4 @@
-open Release_config_types
+open Release_config_values
 
 type t
 

@@ -1,4 +1,4 @@
-open Release_config_types
+open Release_config_values
 
 val bool : value -> [`Invalid of string | `Valid]
 val int : value -> [`Invalid of string | `Valid]

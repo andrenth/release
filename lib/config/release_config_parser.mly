@@ -1,6 +1,6 @@
 %{
 
-open Release_config_types
+open Release_config_values
 module G = Release_config_global
 
 let current_line () =

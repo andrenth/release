@@ -63,7 +63,7 @@ Library "release-config"
                     Release_config_lexer,
                     Release_config_parser,
                     Release_config_global,
-                    Release_config_types,
+                    Release_config_values,
                     Release_config_validations
   XMETADescription: Configuration file support for Release daemons
 

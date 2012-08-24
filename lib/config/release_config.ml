@@ -1,6 +1,6 @@
 open Lwt
 open Printf
-open Release_config_types
+open Release_config_values
 
 module Option = Release_option
 

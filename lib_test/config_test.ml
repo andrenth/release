@@ -1,6 +1,6 @@
 open Lwt
 open Printf
-open Release_config_types
+open Release_config_values
 open Release_config_validations
 
 module C = Release_config

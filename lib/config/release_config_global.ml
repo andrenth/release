@@ -1,5 +1,5 @@
 open Printf
-open Release_config_types
+open Release_config_values
 
 type configuration = (string, (string, value) Hashtbl.t) Hashtbl.t
 
