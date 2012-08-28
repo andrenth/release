@@ -145,7 +145,7 @@ struct
 
   let handle_request ?timeout ?(eof_warning = true) fd handler =
     let rec handle_req () =
-      match_lwt read ?timeout fd with
+      match_lwt read_request ?timeout fd with
       | `Timeout ->
           raise_lwt (Failure "read from slave shouldn't timeout")
       | `EOF ->
@@ -153,11 +153,10 @@ struct
             if eof_warning then Lwt_log.warning "got EOF on IPC socket"
             else return_unit in
           Lwt_unix.close fd
-      | `Data req ->
+      | `Request req ->
           let _resp_t =
             try_lwt
-              let s = Release_buffer.to_string req in
-              lwt resp = handler (O.request_of_string s) in
+              lwt resp = handler req in
               write_response fd resp
             with e ->
               let err = Printexc.to_string e in
