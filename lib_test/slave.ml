@@ -7,10 +7,7 @@ let handle_sigterm _ =
   exit 0
 
 let ipc_request fd req =
-  let s = SlaveIpcOps.string_of_request req in
-  let b = Release_buffer.of_string s in
-  lwt () = SlaveIpc.write fd b in
-  return_unit
+  SlaveIpc.write_request fd req
 
 let rec consume_ipc fd =
   lwt () = match_lwt SlaveIpc.read_response fd with

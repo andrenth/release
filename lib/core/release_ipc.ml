@@ -27,12 +27,6 @@ module type S = sig
   type request
   type response
 
-  val read : ?timeout:float
-          -> Lwt_unix.file_descr
-          -> [`Data of Release_buffer.t | `EOF | `Timeout] Lwt.t
-
-  val write : Lwt_unix.file_descr -> Release_buffer.t -> unit Lwt.t
-
   val read_request : ?timeout:float
                   -> Lwt_unix.file_descr
                   -> [`Request of request | `EOF | `Timeout] Lwt.t
