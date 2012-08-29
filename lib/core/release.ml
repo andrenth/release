@@ -242,7 +242,8 @@ let async_exit signame signum =
       lwt () = Lwt_log.notice_f "got %s, signaling child processes" signame in
       lwt () = signal_slaves signum in
       lwt () = Lwt_log.notice "exiting" in
-      exit (128 + signum))
+      return_unit);
+  exit (128 + signum)
 
 let handle_sigint _ =
   async_exit "sigint" 2
