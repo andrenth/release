@@ -132,7 +132,7 @@ let defaults spec =
       match section with
       | `Global spec -> global_section, spec
       | `Section (name, kspec) -> name, kspec in
-    let keys = default_keys keys_spec in 
+    let keys = default_keys keys_spec in
     Hashtbl.replace conf name keys in
   List.iter create_section spec;
   conf

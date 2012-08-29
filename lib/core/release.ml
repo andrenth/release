@@ -20,7 +20,7 @@ let daemon f =
       lwt () = Lwt_unix.close fd in
       Lwt_unix.dup2 dev_null fd;
       return_unit in
-    let descrs = [Lwt_unix.stdin; Lwt_unix.stdout; Lwt_unix.stderr] in 
+    let descrs = [Lwt_unix.stdin; Lwt_unix.stdout; Lwt_unix.stderr] in
     lwt () = Lwt_list.iter_p close_and_dup descrs in
     lwt () = Lwt_unix.close dev_null in
     f () in

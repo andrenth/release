@@ -68,7 +68,7 @@ struct
 
   let header_length = 4
 
-  let read_byte_at i buf = 
+  let read_byte_at i buf =
     int_of_char (Release_buffer.get buf i)
 
   let read_header buf =
@@ -80,7 +80,7 @@ struct
     done;
     !res
 
-  let write_byte b buf = 
+  let write_byte b buf =
     Release_buffer.add_char buf (char_of_int (b land 255))
 
   let write_header len buf =

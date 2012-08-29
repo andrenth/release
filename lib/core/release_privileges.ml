@@ -4,7 +4,7 @@ open Lwt
 exception Release_privileges_error of string
 
 let check_priv name f exp =
-  if f () <> exp then 
+  if f () <> exp then
     raise_lwt (Release_privileges_error name)
   else
     return_unit

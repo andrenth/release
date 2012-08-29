@@ -45,7 +45,7 @@ rule token = parse
   | digit+ as i            { INTEGER (int_of_string i) }
   | "." digit+
   | digit+ "." digit+ as f { FLOAT (float_of_string f) }
-  | boolean as b           { BOOL (bool_of_string b) }               
+  | boolean as b           { BOOL (bool_of_string b) }
   | '"'                    { STRING (str (Buffer.create 16) lexbuf) }
   | '/'                    { REGEXP (regexp (Buffer.create 16) lexbuf) }
   | ident as id            { IDENT id }
