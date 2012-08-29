@@ -20,6 +20,10 @@ let regexp = function
   | `Regexp _ -> `Valid
   | _ -> `Invalid "regexp: not a regular expression"
 
+let log_level = function
+  | `Log_level _ -> `Valid
+  | _ -> `Invalid "log_level: not a log level"
+
 let any_list name f = function
   | `List l ->
       if List.exists (fun x -> f x <> `Valid) l then
