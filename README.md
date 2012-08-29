@@ -29,10 +29,10 @@ To install Release, run
 
 ## Forking daemons
 
-> Oh dear dad  
-> Can you see me now  
-> I am myself  
-> Like you somehow  
+> Oh dear dad
+> Can you see me now
+> I am myself
+> Like you somehow
 
 The simplest way to use the library is to simply daemonize a process. Release
 provides an Lwt-enabled function to do this in the `Release` module.
@@ -128,10 +128,10 @@ the given executable.
 
 ### Slaves
 
-> I'll ride the wave  
-> Where it takes me  
-> I'll hold the pain  
-> Release me  
+> I'll ride the wave
+> Where it takes me
+> I'll hold the pain
+> Release me
 
 When a slave process is run, some code must be run in order to setup
 communication with the master, and also to drop privileges to a non-root user.
@@ -152,8 +152,8 @@ accepts a file descriptor for communication with the master process.
 
 ### Inter-process communication
 
-> I'll wait up in the dark  
-> For you to speak to me  
+> I'll wait up in the dark
+> For you to speak to me
 
 Inter-process communication in `Release` is handled in a type-safe manner in
 the module `Release_ipc`.
@@ -164,10 +164,10 @@ following signature.
     module type Ops = sig
       type request
       type response
-    
+
       val string_of_request : request -> string
       val request_of_string : string -> request
-    
+
       val string_of_response : response -> string
       val response_of_string : string -> response
     end
@@ -181,11 +181,11 @@ The output of `Release_ipc.Make` is a module with the signature below.
     module type S = sig
       type request
       type response
-    
+
       val read : ?timeout:float
               -> Lwt_unix.file_descr
               -> [`Data of Release_buffer.t | `EOF | `Timeout] Lwt.t
-    
+
       val write : Lwt_unix.file_descr -> Release_buffer.t -> unit Lwt.t
 
       val read_request : ?timeout:float
@@ -199,13 +199,13 @@ The output of `Release_ipc.Make` is a module with the signature below.
       val write_request : Lwt_unix.file_descr -> request -> unit Lwt.t
 
       val write_response : Lwt_unix.file_descr -> response -> unit Lwt.t
-    
+
       val make_request : ?timeout:float
                       -> Lwt_unix.file_descr
                       -> request
                       -> ([`Response of response | `EOF | `Timeout] -> 'a Lwt.t)
                       -> 'a Lwt.t
-    
+
       val handle_request : ?timeout:float
                         -> ?eof_warning:bool
                         -> Lwt_unix.file_descr
@@ -399,10 +399,10 @@ Release applications. A Release configuration file uses a simple `key = value`
 format with support for sections, similar to `.ini` configuration files.
 
 `Release_config` values can be integers, floats, strings, booleans, regular
-expressions or lists containing one of those types. Configuration files are
-validated against a specification provided by the application, which state
-the default value, if any, and a list of validations for each configuration
-directive.
+expressions, log levels or lists containing one of those types. Configuration
+files are validated against a specification provided by the application, which
+states the default value, if any, and a list of validations for each
+configuration directive.
 
 The `Release_config_values` module provides some helpers for setting default
 values in configuration specifications:
@@ -412,6 +412,7 @@ values in configuration specifications:
 * `default_float`
 * `default_string`
 * `default_regexp`
+* `default_log_level`
 * `default_bool_list`
 * `default_int_list`
 * `default_float_list`
@@ -425,6 +426,7 @@ lists in a configuration:
 * `float`: the value is a float
 * `string`: the value is a string
 * `regexp`: the value is a regular expression
+* `log_level`: the value is a log level
 * `bool_list`: the value is a list of booleans
 * `int_list`: the value is a list of integers
 * `float_list`: the value is a list of floats
@@ -435,7 +437,7 @@ lists in a configuration:
 * `float_in_range`: the value is a float in the given range
 * `float_greater_than`: the value is greater than the given float
 * `float_less_than`: the value is less than the given float
-* `string_matching`: the value matches a regexp built from the given string 
+* `string_matching`: the value matches a regexp built from the given string
 * `int_in`: the value is one of the integers in the given list
 * `string_in`: the value is one of the strings in the given list
 * `existing_file`: the value is an existing file
@@ -466,13 +468,14 @@ constructed as below.
       | `Bool of bool
       | `Str of string
       | `Regexp of Str.regexp
+      | `Log_level of Lwt_log.level
       | `List of (value list)
       ]
 
     type validation = value -> [`Valid | `Invalid of string]
 
     type key = string * value option * validation list
-    
+
     type section =
       [ `Global of key list
       | `Section of (string * key list)
@@ -491,6 +494,7 @@ configuration file.
           [ "user", None (* required parameter *), [unprivileged_user]
           ; "privileged", default_bool true, [bool]
           ; "read_timeout", default_int 5, int_in_range (0, 10)
+          ; "log_level", default_log_level notice, [log_level]
           ]
       ; `Section ("some-section",
           [ "match_with", default_regexp /^[a-z]+$/, [regexp]
@@ -511,6 +515,7 @@ Below is a possible configuration file that matches the above specification.
     user         = "foo"  # string
     privileged   = false  # boolean
     read_timeout = 1      # integer
+    log_level    = debug  # log_level
 
     [some-section]  # section declaration
     match_with  = /^.+$/  # regular expression
