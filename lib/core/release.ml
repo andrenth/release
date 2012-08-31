@@ -57,8 +57,8 @@ let read_lock_file path =
 
 let write_pid path =
   try_lwt
-    Lwt_io.with_file Lwt_io.output path (fun ch ->
-      Lwt_io.fprintf ch "%d\n" (Unix.getpid ()))
+    Lwt_io.with_file Lwt_io.output path
+      (fun ch -> Lwt_io.fprintf ch "%d\n" (Unix.getpid ()))
   with Unix.Unix_error (e, _, _) ->
     let err = Unix.error_message e in
     Lwt_log.error_f "cannot create lock file %s: %s" path err
@@ -70,7 +70,7 @@ let create_lock_file path =
   | Some pid ->
       try_lwt
         Unix.kill pid 0;
-        Lwt_log.error_f "there is a running instance of %s already: %d"
+        Lwt_log.error_f "there is already a running instance of %s: %d"
           Sys.argv.(0) pid
       with Unix.Unix_error (Unix.ESRCH, _, _) ->
         lwt () =
@@ -261,11 +261,6 @@ let setup_syslog () =
     fprintf stderr "could not setup syslog: %s" err;
     exit 1
 
-let master_cleanup control lock_file () =
-  lwt () = Option.either return (fun (s, _) -> Lwt_unix.unlink s) control in
-  lwt () = remove_lock_file lock_file in
-  return_unit
-
 let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
                   ?control ?main ~lock_file ~slaves () =
   if syslog then setup_syslog ();
@@ -278,6 +273,7 @@ let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
     ignore (Lwt_unix.on_signal Sys.sigint handle_sigint);
     ignore (Lwt_unix.on_signal Sys.sigterm handle_sigterm);
     lwt () = create_lock_file lock_file in
+    Lwt_main.at_exit (fun () -> remove_lock_file lock_file);
     let idle_t, _idle_w = Lwt.wait () in
     let control_t =
       Option.either return (curry Release_ipc.control_socket) control in
@@ -288,7 +284,6 @@ let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
   let main_t =
     lwt () = if privileged then check_root () else check_nonroot () in
     if background then daemon work else work () in
-  Lwt_main.at_exit (master_cleanup control lock_file);
   Lwt_main.run main_t
 
 let master_slave ~slave =
