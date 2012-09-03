@@ -148,8 +148,10 @@ let remove_empty_global_section conf =
   | None -> ()
   | Some g -> if Hashtbl.length g = 0 then Hashtbl.remove conf global_section
 
+let config_mutex = Lwt_mutex.create ()
+
 let parse file spec =
-  let input () =
+  let parse_config () =
     let ch = open_in file in
     try
       let lexbuf = Lexing.from_channel ch in
@@ -158,15 +160,15 @@ let parse file spec =
       done;
       assert false (* not reached *)
     with End_of_file ->
-      close_in ch in
-  lwt () = Lwt_preemptive.detach input () in
-  match Release_config_global.errors () with
-  | [] ->
-      let conf = Release_config_global.copy () in
-      remove_empty_global_section conf;
-      return (validate conf spec)
-  | errors ->
-      return (`Error (join_errors errors))
+      close_in ch;
+      match Release_config_global.errors () with
+      | [] ->
+          let conf = Release_config_global.copy () in
+          remove_empty_global_section conf;
+          return (validate conf spec)
+      | errors ->
+          return (`Error (join_errors errors)) in
+  Lwt_mutex.with_lock config_mutex parse_config
 
 let has_section conf section =
   Hashtbl.mem conf section
