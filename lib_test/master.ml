@@ -37,8 +37,8 @@ let store_slave_connections get_conns =
   return_unit
 
 let () =
-  let slave_exec = sprintf "%s/_build/lib_test/test_slave" (Unix.getcwd ()) in
-  let helper_exec = sprintf "%s/_build/lib_test/test_helper" (Unix.getcwd ()) in
+  let slave_exec = sprintf "%s/_build/lib_test/slave.native" (Unix.getcwd ()) in
+  let helper_exec = sprintf "%s/_build/lib_test/helper.native" (Unix.getcwd ()) in
   Release.master_slaves
     ~background:false
     ~syslog:false
