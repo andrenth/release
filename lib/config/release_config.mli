@@ -15,6 +15,5 @@ val parse : Lwt_io.file_name
          -> spec
          -> [`Configuration of t | `Error of string] Lwt.t
 val defaults : spec -> t
-val has_section : t -> string -> bool
-val get : t -> ?section:string -> string -> unit -> value option
-val get_exn : t -> ?section:string -> string -> unit -> value
+val get : t -> string -> string -> value
+val get_global : t -> string -> value

@@ -58,8 +58,8 @@ let spec =
       ])
   ]
 
-let getg c k = C.get_exn c k ()
-let get c s k = C.get_exn c ~section:s k ()
+let getg = C.get_global
+let get = C.get
 
 let () =
   Lwt_main.run

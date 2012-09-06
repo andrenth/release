@@ -170,11 +170,8 @@ let parse file spec =
           return (`Error (join_errors errors)) in
   Lwt_mutex.with_lock config_mutex parse_config
 
-let has_section conf section =
-  Hashtbl.mem conf section
-
-let get conf ?(section = global_section) key () =
-  Option.maybe (fun settings -> hash_find settings key) (hash_find conf section)
-
-let get_exn conf ?(section = global_section) key () =
+let get conf section key =
   Hashtbl.find (Hashtbl.find conf section) key
+
+let get_global conf key =
+  get conf global_section key
