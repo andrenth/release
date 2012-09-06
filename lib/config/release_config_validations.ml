@@ -98,18 +98,18 @@ let int_in l = function
       if List.mem i l then
         `Valid
       else
-        `Invalid (sprintf "one_of_ints: %d not found" i)
+        `Invalid (sprintf "int_in: %d not found" i)
   | _ ->
-      `Invalid "one_of_ints: not an int"
+      `Invalid "int_in: not an int"
 
 let string_in l = function
   | `Str s ->
       if List.mem s l then
         `Valid
       else
-        `Invalid (sprintf "one_of_strings: %s not found" s)
+        `Invalid (sprintf "string_in: %s not found" s)
   | _ ->
-      `Invalid "one_of_strings: not a string"
+      `Invalid "string_in: not a string"
 
 let file_with f name err = function
   | `Str file ->
