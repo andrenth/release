@@ -5,7 +5,7 @@ type value =
   | `Str of string
   | `Regexp of Str.regexp
   | `Log_level of Lwt_log.level
-  | `List of (value list)
+  | `List of value list
   ]
 
 type validation = value -> [`Valid | `Invalid of string]
