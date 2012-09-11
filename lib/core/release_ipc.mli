@@ -66,8 +66,9 @@ module type S = sig
                   -> request
                   -> ([`Response of response | `EOF | `Timeout] -> 'a Lwt.t)
                   -> 'a Lwt.t
-    (** This is a higher-level version of {!write}, which takes a {!request}
-        as a parameter and automatically converts it to an IPC message. *)
+    (** This function sends an IPC {!request} on a file descriptor and
+        waits for a {!response}, passing it to a callback function responsible
+        for handling it. *)
 
   val handle_request : ?timeout:float
                     -> ?eof_warning:bool
