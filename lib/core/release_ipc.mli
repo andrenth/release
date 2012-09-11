@@ -1,6 +1,11 @@
 (** This module allows one to implement type-safe inter-process communication
     when using Release.
 
+    The UNIX socket used by Release to implement IPC is a resource that can
+    be shared by multiple threads. Therefore, the request and response
+    functions exported by this module are protected by mutexes and can be
+    considered atomic.
+
     A simple protocol is assumed. Each IPC message contains a 4-byte header
     followed by a variable length payload. The length of the payload is given
     by the 4-byte integer in the header, but must fit an OCaml [int].
