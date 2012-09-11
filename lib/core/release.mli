@@ -8,11 +8,18 @@
     channels between master and slave, dropping privileges and chroot'ing
     the slave process, etc.
 
-    The library also provides helper modules {!Release_bytes}, for handling
-    binary representation of integers, {!Release_io}, for simple and safe
-    I/O operation on sockets, {!Release_ipc}, for type-safe inter-process
-    communication and {!Release_socket} for miscellaneous socket-related
-    utility functions.
+    The library also provides helper modules {!Release_io}, for simple and
+    safe I/O operations, {!Release_ipc}, for type- and thread-safe
+    inter-process communication and {!Release_socket} for miscellaneous
+    socket-related utility functions.
+
+    Release also provides some utility sub-modules: [Release_buffer], a
+    module for buffer operations implemented on top of [Lwt_bytes],
+    [Release_bytes], for handling binary representation of integers stored
+    in buffers, [Release_config], for parsing and validating configuration
+    files, and [Release_option], with miscellaneous operations on [options]
+    types. Please refer to each sub-module's documentation for details on
+    their interfaces.
 
     Whenever a thread is mentioned in this documentation, it refers to an
     [Lwt.t]
