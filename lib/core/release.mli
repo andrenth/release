@@ -17,9 +17,8 @@
     module for buffer operations implemented on top of [Lwt_bytes],
     [Release_bytes], for handling binary representation of integers stored
     in buffers, [Release_config], for parsing and validating configuration
-    files, and [Release_option], with miscellaneous operations on [options]
-    types. Please refer to each sub-module's documentation for details on
-    their interfaces.
+    files, and [Release_util], with miscellaneous functions. Please refer
+    to each sub-module's documentation for details on their interfaces.
 
     Whenever a thread is mentioned in this documentation, it refers to an
     [Lwt.t]

@@ -1,8 +1,7 @@
 open Lwt
 open Printf
 open Release_config_values
-
-module Option = Release_option
+open Release_util
 
 type key = string * value option * validation list
 

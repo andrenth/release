@@ -1,8 +1,7 @@
 open Lwt
 open Printf
 open Ipc
-
-module Option = Release_option
+open Release_util
 
 let slave_connections = ref None
 

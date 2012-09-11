@@ -1,27 +1,27 @@
 # OASIS_START
-# DO NOT EDIT (digest: 9cb624c0dd9dcbab48049703b44f0053)
+# DO NOT EDIT (digest: ce16f864378ab46865ac8aa76720fe21)
 version = "0.1.0"
 description = "OCaml daemon framework"
-requires = "lwt lwt.syntax lwt.unix release.option release.buffer"
+requires = "lwt lwt.syntax lwt.unix release.buffer release.util"
 archive(byte) = "release.cma"
 archive(byte, plugin) = "release.cma"
 archive(native) = "release.cmxa"
 archive(native, plugin) = "release.cmxs"
 exists_if = "release.cma"
-package "option" (
+package "util" (
  version = "0.1.0"
- description = "Utility functions on option types"
- archive(byte) = "release-option.cma"
- archive(byte, plugin) = "release-option.cma"
- archive(native) = "release-option.cmxa"
- archive(native, plugin) = "release-option.cmxs"
- exists_if = "release-option.cma"
+ description = "Miscellaneuous utility functions"
+ archive(byte) = "release-util.cma"
+ archive(byte, plugin) = "release-util.cma"
+ archive(native) = "release-util.cmxa"
+ archive(native, plugin) = "release-util.cmxs"
+ exists_if = "release-util.cma"
 )
 
 package "config" (
  version = "0.1.0"
  description = "Configuration file support for Release daemons"
- requires = "lwt lwt.syntax release.option str unix"
+ requires = "lwt lwt.syntax release.util str unix"
  archive(byte) = "release-config.cma"
  archive(byte, plugin) = "release-config.cma"
  archive(native) = "release-config.cmxa"

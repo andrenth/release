@@ -13,8 +13,8 @@ Library "release"
   BuildDepends:     lwt (>= 2.4.0),
                     lwt.syntax (>= 2.4.0),
                     lwt.unix (>= 2.4.0),
-                    release.option,
-                    release.buffer
+                    release.buffer,
+                    release.util
   CompiledObject:   best
   Modules:          Release,
                     Release_io,
@@ -52,7 +52,7 @@ Library "release-config"
   Path:             lib/config
   BuildDepends:     lwt (>= 2.4.0),
                     lwt.syntax (>= 2.4.0),
-                    release.option,
+                    release.util,
                     str,
                     unix
   BuildTools+:      ocamllex, ocamlyacc
@@ -65,13 +65,13 @@ Library "release-config"
                     Release_config_validations
   XMETADescription: Configuration file support for Release daemons
 
-Library "release-option"
-  Path:             lib/option
-  FindlibName:      option
+Library "release-util"
+  Path:             lib/util
+  FindlibName:      util
   FindlibParent:    release
   CompiledObject:   best
-  Modules:          Release_option
-  XMETADescription: Utility functions on option types
+  Modules:          Release_util
+  XMETADescription: Miscellaneuous utility functions
 
 Document "release"
   Title:                Release documentation

@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 7748fbdf315a394f1bdb0f987d46d18e) *)
+(* DO NOT EDIT (digest: fcffcfb535eac80af09639e1cae2a6df) *)
 module OASISGettext = struct
 # 21 "/home/andre/src/oasis-0.3.0/src/oasis/OASISGettext.ml"
 
@@ -481,7 +481,7 @@ let package_default =
        [
           ("release-buffer", ["lib/buffer"]);
           ("release-bytes", ["lib/bytes"]);
-          ("release-option", ["lib/option"]);
+          ("release-util", ["lib/util"]);
           ("release-config", ["lib/config"]);
           ("release", ["lib/core"])
        ];
@@ -490,8 +490,8 @@ let package_default =
      includes =
        [
           ("lib_test", ["lib/config"; "lib/core"]);
-          ("lib/core", ["lib/buffer"; "lib/option"]);
-          ("lib/config", ["lib/option"]);
+          ("lib/core", ["lib/buffer"; "lib/util"]);
+          ("lib/config", ["lib/util"]);
           ("lib/bytes", ["lib/buffer"])
        ];
      }

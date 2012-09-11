@@ -1,7 +1,6 @@
 open Lwt
 open Printf
-
-module Option = Release_option
+open Release_util
 
 let fork () =
   lwt () = Lwt_io.flush_all () in
