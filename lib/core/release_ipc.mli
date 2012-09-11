@@ -1,9 +1,9 @@
 (** This module allows one to implement type-safe inter-process communication
     when using Release.
 
-    A simple protocol is assumed. Each IPC message contains a 1-byte header
+    A simple protocol is assumed. Each IPC message contains a 4-byte header
     followed by a variable length payload. The length of the payload is given
-    by the byte in the header, and is therefore limited to 255 bytes.
+    by the 4-byte integer in the header, but must fit an OCaml [int].
 *)
 
 (** The type of IPC handler functions. *)
