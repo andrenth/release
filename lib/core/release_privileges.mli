@@ -7,5 +7,5 @@ val drop : string -> unit Lwt.t
       + [chroot] to the users's home directory;
       + Change the current working directory to [/];
       + Call [setgroups] on the user's GID;
-      + Call [setresgid] and [setresuid] on the user's GID and UID,
-        respectively. *)
+      + Call [setgid] and [setuid] on the user's GID and UID, respectively;
+      + Check if privileges were successfully dropped. *)
