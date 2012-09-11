@@ -13,7 +13,7 @@
     I/O operation on sockets, {!Release_ipc}, for type-safe inter-process
     communication and {!Release_socket} for miscellaneous socket-related
     utility functions.
-    
+
     Whenever a thread is mentioned in this documentation, it refers to an
     [Lwt.t]
 *)
@@ -92,7 +92,7 @@ val me : ?syslog:bool
       -> main:(Lwt_unix.file_descr -> unit Lwt.t)
       -> unit -> unit
   (** This function is supposed to be called in the slave process.
- 
+
       [syslog] indicates whether the slave process will log to syslog.
       Defaults to [true].
 
