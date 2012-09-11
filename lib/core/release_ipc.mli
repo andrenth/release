@@ -4,6 +4,8 @@
     A simple protocol is assumed. Each IPC message contains a 4-byte header
     followed by a variable length payload. The length of the payload is given
     by the 4-byte integer in the header, but must fit an OCaml [int].
+    Therefore, in 32-bit architectures, an exception might be raise during
+    header parsing.
 *)
 
 (** The type of IPC handler functions. *)

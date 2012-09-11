@@ -71,12 +71,18 @@ struct
   let read_byte_at i buf =
     int_of_char (Release_buffer.get buf i)
 
+  exception Overflow
+
   let read_header buf =
     let res = ref 0 in
     for b = 1 to header_length do
       let pos = b - 1 in
       let byte = read_byte_at pos buf in
-      res := !res lor (byte lsl (32 - 8 * b))
+      let r = !res lor (byte lsl (32 - 8 * b)) in
+      if r < !res then
+        raise Overflow
+      else
+        res := r
     done;
     !res
 
@@ -101,11 +107,11 @@ struct
 
   let read ?timeout fd =
     match_lwt Release_io.read ?timeout fd header_length with
-    | `Data b ->
-        let siz = read_header b in
-        Release_io.read ?timeout fd siz
     | `Timeout | `EOF as other ->
         return other
+    | `Data b ->
+        try Release_io.read ?timeout fd (read_header b)
+        with Overflow -> raise_lwt (Failure "IPC header length overflow")
 
   let write fd buf =
     let len = Release_buffer.length buf in
