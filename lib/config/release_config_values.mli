@@ -1,6 +1,6 @@
 (** This module defines the type of {!Release_config} configuration values
-    and helper functions to extract OCaml values from {!Release_config}
-    {!values} and to specify default values for configuration directives.
+    and helper functions to extract OCaml values from {!value}s and to
+    specify default values for configuration directives.
 *)
 
 type value =
@@ -17,7 +17,7 @@ type value =
 type validation = value -> [`Valid | `Invalid of string]
   (** The type of validation functions. *)
 
-(** {4 Conversion of {!Release_config} {!value}s to OCaml values} *)
+(** {6 Conversion to OCaml values} *)
 
 val bool_value : [>`Bool of 'a] -> 'a
 val int_value : [>`Int of 'a] -> 'a
@@ -32,7 +32,7 @@ val float_list_value : [>`List of [>`Float of 'a] list] -> 'a list
 val string_list_value : [>`List of [>`Str of 'a] list] -> 'a list
 val log_level_list_value : [>`List of [>`Log_level of 'a] list] -> 'a list
 
-(** {4 Helpers for specifying default values of configuration directives} *)
+(** {6 Helpers for specifying default values of configuration directives} *)
 
 val default_bool : bool -> [>`Bool of bool] option
 val default_int : int -> [>`Int of int] option
