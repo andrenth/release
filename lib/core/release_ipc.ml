@@ -73,7 +73,7 @@ struct
 
   let read_header buf =
     let res = ref 0 in
-    for b = 1 to 4 do
+    for b = 1 to header_length do
       let pos = b - 1 in
       let byte = read_byte_at pos buf in
       res := !res lor (byte lsl (32 - 8 * b))
