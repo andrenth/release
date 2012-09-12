@@ -46,7 +46,7 @@ let ident = ['A'-'Z' 'a'-'z'][^ '#' '=' '[' ']' ' ' '\t' '\n']+
 
 rule token = parse
   | [' ' '\t']             { token lexbuf }
-  | '\n'                   { Lexing.new_line lexbuf; NEWLINE }
+  | '\n'                   { Lexing.new_line lexbuf; token lexbuf }
   | '='                    { EQUALS }
   | '['                    { LBRACKET }
   | ']'                    { RBRACKET }
@@ -60,11 +60,10 @@ rule token = parse
   | '"'                    { STRING (str (Buffer.create 16) lexbuf) }
   | '/'                    { REGEXP (regexp (Buffer.create 16) lexbuf) }
   | ident as id            { IDENT id }
-  | _                      { token lexbuf }
   | eof                    { raise End_of_file }
 
 and comment = parse
-  | '\n'                   { Lexing.new_line lexbuf; NEWLINE }
+  | '\n'                   { Lexing.new_line lexbuf; token lexbuf }
   | _                      { comment lexbuf }
 
 and str buf = parse
@@ -116,8 +115,26 @@ and regexp buf = parse
         Buffer.add_char buf (char_for_backslash (Lexing.lexeme_char lexbuf 1));
         regexp buf lexbuf
       }
+  | '\n'
+      {
+        strip buf lexbuf
+      }
   | _ as c
       {
         Buffer.add_char buf c;
+        regexp buf lexbuf
+      }
+
+and strip buf = parse
+  | [' ' '\t' '\n']
+      {
+        strip buf lexbuf
+      }
+  | _
+      {
+        let module L = Lexing in
+        lexbuf.L.lex_curr_pos <- lexbuf.L.lex_curr_pos - 1;
+        let p = lexbuf.L.lex_curr_p in
+        lexbuf.L.lex_curr_p <- { p with L.pos_cnum = p.L.pos_cnum - 1 };
         regexp buf lexbuf
       }

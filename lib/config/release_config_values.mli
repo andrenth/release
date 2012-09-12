@@ -12,7 +12,9 @@ type value =
   | `Log_level of Lwt_log.level
   | `List of value list
   ]
-  (** The type of configuration values. *)
+  (** The type of configuration values. Literal newline (['\n']) characters
+      are allowed inside strings. In regular expressions, newlines are
+      ignored along with any following whitespace ([' '], ['\t']) characters. *)
 
 type validation = value -> [`Valid | `Invalid of string]
   (** The type of validation functions. *)

@@ -31,7 +31,6 @@ let () = section G.global_section
 %token <Str.regexp> REGEXP
 %token <Lwt_log.level> LOG_LEVEL
 %token EQUALS
-%token NEWLINE
 %token LBRACKET
 %token RBRACKET
 %token COMMA
@@ -41,32 +40,37 @@ let () = section G.global_section
 
 %%
 
-input: /* empty */                { }
-     | input line                 { }
-     | error NEWLINE              { G.syntax_error (current_line ()) }
-     ;
+input:
+  | /* empty */              { }
+  | input line               { }
+  | error                    { G.syntax_error (current_line ()) }
+  ;
 
-line: NEWLINE                     { }
-    | LBRACKET IDENT RBRACKET     { section $2 }
-    | keyval NEWLINE              { }
-    ;
+line:
+  | LBRACKET IDENT RBRACKET  { section $2 }
+  | keyval                   { }
+  ;
 
-keyval: IDENT EQUALS value        { key $1 $3 }
-      | IDENT EQUALS listval      { key $1 $3 }
-      ;
+keyval:
+  | IDENT EQUALS value       { key $1 $3 }
+  | IDENT EQUALS listval     { key $1 $3 }
+  ;
 
-value: INTEGER                    { `Int $1 }
-     | FLOAT                      { `Float $1 }
-     | BOOL                       { `Bool $1 }
-     | STRING                     { `Str $1 }
-     | REGEXP                     { `Regexp $1 }
-     | LOG_LEVEL                  { `Log_level $1 }
-     ;
+value:
+  | INTEGER                  { `Int $1 }
+  | FLOAT                    { `Float $1 }
+  | BOOL                     { `Bool $1 }
+  | STRING                   { `Str $1 }
+  | REGEXP                   { `Regexp $1 }
+  | LOG_LEVEL                { `Log_level $1 }
+  ;
 
-listval: LBRACKET RBRACKET        { `List [] }
-       | LBRACKET values RBRACKET { `List (List.rev $2) }
-       ;
+listval:
+  | LBRACKET RBRACKET        { `List [] }
+  | LBRACKET values RBRACKET { `List (List.rev $2) }
+  ;
 
-values: values COMMA value        { $3::$1 }
-      | value                     { [$1] }
-      ;
+values:
+  | values COMMA value       { $3::$1 }
+  | value                    { [$1] }
+  ;

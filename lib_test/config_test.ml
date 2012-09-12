@@ -77,7 +77,7 @@ let () =
         assert (get conf "section2" "optional-parameter-1" = `Str "value1");
         assert (get conf "section2" "optional-parameter-2" = `Str "value2");
 
-        assert (get conf "section3" "optional-parameter-1" = `Str "value1");
+        assert (get conf "section3" "optional-parameter-1" = `Str "val\nue1");
         assert (get conf "section3" "optional-parameter-2" = `Str "value2");
         return_unit
     | `Error reason ->
