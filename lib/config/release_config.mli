@@ -3,10 +3,33 @@
     possibly organized in sections.
 
     Sections are started by a section name enclosed in square brackets.
-    Keys and values are separated by and equals sign, and values can be
+    Keys and values are separated by an equals sign, and values can be
     integers, floats, booleans, strings, regular expressions, log levels
     or lists of one of those types, as defined by the {!Release_values.value}
     type.
+
+    Keys must be named starting with a letter and optionally followed by
+    any character except whitespace characters, square brackets, equals
+    signs or hash signs.
+
+    Integers values are represented by sequences of digits and floats are
+    represented by sequences of digits separated by a dot character.
+
+    Strings are sequences of characters enclosed by double quotes, and newline
+    characters inside strings are supported.
+
+    Regular expressions are enclosed by forward slash characters and support
+    the same constructs as the ones documented in OCaml's [Str] module, but
+    the grouping constructs [(] and [)] and the alternative between expressions
+    construct [|] don't need to be escaped by a backslash. Newlines can be
+    inserted in regular expressions for organization purposes and are ignored
+    along with any following whitespace characters.
+
+    Log levels are bare words matching the definitions in [Lwt_log], that is,
+    [debug], [info], [notice], [warning], [error] and [fatal].
+
+    Finally, lists are sequences of the above types enclosed by square brackets
+    and separated by commas.
 
     In terms of code, configuration files are specified by the
     {!Release_config.spec} type. This is simply a list of
