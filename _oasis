@@ -1,6 +1,6 @@
 OASISFormat: 0.3
 Name:        release
-Version:     0.1.0
+Version:     1.0.0
 Synopsis:    OCaml daemon framework
 Authors:     Andre Nathan
 License:     BSD3
