@@ -1,3 +1,6 @@
+(** Allows a privileged process to drop to lock itself inside a [chroot] jail
+    and switch to a non-root user. *)
+
 exception Release_privileges_error of string
 
 val drop : string -> unit Lwt.t
