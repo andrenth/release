@@ -3,7 +3,7 @@ Name:        release
 Version:     1.0.0
 Synopsis:    OCaml daemon framework
 Authors:     Andre Nathan
-License:     BSD3
+License:     MIT
 
 BuildTools:  ocamlbuild
 Plugins:     META (0.3)
