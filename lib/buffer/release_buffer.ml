@@ -76,10 +76,8 @@ let index buf c =
 
 let read fd buf off len =
   lwt k = Lwt_bytes.read fd buf.bytes off len in
-  buf.len <- buf.len + k;
+  buf.len <- max buf.len (off + k);
   return k
 
 let write fd buf off len =
-  lwt n = Lwt_bytes.write fd buf.bytes off len in
-  buf.len <- buf.len + n;
-  return n
+  Lwt_bytes.write fd buf.bytes off len
