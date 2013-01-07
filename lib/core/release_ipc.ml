@@ -2,8 +2,6 @@ open Lwt
 
 type handler = (Lwt_unix.file_descr -> unit Lwt.t)
 
-type buffer = Release_buffer.t
-
 let control_socket path handler =
   try_lwt
     let sockaddr = Lwt_unix.ADDR_UNIX path in
@@ -52,11 +50,14 @@ module type S = sig
                     -> unit Lwt.t
 end
 
-module Make (O : Ops) : S
+module Make (O : Ops) (B : Release_buffer.S) : S
   with type request = O.request and type response = O.response =
 struct
   type request = O.request
   type response = O.response
+  type buffer = B.t
+
+  module Io = Release_io.Make (B)
 
   (*
    * Do the header operations by hand to avoid forcing a
@@ -69,7 +70,7 @@ struct
   let header_length = 4
 
   let read_byte_at i buf =
-    int_of_char (Release_buffer.get buf i)
+    int_of_char (B.get buf i)
 
   exception Overflow
 
@@ -87,7 +88,7 @@ struct
     !res
 
   let write_byte b buf =
-    Release_buffer.add_char buf (char_of_int (b land 255))
+    B.add_char buf (char_of_int (b land 255))
 
   let write_header len buf =
     for b = 4 downto 1 do
@@ -106,31 +107,31 @@ struct
   end
 
   let read ?timeout fd =
-    match_lwt Release_io.read ?timeout fd header_length with
+    match_lwt Io.read ?timeout fd header_length with
     | `Timeout | `EOF as other ->
         return other
     | `Data b ->
-        try Release_io.read ?timeout fd (read_header b)
+        try Io.read ?timeout fd (read_header b)
         with Overflow -> raise_lwt (Failure "IPC header length overflow")
 
   let write fd buf =
-    let len = Release_buffer.length buf in
-    let buf' = Release_buffer.create (len + header_length) in
+    let len = B.length buf in
+    let buf' = B.create (len + header_length) in
     write_header len buf';
-    Release_buffer.blit buf 0 buf' header_length len;
-    Release_io.write fd buf'
+    B.blit buf 0 buf' header_length len;
+    Io.write fd buf'
 
   let request_of_buffer buf =
-    O.request_of_string (Release_buffer.to_string buf)
+    O.request_of_string (B.to_string buf)
 
   let buffer_of_request req =
-    Release_buffer.of_string (O.string_of_request req)
+    B.of_string (O.string_of_request req)
 
   let response_of_buffer buf =
-    O.response_of_string (Release_buffer.to_string buf)
+    O.response_of_string (B.to_string buf)
 
   let buffer_of_response resp =
-    Release_buffer.of_string (O.string_of_response resp)
+    B.of_string (O.string_of_response resp)
 
   let read_request' ?timeout fd =
     match_lwt read ?timeout fd with

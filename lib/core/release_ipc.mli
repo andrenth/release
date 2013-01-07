@@ -80,8 +80,9 @@ module type S = sig
         {!response}. *)
 end
 
-module Make (O : Ops) : S
+module Make (O : Ops) (B : Release_buffer.S) : S
   with type request = O.request and type response = O.response
     (** Functor that builds an implementation of the IPC-handling functions
         given the request and response types and the appropriate string
-        conversion functions. *)
+        conversion functions, plus the underlying buffer used to implmenet
+        data transfers. *)
