@@ -36,7 +36,7 @@ val daemon : (unit -> unit Lwt.t) -> unit Lwt.t
           calls [f]. *)
 
 val master_slave :
-       slave:(Lwt_io.file_name * Release_ipc.handler)
+       slave:(Lwt_process.command * Release_ipc.handler)
     -> ?background:bool
     -> ?syslog:bool
     -> ?privileged:bool
@@ -84,7 +84,7 @@ val master_slaves :
     -> ?control:(Lwt_io.file_name * Release_ipc.handler)
     -> ?main:((unit -> (int * Lwt_unix.file_descr) list) -> unit Lwt.t)
     -> lock_file:Lwt_io.file_name
-    -> slaves:(Lwt_io.file_name * Release_ipc.handler * int) list
+    -> slaves:(Lwt_process.command * Release_ipc.handler * int) list
     -> unit -> unit
    (** This function generalizes {!master_slave}, taking the same arguments,
        except for [slave], which is substituted by [slaves]. This argument is

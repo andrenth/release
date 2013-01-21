@@ -36,14 +36,18 @@ let store_slave_connections get_conns =
   return_unit
 
 let () =
-  let slave_exec = sprintf "%s/_build/lib_test/slave.native" (Unix.getcwd ()) in
-  let helper_exec = sprintf "%s/_build/lib_test/helper.native" (Unix.getcwd ()) in
+  let slave_exec =
+    sprintf "%s/_build/lib_test/slave.native" (Unix.getcwd ()) in
+  let helper_exec =
+    sprintf "%s/_build/lib_test/helper.native" (Unix.getcwd ()) in
+  let slave_cmd = (slave_exec, [||]) in
+  let helper_cmd = (helper_exec, [||]) in
   Release.master_slaves
     ~background:false
     ~syslog:false
     ~lock_file:(sprintf "/var/run/%s.pid" (Filename.basename Sys.argv.(0)))
     ~control:("/tmp/master.socket", control_connection_handler)
     ~main:store_slave_connections
-    ~slaves:[ slave_exec,  ipc_handler, 1
-            ; helper_exec, lwt_ignore,  1 ]
+    ~slaves:[ slave_cmd,  ipc_handler, 1
+            ; helper_cmd, lwt_ignore,  1 ]
     ()

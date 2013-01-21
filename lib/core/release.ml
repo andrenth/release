@@ -102,7 +102,7 @@ let check_root () =
 let check_nonroot () =
   check_user ((<>) 0) "cannot be run as root"
 
-let try_exec run path =
+let try_exec run ((path, _) as cmd) =
   let can_exec st =
     let kind = st.Lwt_unix.st_kind in
     let perm = st.Lwt_unix.st_perm in
@@ -110,7 +110,7 @@ let try_exec run path =
   try_lwt
     lwt st = Lwt_unix.lstat path in
     if can_exec st then
-      run path
+      run cmd
     else
       lwt () = Lwt_log.error_f "cannot execute `%s'" path in
       exit 126
@@ -188,22 +188,19 @@ let restrict_env () =
     Option.may_default env (fun v -> v::env) (getenv k) in
   Array.of_list (List.fold_left setenv ["PATH=/bin:/usr/bin"] allowed)
 
-let rec exec_process path ipc_handler check_death_rate =
+let rec exec_process cmd ipc_handler check_death_rate =
   lwt () = check_death_rate () in
   let master_fd, slave_fd = setup_ipc ipc_handler in
-  let argv =
-    Array.init (Array.length Sys.argv)
-    (fun i -> if i = 0 then path else Sys.argv.(i)) in
-  let run_proc path =
+  let run_proc cmd =
     let reexec () =
-      exec_process path ipc_handler check_death_rate in
+      exec_process cmd ipc_handler check_death_rate in
     Lwt_process.with_process_none
       ~stdin:(`FD_move (Lwt_unix.unix_file_descr slave_fd))
       ~env:(restrict_env ())
-      (path, argv)
+      cmd
       (handle_process master_fd reexec) in
   let _slave_t =
-    try_exec run_proc path in
+    try_exec run_proc cmd in
   return_unit
 
 let num_exec_tries = 10
@@ -225,8 +222,8 @@ let check_death_rate time tries () =
 let init_exec_slave max_tries =
   let tries = ref max_tries in
   let time = ref 0. in
-  fun path ipc_handler ->
-    exec_process path ipc_handler (check_death_rate time tries)
+  fun cmd ipc_handler ->
+    exec_process cmd ipc_handler (check_death_rate time tries)
 
 let signal_slaves signum =
   Lwt_list.iter_p
@@ -263,10 +260,10 @@ let setup_syslog () =
 let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
                   ?control ?main ~lock_file ~slaves () =
   if syslog then setup_syslog ();
-  let create_slaves (path, ipc_handler, n) =
+  let create_slaves (cmd, ipc_handler, n) =
     for_lwt i = 1 to n do
       let exec_slave = init_exec_slave num_exec_tries in
-      exec_slave path ipc_handler
+      exec_slave cmd ipc_handler
     done in
   let work () =
     ignore (Lwt_unix.on_signal Sys.sigint handle_sigint);
@@ -286,8 +283,8 @@ let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
   Lwt_main.run main_t
 
 let master_slave ~slave =
-  let (path, ipc_handler) = slave in
-  master_slaves ~slaves:[path, ipc_handler, 1]
+  let (cmd, ipc_handler) = slave in
+  master_slaves ~slaves:[cmd, ipc_handler, 1]
 
 let lose_privileges user =
   lwt () = check_root () in
