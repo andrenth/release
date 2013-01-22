@@ -159,7 +159,7 @@ let handle_process master_fd reexec proc =
   let log fmt = ksprintf (fun s -> Lwt_log.notice_f "process %s" s) fmt in
   let pid = proc#pid in
   lwt () = add_slave_connection pid master_fd in
-  lwt () = log "creating child process %d" pid in
+  lwt () = log "%d created" pid in
   lwt () = match_lwt proc#status with
   | Lwt_unix.WEXITED 0 -> log "%d exited normally" pid
   | Lwt_unix.WEXITED s -> log "%d exited with status %s" pid (signame s)
