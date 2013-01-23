@@ -1,3 +1,9 @@
+release (1.0.2-0digirati1) precise; urgency=low
+
+  * Version 1.0.2
+
+ -- Andre Nathan <andre@digirati.com.br>  Wed, 23 Jan 2013 12:49:05 -0200
+
 release (1.0.1-0digirati1) precise; urgency=low
 
   * Version 1.0.1
