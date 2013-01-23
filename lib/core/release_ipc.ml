@@ -1,4 +1,5 @@
 open Lwt
+open Printf
 
 type handler = (Lwt_unix.file_descr -> unit Lwt.t)
 
@@ -181,17 +182,18 @@ struct
         handler res)
 
   let handle_request ?timeout ?(eof_warning = true) fd handler =
-    let rec handle_req () =
-      match_lwt read_request' ?timeout fd with
-      | `Timeout ->
-          raise_lwt (Failure "read from slave shouldn't timeout")
-      | `EOF ->
-          lwt () =
-            if eof_warning then Lwt_log.warning "got EOF on IPC socket"
-            else return_unit in
-          Lwt_unix.close fd
-      | `Request req ->
-          let _resp_t =
+    let rec req_loop () =
+      let handle_req () =
+        match_lwt read_request' ?timeout fd with
+        | `Timeout ->
+            lwt () = Lwt_unix.close fd in
+            raise_lwt (Failure "read from slave shouldn't timeout")
+        | `EOF ->
+            lwt () =
+              if eof_warning then Lwt_log.warning "got EOF on IPC socket"
+              else return_unit in
+            Lwt_unix.close fd
+        | `Request req ->
             try_lwt
               lwt resp = handler req in
               write_response' fd resp
@@ -199,6 +201,7 @@ struct
               let err = Printexc.to_string e in
               lwt () = Lwt_log.error_f "request handler exception: %s" err in
               Lwt_unix.close fd in
-          handle_req () in
-    with_locks [Master_lock.r; Master_lock.w] handle_req
+      lwt () = with_locks [Master_lock.r; Master_lock.w] handle_req in
+      req_loop () in
+    req_loop ()
 end
