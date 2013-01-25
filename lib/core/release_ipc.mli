@@ -45,39 +45,49 @@ module type S = sig
   type response
     (** The type of IPC responses. *)
 
-  val read_request : ?timeout:float
-                  -> Lwt_unix.file_descr
-                  -> [`Request of request | `EOF | `Timeout] Lwt.t
-    (** Reads an IPC request from a file descriptor. *)
+  module Server : sig
+    (** Module containing functions to be used by an IPC server, that is,
+        the master process. *)
 
-  val read_response : ?timeout:float
-                   -> Lwt_unix.file_descr
-                   -> [`Response of response | `EOF | `Timeout] Lwt.t
-    (** Reads an IPC response from a file descriptor. *)
-
-  val write_request : Lwt_unix.file_descr -> request -> unit Lwt.t
-    (** Writes an IPC request to a file descriptor. *)
-
-  val write_response : Lwt_unix.file_descr -> response -> unit Lwt.t
-    (** Writes an IPC response to a file descriptor. *)
-
-  val make_request : ?timeout:float
-                  -> Lwt_unix.file_descr
-                  -> request
-                  -> ([`Response of response | `EOF | `Timeout] -> 'a Lwt.t)
-                  -> 'a Lwt.t
-    (** This function sends an IPC {!request} on a file descriptor and
-        waits for a {!response}, passing it to a callback function responsible
-        for handling it. *)
-
-  val handle_request : ?timeout:float
-                    -> ?eof_warning:bool
+    val read_request : ?timeout:float
                     -> Lwt_unix.file_descr
-                    -> (request -> response Lwt.t)
-                    -> unit Lwt.t
-    (** This function reads an IPC {!request} from a file descriptor and
-        passes it to a callback function that must return an appropriate
-        {!response}. *)
+                    -> [`Request of request | `EOF | `Timeout] Lwt.t
+      (** Reads an IPC request from a file descriptor. *)
+
+    val write_response : Lwt_unix.file_descr -> response -> unit Lwt.t
+      (** Writes an IPC response to a file descriptor. *)
+
+    val handle_request : ?timeout:float
+                      -> ?eof_warning:bool
+                      -> Lwt_unix.file_descr
+                      -> (request -> response Lwt.t)
+                      -> unit Lwt.t
+      (** This function reads an IPC {!request} from a file descriptor and
+          passes it to a callback function that must return an appropriate
+          {!response}. *)
+  end
+
+  module Client : sig
+    (** Module containing functions to be used by an IPC client, that is,
+        a slave, helper or control process. *)
+
+    val read_response : ?timeout:float
+                     -> Lwt_unix.file_descr
+                     -> [`Response of response | `EOF | `Timeout] Lwt.t
+      (** Reads an IPC response from a file descriptor. *)
+
+    val write_request : Lwt_unix.file_descr -> request -> unit Lwt.t
+      (** Writes an IPC request to a file descriptor. *)
+
+    val make_request : ?timeout:float
+                    -> Lwt_unix.file_descr
+                    -> request
+                    -> ([`Response of response | `EOF | `Timeout] -> 'a Lwt.t)
+                    -> 'a Lwt.t
+      (** This function sends an IPC {!request} on a file descriptor and
+          waits for a {!response}, passing it to a callback function
+          responsible for handling it. *)
+  end
 end
 
 module Make (O : Ops) (B : Release_buffer.S) : S

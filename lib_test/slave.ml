@@ -7,10 +7,10 @@ let handle_sigterm _ =
   exit 0
 
 let ipc_request fd req =
-  SlaveIpc.write_request fd req
+  SlaveIpc.Client.write_request fd req
 
 let rec consume_ipc fd =
-  lwt () = match_lwt SlaveIpc.read_response fd with
+  lwt () = match_lwt SlaveIpc.Client.read_response fd with
   | `Response (SlaveIpcOps.Broadcast s) ->
       Lwt_log.notice_f "got broadcast message: %s" s
   | `Response (SlaveIpcOps.Resp1 i | SlaveIpcOps.Resp2 i) ->

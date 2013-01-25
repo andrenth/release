@@ -12,7 +12,7 @@ let ipc_handler fd =
     match req with
     | SlaveIpcOps.Req1 pid -> return (SlaveIpcOps.Resp1 pid)
     | SlaveIpcOps.Req2 pid -> return (SlaveIpcOps.Resp2 pid) in
-  SlaveIpc.handle_request fd handler
+  SlaveIpc.Server.handle_request fd handler
 
 let control_connection_handler fd =
   let handler req =
@@ -24,10 +24,11 @@ let control_connection_handler fd =
         let get_conns = Option.some !slave_connections in
         let slave_conns = get_conns () in
         lwt () = Lwt_list.iter_p
-          (fun (_, fd) -> SlaveIpc.write_response fd (SlaveIpcOps.Broadcast s))
+          (fun (_, fd) ->
+            SlaveIpc.Server.write_response fd (SlaveIpcOps.Broadcast s))
           slave_conns in
         return (ControlIpcOps.Broadcast_sent) in
-  ControlIpc.handle_request ~timeout:5. fd handler
+  ControlIpc.Server.handle_request ~timeout:5. fd handler
 
 let lwt_ignore _ = return_unit
 

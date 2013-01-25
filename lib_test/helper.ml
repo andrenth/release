@@ -15,7 +15,7 @@ let control_handler fd =
     let s = ControlIpcOps.string_of_request req in
     lwt () = Lwt_log.notice_f "got control request: %s" s in
     return (ControlIpcOps.response_of_string (String.uppercase s)) in
-  lwt () = ControlIpc.handle_request ~timeout:5. fd handler in
+  lwt () = ControlIpc.Server.handle_request ~timeout:5. fd handler in
   return ()
 
 let main fd =
@@ -23,7 +23,7 @@ let main fd =
     Release_ipc.control_socket "/helper.socket" control_handler in
   let bcast_ipc_t =
     let rec bcast_ipc () =
-      lwt () = match_lwt SlaveIpc.read_response fd with
+      lwt () = match_lwt SlaveIpc.Client.read_response fd with
       | `Response (SlaveIpcOps.Broadcast s) ->
           Lwt_log.notice_f "got broadcast: %s" s
       | _ ->
