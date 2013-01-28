@@ -2,9 +2,9 @@
     when using Release.
 
     The UNIX socket used by Release to implement IPC is a resource that can
-    be shared by multiple threads. Therefore, the request and response
-    functions exported by this module are protected by mutexes and can be
-    considered atomic.
+    be shared by multiple threads. Therefore, if multiple threads in your
+    program have access to the IPC file descriptor, it should be protected
+    by a lock in order to ensure atomicity.
 
     A simple protocol is assumed. Each IPC message contains a 4-byte header
     followed by a variable length payload. The length of the payload is given
