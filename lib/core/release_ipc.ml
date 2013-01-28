@@ -96,16 +96,6 @@ struct
       write_byte (len lsr shift) buf
     done
 
-  module Master_lock = struct
-    let r = Lwt_mutex.create ()
-    let w = Lwt_mutex.create ()
-  end
-
-  module Slave_lock = struct
-    let r = Lwt_mutex.create ()
-    let w = Lwt_mutex.create ()
-  end
-
   let read ?timeout fd =
     match_lwt Release_io.read ?timeout fd header_length with
     | `Timeout | `EOF as other ->
@@ -133,74 +123,46 @@ struct
   let buffer_of_response resp =
     Release_buffer.of_string (O.string_of_response resp)
 
-  let read_request' ?timeout fd =
+  let read_request ?timeout fd =
     match_lwt read ?timeout fd with
     | `Data buf -> return (`Request (request_of_buffer buf))
     | `Timeout | `EOF as other -> return other
 
-  let read_request ?timeout fd =
-    Lwt_mutex.with_lock Master_lock.r
-      (fun () -> read_request' ?timeout fd)
-
-  let read_response' ?timeout fd =
+  let read_response ?timeout fd =
     match_lwt read ?timeout fd with
     | `Data buf -> return (`Response (response_of_buffer buf))
     | `Timeout | `EOF as other -> return other
 
-  let read_response ?timeout fd =
-    Lwt_mutex.with_lock Slave_lock.r
-      (fun () -> read_response' ?timeout fd)
-
-  let write_request' fd req =
+  let write_request fd req =
     write fd (buffer_of_request req)
 
-  let write_request fd req =
-    Lwt_mutex.with_lock Slave_lock.w
-      (fun () -> write_request' fd req)
-
-  let write_response' fd resp =
+  let write_response fd resp =
     write fd (buffer_of_response resp)
 
-  let write_response fd resp =
-    Lwt_mutex.with_lock Master_lock.w
-      (fun () -> write_response' fd resp)
-
-  let with_locks locks f =
-    lwt () = Lwt_list.iter_s Lwt_mutex.lock locks in
-    Lwt.finalize
-      f
-      (fun () ->
-        List.iter Lwt_mutex.unlock (List.rev locks);
-        Lwt.return ())
-
   let make_request ?timeout fd req handler =
-    with_locks [Slave_lock.r; Slave_lock.w]
-      (fun () ->
-        lwt () = write_request' fd req in
-        lwt res = read_response' ?timeout fd in
-        handler res)
+    lwt () = write_request fd req in
+    lwt res = read_response ?timeout fd in
+    handler res
 
   let handle_request ?timeout ?(eof_warning = true) fd handler =
-    let rec req_loop () =
-      let handle_req () =
-        match_lwt read_request' ?timeout fd with
-        | `Timeout ->
-            lwt () = Lwt_unix.close fd in
-            raise_lwt (Failure "read from slave shouldn't timeout")
-        | `EOF ->
-            lwt () =
-              if eof_warning then Lwt_log.warning "got EOF on IPC socket"
-              else return_unit in
-            Lwt_unix.close fd
-        | `Request req ->
-            try_lwt
-              lwt resp = handler req in
-              write_response' fd resp
-            with e ->
-              let err = Printexc.to_string e in
-              lwt () = Lwt_log.error_f "request handler exception: %s" err in
-              Lwt_unix.close fd in
-      lwt () = with_locks [Master_lock.r; Master_lock.w] handle_req in
-      req_loop () in
-    req_loop ()
+    let rec handle_req () =
+      lwt () = match_lwt read_request' ?timeout fd with
+      | `Timeout ->
+          lwt () = Lwt_unix.close fd in
+          raise_lwt (Failure "read from slave shouldn't timeout")
+      | `EOF ->
+          lwt () =
+            if eof_warning then Lwt_log.warning "got EOF on IPC socket"
+            else return_unit in
+          Lwt_unix.close fd
+      | `Request req ->
+          try_lwt
+            lwt resp = handler req in
+            write_response' fd resp
+          with e ->
+            let err = Printexc.to_string e in
+            lwt () = Lwt_log.error_f "request handler exception: %s" err in
+            Lwt_unix.close fd in
+      handle_req () in
+    handle_req ()
 end

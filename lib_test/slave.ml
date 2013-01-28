@@ -6,8 +6,11 @@ let handle_sigterm _ =
   ignore_result (Lwt_log.notice "got sigterm");
   exit 0
 
+let ipc_lock = Lwt_mutex.create ()
+
 let ipc_request fd req =
-  SlaveIpc.write_request fd req
+  Lwt_mutex.with_lock ipc_lock
+    (fun () -> SlaveIpc.write_request fd req)
 
 let rec consume_ipc fd =
   lwt () = match_lwt SlaveIpc.read_response fd with
