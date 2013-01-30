@@ -10,7 +10,7 @@ let ipc_lock = Lwt_mutex.create ()
 
 let ipc_request fd req =
   Lwt_mutex.with_lock ipc_lock
-    (fun () -> SlaveIpc.write_request fd req)
+    (fun () -> SlaveIpc.Client.write_request fd req)
 
 let rec consume_ipc fd =
   lwt () = match_lwt SlaveIpc.Client.read_response fd with
