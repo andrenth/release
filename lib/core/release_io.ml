@@ -28,6 +28,8 @@ end
 module Make (B : Release_buffer.S) : S with type buffer = B.t = struct
   type buffer = B.t
 
+  module O = Release_util.Option
+
   let rec interrupt_safe f =
     try_lwt
       f ()
@@ -50,15 +52,15 @@ module Make (B : Release_buffer.S) : S with type buffer = B.t = struct
       else
         lwt k = read_once fd buf offset remain in
         read (offset + k) (if k = 0 then 0 else remain - k) in
-    let timeout = match timeout with None -> infinity | Some t -> t in
-    let timeout_t = (* XXX doesn't this raise??? *)
-      lwt () = Lwt_unix.timeout timeout in
+    let tmout = O.default infinity timeout in
+    let timeout_t =
+      lwt () = Lwt_unix.sleep tmout in
       return `Timeout in
     let read_t =
       match_lwt read 0 n with
       | 0 -> return `EOF
       | k -> return (`Data (B.sub buf 0 k)) in
-    timeout_t <?> read_t
+    Lwt.pick [timeout_t; read_t]
 
   let write fd buf =
     let len = B.length buf in
