@@ -46,21 +46,22 @@ module Make (B : Release_buffer.S) : S with type buffer = B.t = struct
 
   let read ?(timeout) fd n =
     let buf = B.create n in
-    let rec read offset remain =
+    let rec read_into_buffer offset remain =
       if remain = 0 then
         return offset
       else
         lwt k = read_once fd buf offset remain in
-        read (offset + k) (if k = 0 then 0 else remain - k) in
-    let tmout = O.default infinity timeout in
-    let timeout_t =
-      lwt () = Lwt_unix.sleep tmout in
-      return `Timeout in
-    let read_t =
-      match_lwt read 0 n with
+        read_into_buffer (offset + k) (if k = 0 then 0 else remain - k) in
+    let handle_read () =
+      match_lwt read_into_buffer 0 n with
       | 0 -> return `EOF
       | k -> return (`Data (B.sub buf 0 k)) in
-    Lwt.pick [timeout_t; read_t]
+    let read_with_timeout t =
+      let timeout_t =
+        lwt () = Lwt_unix.sleep t in
+        return `Timeout in
+      Lwt.pick [timeout_t; handle_read ()] in
+    O.either handle_read read_with_timeout timeout
 
   let write fd buf =
     let len = B.length buf in
