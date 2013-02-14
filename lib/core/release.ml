@@ -300,8 +300,8 @@ let me ?(syslog = true) ?user ~main () =
     if syslog then setup_syslog ();
     let ipc_fd = Lwt_unix.dup Lwt_unix.stdin in
     lwt () = Lwt_unix.close Lwt_unix.stdin in
-    lwt () = Lwt_log.info "starting up" in
+    lwt () = Lwt_log.notice "starting up" in
     lwt () = main ipc_fd in
-    lwt () = Lwt_log.info "stopping" in
+    lwt () = Lwt_log.notice "stopping" in
     return_unit in
   Lwt_main.run main_t
