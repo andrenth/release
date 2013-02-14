@@ -242,10 +242,10 @@ let async_exit signame signum =
   exit (128 + signum)
 
 let handle_sigint _ =
-  async_exit "sigint" 2
+  async_exit "SIGINT" 2
 
 let handle_sigterm _ =
-  async_exit "sigterm" 15
+  async_exit "SIGTERM" 15
 
 let curry f (x, y) = f x y
 
