@@ -146,7 +146,7 @@ struct
 
   let handle_request ?timeout ?(eof_warning = true) fd handler =
     let rec handle_req () =
-      lwt () = match_lwt read_request' ?timeout fd with
+      lwt () = match_lwt read_request ?timeout fd with
       | `Timeout ->
           lwt () = Lwt_unix.close fd in
           raise_lwt (Failure "read from slave shouldn't timeout")
@@ -158,7 +158,7 @@ struct
       | `Request req ->
           try_lwt
             lwt resp = handler req in
-            write_response' fd resp
+            write_response fd resp
           with e ->
             let err = Printexc.to_string e in
             lwt () = Lwt_log.error_f "request handler exception: %s" err in
