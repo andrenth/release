@@ -45,15 +45,15 @@ module Make (B : Release_buffer.S) : S with type buffer = B.t = struct
     eintr_safe B.read fd buf offset n
 
   let read ?(timeout) fd n =
-    let buf = B.create n in
-    let rec read_into_buffer offset remain =
+    let rec read_into buf offset remain =
       if remain = 0 then
         return offset
       else
         lwt k = read_once fd buf offset remain in
-        read_into_buffer (offset + k) (if k = 0 then 0 else remain - k) in
+        read_into buf (offset + k) (if k = 0 then 0 else remain - k) in
     let handle_read () =
-      match_lwt read_into_buffer 0 n with
+      let buf = B.create n in
+      match_lwt read_into buf 0 n with
       | 0 -> return `EOF
       | k -> return (`Data (B.sub buf 0 k)) in
     let read_with_timeout t =
@@ -64,14 +64,13 @@ module Make (B : Release_buffer.S) : S with type buffer = B.t = struct
     O.either handle_read read_with_timeout timeout
 
   let write fd buf =
-    let len = B.length buf in
     let rec write offset remain =
       if remain = 0 then
         return_unit
       else
         lwt k = eintr_safe B.write fd buf offset remain in
         write (offset + k) (if k = 0 then 0 else remain - k) in
-    write 0 len
+    write 0 (B.length buf)
 end
 
 module Bytes = Make (Release_buffer.Bytes)
