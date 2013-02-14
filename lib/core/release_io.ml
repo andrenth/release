@@ -55,7 +55,7 @@ module Make (B : Release_buffer.S) : S with type buffer = B.t = struct
       let buf = B.create n in
       match_lwt read_into buf 0 n with
       | 0 -> return `EOF
-      | k -> return (`Data (B.sub buf 0 k)) in
+      | k -> return (`Data (if k = n then buf else B.sub buf 0 k)) in
     let read_with_timeout t =
       let timeout_t =
         lwt () = Lwt_unix.sleep t in
