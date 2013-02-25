@@ -1,6 +1,8 @@
 open Lwt
 open Printf
 
+module B = Release_buffer
+
 type handler = (Lwt_unix.file_descr -> unit Lwt.t)
 
 let control_socket path handler =
@@ -55,14 +57,11 @@ module type S = sig
   end
 end
 
-module Make (O : Ops) (B : Release_buffer.S) : S
+module Make (O : Ops) : S
   with type request = O.request and type response = O.response =
 struct
   type request = O.request
   type response = O.response
-  type buffer = B.t
-
-  module Io = Release_io.Make (B)
 
   (*
    * Do the header operations by hand to avoid forcing a
@@ -102,11 +101,11 @@ struct
     done
 
   let read ?timeout fd =
-    match_lwt Io.read ?timeout fd header_length with
+    match_lwt Release_io.read ?timeout fd header_length with
     | `Timeout | `EOF as other ->
         return other
     | `Data b ->
-        try Io.read ?timeout fd (read_header b)
+        try Release_io.read ?timeout fd (read_header b)
         with Overflow -> raise_lwt (Failure "IPC header length overflow")
 
   let write fd buf =
@@ -114,7 +113,7 @@ struct
     let buf' = B.create (len + header_length) in
     write_header len buf';
     B.blit buf 0 buf' header_length len;
-    Io.write fd buf'
+    Release_io.write fd buf'
 
   let request_of_buffer buf =
     O.request_of_string (B.to_string buf)

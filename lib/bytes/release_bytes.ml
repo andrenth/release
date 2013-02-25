@@ -1,23 +1,10 @@
-module type Buffer = Release_buffer.S
+let read_byte_at i buf =
+  int_of_char (Release_buffer.get buf i)
 
-module type Ops = sig
-  type buffer
-  val read_byte_at : int -> buffer -> int
-  val read_byte : buffer -> int
-  val write_byte : int -> buffer -> unit
-end
+let read_byte = read_byte_at 0
 
-module Make (B : Buffer) : Ops with type buffer = B.t = struct
-  type buffer = B.t
-
-  let read_byte_at i buf =
-    int_of_char (B.get buf i)
-
-  let read_byte = read_byte_at 0
-
-  let write_byte b buf =
-    B.add_char buf (char_of_int (b land 255))
-end
+let write_byte b buf =
+  Release_buffer.add_char buf (char_of_int (b land 255))
 
 module type Integer = sig
   type t
@@ -34,19 +21,13 @@ end
 
 module type ByteOps = sig
   type t
-  type buffer
-  val read_at : int -> buffer -> t
-  val write_byte : t -> buffer -> unit
-  val write : t -> buffer -> unit
+  val read_at : int -> Release_buffer.t -> t
+  val write_byte : t -> Release_buffer.t -> unit
+  val write : t -> Release_buffer.t -> unit
 end
 
-module MakeBig (B : Buffer) (I : Integer) : ByteOps
-  with type t = I.t and type buffer = B.t =
-struct
-  module Bytes = Make (B)
-
+module MakeBig (I : Integer) : ByteOps with type t = I.t = struct
   type t = I.t
-  type buffer = B.t
 
   let bits = 8 * I.bytes
 
@@ -54,14 +35,14 @@ struct
     let res = ref I.zero in
     for b = 1 to I.bytes do
       let pos = i + b - 1 in
-      let byte = I.of_int (Bytes.read_byte_at pos buf) in
+      let byte = I.of_int (read_byte_at pos buf) in
       res := I.logor !res (I.shift_left byte (bits - 8 * b))
     done;
     !res
 
   let write_byte b buf =
     let c = char_of_int (I.to_int (I.logand b I.byte_max)) in
-    B.add_char buf c
+    Release_buffer.add_char buf c
 
   let write i buf =
     for b = I.bytes downto 1 do
@@ -70,13 +51,8 @@ struct
     done
 end
 
-module MakeLittle (B : Buffer) (I : Integer) : ByteOps
-  with type t = I.t and type buffer = B.t =
-struct
-  module Bytes = Make (B)
-
+module MakeLittle (I : Integer) : ByteOps with type t = I.t = struct
   type t = I.t
-  type buffer = B.t
 
   let bits = 8 * I.bytes
 
@@ -84,14 +60,14 @@ struct
     let res = ref I.zero in
     for b = I.bytes downto 1 do
       let pos = i + b - 1 in
-      let byte = I.of_int (Bytes.read_byte_at pos buf) in
+      let byte = I.of_int (read_byte_at pos buf) in
       res := I.logor !res (I.shift_left byte (8 * (b - 1)))
     done;
     !res
 
   let write_byte b buf =
     let c = char_of_int (I.to_int (I.logand b I.byte_max)) in
-    B.add_char buf c
+    Release_buffer.add_char buf c
 
   let write i buf =
     for b = 1 to I.bytes do
@@ -193,162 +169,136 @@ module Uint128 = struct
   let to_int = Uint128.to_int
 end
 
-module MakeInt16Big (B : Buffer) = MakeBig (B) (Int16)
-module MakeIntBig (B : Buffer) = MakeBig (B) (Int)
-module MakeInt32Big (B : Buffer) = MakeBig (B) (Int32)
-module MakeUint32Big (B : Buffer) = MakeBig (B) (Uint32)
-module MakeInt64Big (B : Buffer) = MakeBig (B) (Int64)
-module MakeUint64Big (B : Buffer) = MakeBig (B) (Uint64)
-module MakeUint128Big (B : Buffer) = MakeBig (B) (Uint128)
+module Int16BigOps = MakeBig(Int16)
+module IntBigOps = MakeBig(Int)
+module Int32BigOps = MakeBig(Int32)
+module Uint32BigOps = MakeBig(Uint32)
+module Int64BigOps = MakeBig(Int64)
+module Uint64BigOps = MakeBig(Uint64)
+module Uint128BigOps = MakeBig(Uint128)
 
 module type IntegerOps = sig
   module Make (I : Integer) : ByteOps with type t = I.t
-  type buffer
 
-  val read_int16_at : int -> buffer -> int
-  val read_int16 : buffer -> int
-  val write_int16_byte : int -> buffer -> unit
-  val write_int16 : int -> buffer -> unit
+  val read_int16_at : int -> Release_buffer.t -> int
+  val read_int16 : Release_buffer.t -> int
+  val write_int16_byte : int -> Release_buffer.t -> unit
+  val write_int16 : int -> Release_buffer.t -> unit
 
-  val read_int_at : int -> buffer -> int
-  val read_int : buffer -> int
-  val write_int_byte : int -> buffer -> unit
-  val write_int : int -> buffer -> unit
+  val read_int_at : int -> Release_buffer.t -> int
+  val read_int : Release_buffer.t -> int
+  val write_int_byte : int -> Release_buffer.t -> unit
+  val write_int : int -> Release_buffer.t -> unit
 
-  val read_int32_at : int -> buffer -> int32
-  val read_int32 : buffer -> int32
-  val write_int32_byte : int32 -> buffer -> unit
-  val write_int32 : int32 -> buffer -> unit
+  val read_int32_at : int -> Release_buffer.t -> int32
+  val read_int32 : Release_buffer.t -> int32
+  val write_int32_byte : int32 -> Release_buffer.t -> unit
+  val write_int32 : int32 -> Release_buffer.t -> unit
 
-  val read_uint32_at : int -> buffer -> Uint32.t
-  val read_uint32 : buffer -> Uint32.t
-  val write_uint32_byte : Uint32.t -> buffer -> unit
-  val write_uint32 : Uint32.t -> buffer -> unit
+  val read_uint32_at : int -> Release_buffer.t -> Uint32.t
+  val read_uint32 : Release_buffer.t -> Uint32.t
+  val write_uint32_byte : Uint32.t -> Release_buffer.t -> unit
+  val write_uint32 : Uint32.t -> Release_buffer.t -> unit
 
-  val read_int64_at : int -> buffer -> int64
-  val read_int64 : buffer -> int64
-  val write_int64_byte : int64 -> buffer -> unit
-  val write_int64 : int64 -> buffer -> unit
+  val read_int64_at : int -> Release_buffer.t -> int64
+  val read_int64 : Release_buffer.t -> int64
+  val write_int64_byte : int64 -> Release_buffer.t -> unit
+  val write_int64 : int64 -> Release_buffer.t -> unit
 
-  val read_uint64_at : int -> buffer -> Uint64.t
-  val read_uint64 : buffer -> Uint64.t
-  val write_uint64_byte : Uint64.t -> buffer -> unit
-  val write_uint64 : Uint64.t -> buffer -> unit
+  val read_uint64_at : int -> Release_buffer.t -> Uint64.t
+  val read_uint64 : Release_buffer.t -> Uint64.t
+  val write_uint64_byte : Uint64.t -> Release_buffer.t -> unit
+  val write_uint64 : Uint64.t -> Release_buffer.t -> unit
 
-  val read_uint128_at : int -> buffer -> Uint128.t
-  val read_uint128 : buffer -> Uint128.t
-  val write_uint128_byte : Uint128.t -> buffer -> unit
-  val write_uint128 : Uint128.t -> buffer -> unit
+  val read_uint128_at : int -> Release_buffer.t -> Uint128.t
+  val read_uint128 : Release_buffer.t -> Uint128.t
+  val write_uint128_byte : Uint128.t -> Release_buffer.t -> unit
+  val write_uint128 : Uint128.t -> Release_buffer.t -> unit
 
 end
 
-module Big_endian (B : Buffer) = struct
-  module Make = MakeBig (B)
+module Big_endian = struct
+  module Make = MakeBig
 
-  module Int16Big = MakeInt16Big (B)
-  module IntBig = MakeIntBig (B)
-  module Int32Big = MakeInt32Big (B)
-  module Uint32Big = MakeUint32Big (B)
-  module Int64Big = MakeInt64Big (B)
-  module Uint64Big = MakeUint64Big (B)
-  module Uint128Big = MakeUint128Big (B)
-
-  type buffer = B.t
-
-  let read_int16_at = Int16Big.read_at
+  let read_int16_at = Int16BigOps.read_at
   let read_int16 = read_int16_at 0
-  let write_int16_byte = Int16Big.write_byte
-  let write_int16 = Int16Big.write
+  let write_int16_byte = Int16BigOps.write_byte
+  let write_int16 = Int16BigOps.write
 
-  let read_int_at = IntBig.read_at
+  let read_int_at = IntBigOps.read_at
   let read_int = read_int_at 0
-  let write_int_byte = IntBig.write_byte
-  let write_int = IntBig.write
+  let write_int_byte = IntBigOps.write_byte
+  let write_int = IntBigOps.write
 
-  let read_int32_at = Int32Big.read_at
+  let read_int32_at = Int32BigOps.read_at
   let read_int32 = read_int32_at 0
-  let write_int32_byte = Int32Big.write_byte
-  let write_int32 = Int32Big.write
+  let write_int32_byte = Int32BigOps.write_byte
+  let write_int32 = Int32BigOps.write
 
-  let read_uint32_at = Uint32Big.read_at
+  let read_uint32_at = Uint32BigOps.read_at
   let read_uint32 = read_uint32_at 0
-  let write_uint32_byte = Uint32Big.write_byte
-  let write_uint32 = Uint32Big.write
+  let write_uint32_byte = Uint32BigOps.write_byte
+  let write_uint32 = Uint32BigOps.write
 
-  let read_int64_at = Int64Big.read_at
+  let read_int64_at = Int64BigOps.read_at
   let read_int64 = read_int64_at 0
-  let write_int64_byte = Int64Big.write_byte
-  let write_int64 = Int64Big.write
+  let write_int64_byte = Int64BigOps.write_byte
+  let write_int64 = Int64BigOps.write
 
-  let read_uint64_at = Uint64Big.read_at
+  let read_uint64_at = Uint64BigOps.read_at
   let read_uint64 = read_uint64_at 0
-  let write_uint64_byte = Uint64Big.write_byte
-  let write_uint64 = Uint64Big.write
+  let write_uint64_byte = Uint64BigOps.write_byte
+  let write_uint64 = Uint64BigOps.write
 
-  let read_uint128_at = Uint128Big.read_at
+  let read_uint128_at = Uint128BigOps.read_at
   let read_uint128 = read_uint128_at 0
-  let write_uint128_byte = Uint128Big.write_byte
-  let write_uint128 = Uint128Big.write
+  let write_uint128_byte = Uint128BigOps.write_byte
+  let write_uint128 = Uint128BigOps.write
 end
 
-module MakeInt16Little (B : Buffer) = MakeLittle (B) (Int16)
-module MakeIntLittle (B : Buffer) = MakeLittle (B) (Int)
-module MakeInt32Little (B : Buffer) = MakeLittle (B) (Int32)
-module MakeUint32Little (B : Buffer) = MakeLittle (B) (Uint32)
-module MakeInt64Little (B : Buffer) = MakeLittle (B) (Int64)
-module MakeUint64Little (B : Buffer) = MakeLittle (B) (Uint64)
-module MakeUint128Little (B : Buffer) = MakeLittle (B) (Uint128)
+module Int16LittleOps = MakeLittle(Int16)
+module IntLittleOps = MakeLittle(Int)
+module Int32LittleOps = MakeLittle(Int32)
+module Uint32LittleOps = MakeLittle(Uint32)
+module Int64LittleOps = MakeLittle(Int64)
+module Uint64LittleOps = MakeLittle(Uint64)
+module Uint128LittleOps = MakeLittle(Uint128)
 
-module Little_endian (B : Buffer) = struct
-  module Make = MakeLittle (B)
+module Little_endian = struct
+  module Make = MakeLittle
 
-  module Int16Little = MakeInt16Little (B)
-  module IntLittle = MakeIntLittle (B)
-  module Int32Little = MakeInt32Little (B)
-  module Uint32Little = MakeUint32Little (B)
-  module Int64Little = MakeInt64Little (B)
-  module Uint64Little = MakeUint64Little (B)
-  module Uint128Little = MakeUint128Little (B)
-
-  type buffer = B.t
-
-  let read_int16_at = Int16Little.read_at
+  let read_int16_at = Int16LittleOps.read_at
   let read_int16 = read_int16_at 0
-  let write_int16_byte = Int16Little.write_byte
-  let write_int16 = Int16Little.write
+  let write_int16_byte = Int16LittleOps.write_byte
+  let write_int16 = Int16LittleOps.write
 
-  let read_int_at = IntLittle.read_at
+  let read_int_at = IntLittleOps.read_at
   let read_int = read_int_at 0
-  let write_int_byte = IntLittle.write_byte
-  let write_int = IntLittle.write
+  let write_int_byte = IntLittleOps.write_byte
+  let write_int = IntLittleOps.write
 
-  let read_int32_at = Int32Little.read_at
+  let read_int32_at = Int32LittleOps.read_at
   let read_int32 = read_int32_at 0
-  let write_int32_byte = Int32Little.write_byte
-  let write_int32 = Int32Little.write
+  let write_int32_byte = Int32LittleOps.write_byte
+  let write_int32 = Int32LittleOps.write
 
-  let read_uint32_at = Uint32Little.read_at
+  let read_uint32_at = Uint32LittleOps.read_at
   let read_uint32 = read_uint32_at 0
-  let write_uint32_byte = Uint32Little.write_byte
-  let write_uint32 = Uint32Little.write
+  let write_uint32_byte = Uint32LittleOps.write_byte
+  let write_uint32 = Uint32LittleOps.write
 
-  let read_int64_at = Int64Little.read_at
+  let read_int64_at = Int64LittleOps.read_at
   let read_int64 = read_int64_at 0
-  let write_int64_byte = Int64Little.write_byte
-  let write_int64 = Int64Little.write
+  let write_int64_byte = Int64LittleOps.write_byte
+  let write_int64 = Int64LittleOps.write
 
-  let read_uint64_at = Uint64Little.read_at
+  let read_uint64_at = Uint64LittleOps.read_at
   let read_uint64 = read_uint64_at 0
-  let write_uint64_byte = Uint64Little.write_byte
-  let write_uint64 = Uint64Little.write
+  let write_uint64_byte = Uint64LittleOps.write_byte
+  let write_uint64 = Uint64LittleOps.write
 
-  let read_uint128_at = Uint128Little.read_at
+  let read_uint128_at = Uint128LittleOps.read_at
   let read_uint128 = read_uint128_at 0
-  let write_uint128_byte = Uint128Little.write_byte
-  let write_uint128 = Uint128Little.write
+  let write_uint128_byte = Uint128LittleOps.write_byte
+  let write_uint128 = Uint128LittleOps.write
 end
-
-module Big_endian_bytes = Big_endian (Release_buffer.Bytes)
-module Big_endian_string = Big_endian (Release_buffer.String)
-module Little_endian_bytes = Little_endian (Release_buffer.Bytes)
-module Little_endian_string = Little_endian (Release_buffer.String)
