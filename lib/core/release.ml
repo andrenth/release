@@ -182,21 +182,20 @@ let getenv k =
   with Not_found ->
     None
 
-let restrict_env () =
-  let allowed = ["TZ"] in
+let restrict_env allowed =
   let setenv env k =
     Option.may_default env (fun v -> v::env) (getenv k) in
   Array.of_list (List.fold_left setenv ["PATH=/bin:/usr/bin"] allowed)
 
-let rec exec_process cmd ipc_handler check_death_rate =
+let rec exec_process cmd ipc_handler slave_env check_death_rate =
   lwt () = check_death_rate () in
   let master_fd, slave_fd = setup_ipc ipc_handler in
   let run_proc cmd =
     let reexec () =
-      exec_process cmd ipc_handler check_death_rate in
+      exec_process cmd ipc_handler slave_env check_death_rate in
     Lwt_process.with_process_none
       ~stdin:(`FD_move (Lwt_unix.unix_file_descr slave_fd))
-      ~env:(restrict_env ())
+      ~env:(restrict_env slave_env)
       cmd
       (handle_process master_fd reexec) in
   let _slave_t =
@@ -222,8 +221,8 @@ let check_death_rate time tries () =
 let init_exec_slave max_tries =
   let tries = ref max_tries in
   let time = ref 0. in
-  fun cmd ipc_handler ->
-    exec_process cmd ipc_handler (check_death_rate time tries)
+  fun cmd ipc_handler slave_env ->
+    exec_process cmd ipc_handler slave_env (check_death_rate time tries)
 
 let signal_slaves signum =
   Lwt_list.iter_p
@@ -258,12 +257,12 @@ let setup_syslog () =
     exit 1
 
 let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
-                  ?control ?main ~lock_file ~slaves () =
+                  ?(slave_env = ["TZ"]) ?control ?main ~lock_file ~slaves () =
   if syslog then setup_syslog ();
   let create_slaves (cmd, ipc_handler, n) =
     for_lwt i = 1 to n do
       let exec_slave = init_exec_slave num_exec_tries in
-      exec_slave cmd ipc_handler
+      exec_slave cmd ipc_handler slave_env
     done in
   let work () =
     ignore (Lwt_unix.on_signal Sys.sigint handle_sigint);
