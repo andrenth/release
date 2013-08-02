@@ -1,6 +1,6 @@
 # OASIS_START
-# DO NOT EDIT (digest: 4de0dc8d35f998aebff9b5837b086401)
-version = "1.0.2"
+# DO NOT EDIT (digest: 12892d1e660695d60e21647346ec0557)
+version = "1.1.0"
 description = "OCaml daemon framework"
 requires = "lwt lwt.syntax lwt.unix release.buffer release.util"
 archive(byte) = "release.cma"
@@ -9,7 +9,7 @@ archive(native) = "release.cmxa"
 archive(native, plugin) = "release.cmxs"
 exists_if = "release.cma"
 package "util" (
- version = "1.0.2"
+ version = "1.1.0"
  description = "Miscellaneuous utility functions"
  archive(byte) = "release-util.cma"
  archive(byte, plugin) = "release-util.cma"
@@ -19,7 +19,7 @@ package "util" (
 )
 
 package "config" (
- version = "1.0.2"
+ version = "1.1.0"
  description = "Configuration file support for Release daemons"
  requires = "lwt lwt.syntax release.util str unix"
  archive(byte) = "release-config.cma"
@@ -30,7 +30,7 @@ package "config" (
 )
 
 package "bytes" (
- version = "1.0.2"
+ version = "1.1.0"
  description = "Binary operations for Release daemons"
  requires = "release.buffer uint.uint32 uint.uint64 uint.uint128"
  archive(byte) = "release-bytes.cma"
@@ -41,7 +41,7 @@ package "bytes" (
 )
 
 package "buffer" (
- version = "1.0.2"
+ version = "1.1.0"
  description = "Buffer type for Release"
  requires = "lwt lwt.syntax lwt.unix"
  archive(byte) = "release-buffer.cma"
