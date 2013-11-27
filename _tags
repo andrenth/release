@@ -109,3 +109,4 @@
 <lib_test/*.ml>: annot
 <lib_test/*.ml>: warn_error_A
 #<lib_test/*.ml>: lwt_debug
+true: debug, annot, bin_annot
