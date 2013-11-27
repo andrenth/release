@@ -73,6 +73,7 @@ the function `Release.master_slave`.
       -> ?background:bool
       -> ?syslog:bool
       -> ?privileged:bool
+      -> ?slave_env:string list
       -> ?control:(Lwt_io.file_name * Release_ipc.handler)
       -> ?main:((unit -> (int * Lwt_unix.file_descr) list) -> unit Lwt.t)
       -> lock_file:Lwt_io.file_name
@@ -88,7 +89,9 @@ described in more details below.
 The `background` argument indicates whether `Release.daemon` will be called.
 The `syslog` argument indicates if the syslog facilities from the `Lwt_log`
 module will be enabled. If the master process is supposed to run as root, then
-the `privileged` argument must be set to `true`.
+the `privileged` argument must be set to `true`. The `slave_env` argument is
+a whitelist of environment variables that are passed to the slave process.
+By default it includes only `TZ`.
 
 The `master_slave` function will create a lock file in the path given in the
 `lock_file` argument. This file will contain the PID of the master process.
@@ -114,6 +117,7 @@ The general case of _n_ slave processes is handled by the function
          ?background:bool
       -> ?syslog:bool
       -> ?privileged:bool
+      -> ?slave_env:string list
       -> ?control:(Lwt_io.file_name * Release_ipc.handler)
       -> ?main:((unit -> (int * Lwt_unix.file_descr) list) -> unit Lwt.t)
       -> lock_file:Lwt_io.file_name

@@ -256,8 +256,11 @@ let setup_syslog () =
     fprintf stderr "could not setup syslog: %s" err;
     exit 1
 
+let default_slave_env = ["TZ"; "OCAMLRUNPARAM"]
+
 let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
-                  ?(slave_env = ["TZ"]) ?control ?main ~lock_file ~slaves () =
+                  ?(slave_env = default_slave_env) ?control ?main ~lock_file
+                  ~slaves () =
   if syslog then setup_syslog ();
   let create_slaves (cmd, ipc_handler, n) =
     for_lwt i = 1 to n do
