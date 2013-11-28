@@ -27,7 +27,8 @@ let main fd =
       | `Response (SlaveIpcOps.Broadcast s) ->
           Lwt_log.notice_f "got broadcast: %s" s
       | _ ->
-          Lwt_log.error "helper IPC error" in
+          lwt () = Lwt_log.error "helper IPC error" in
+          Lwt_unix.sleep 1.0 in
       bcast_ipc () in
     bcast_ipc () in
   ctrl_ipc_t <&> bcast_ipc_t

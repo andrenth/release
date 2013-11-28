@@ -19,7 +19,8 @@ let rec consume_ipc fd =
   | `Response (SlaveIpcOps.Resp1 i | SlaveIpcOps.Resp2 i) ->
       Lwt_log.notice_f "got response: %d" i
   | `Timeout | `EOF ->
-      Lwt_log.error "direct IPC error" in
+      lwt () = Lwt_log.error "direct IPC error" in
+      Lwt_unix.sleep 1.0 in
   consume_ipc fd
 
 let rec produce_ipc fd =
