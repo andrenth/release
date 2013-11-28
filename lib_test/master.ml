@@ -44,10 +44,11 @@ let () =
   let slave_cmd = (slave_exec, [||]) in
   let helper_cmd = (helper_exec, [||]) in
   Release.master_slaves
+    ~privileged:false
     ~background:false
     ~syslog:false
-    ~lock_file:(sprintf "/var/run/%s.pid" (Filename.basename Sys.argv.(0)))
-    ~control:("/tmp/master.socket", control_connection_handler)
+    ~lock_file:(sprintf "./_build/release%s.pid" (Filename.basename Sys.executable_name))
+    ~control:("./_build/master.socket", control_connection_handler)
     ~main:store_slave_connections
     ~slaves:[ slave_cmd,  ipc_handler, 1
             ; helper_cmd, lwt_ignore,  1 ]

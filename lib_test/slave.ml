@@ -52,4 +52,4 @@ let sleep _ =
 
 let () =
   Random.self_init ();
-  Release.me ~syslog:false ~user:"andre" ~main:main ()
+  Release.me ~syslog:false ~main ()

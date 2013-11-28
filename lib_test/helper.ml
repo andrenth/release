@@ -35,4 +35,4 @@ let main fd =
 let () =
   ignore (Lwt_unix.on_signal Sys.sigterm handle_sigterm);
   Random.self_init ();
-  Release.me ~syslog:false ~user:"andre" ~main:main ()
+  Release.me ~syslog:false ~main:main ()
