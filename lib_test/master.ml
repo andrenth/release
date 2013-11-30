@@ -41,13 +41,14 @@ let () =
     sprintf "%s/_build/lib_test/slave.native" (Unix.getcwd ()) in
   let helper_exec =
     sprintf "%s/_build/lib_test/helper.native" (Unix.getcwd ()) in
-  let slave_cmd = (slave_exec, [||]) in
-  let helper_cmd = (helper_exec, [||]) in
+  let slave_cmd = (slave_exec, [|Filename.basename slave_exec|]) in
+  let helper_cmd = (helper_exec, [|Filename.basename helper_exec|]) in
+  let exec = Filename.basename Sys.executable_name in
   Release.master_slaves
     ~privileged:false
     ~background:false
     ~syslog:false
-    ~lock_file:(sprintf "./_build/release%s.pid" (Filename.basename Sys.executable_name))
+    ~lock_file:(sprintf "./_build/release%s.pid" exec)
     ~control:("./_build/master.socket", control_connection_handler)
     ~main:store_slave_connections
     ~slaves:[ slave_cmd,  ipc_handler, 1
