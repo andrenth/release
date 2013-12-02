@@ -50,6 +50,7 @@ let () =
     ~syslog:false
     ~lock_file:(sprintf "./_build/release%s.pid" exec)
     ~control:("./_build/master.socket", control_connection_handler)
+    ~slave_env:(`Keep ["OCAMLRUNPARAM"; "RELEASE"])
     ~main:store_slave_connections
     ~slaves:[ slave_cmd,  ipc_handler, 1
             ; helper_cmd, lwt_ignore,  1 ]

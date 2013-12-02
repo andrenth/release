@@ -40,7 +40,7 @@ val master_slave :
     -> ?background:bool
     -> ?syslog:bool
     -> ?privileged:bool
-    -> ?slave_env:string list
+    -> ?slave_env:[`Inherit | `Keep of string list]
     -> ?control:(Lwt_io.file_name * Release_ipc.handler)
     -> ?main:((unit -> (int * Lwt_unix.file_descr) list) -> unit Lwt.t)
     -> lock_file:Lwt_io.file_name
@@ -61,9 +61,11 @@ val master_slave :
       [privileged] indicates if the master process is to be run as [root].
       Defaults to [true].
 
-      [slave_env] is a list of allowed environment variable names for the slave
-      process. The slave will only have access to variables in this list.
-      Defaults to [["TZ"]].
+      [slave_env] controls the environment variables available to the slave
+      process. If [slave_env] is [`Inherit], the slave process will inherit
+      the master's full environment. Otherwise, if [slave_env] is
+      [`Keep env], the slave process will only have access to the variables
+      in the [env] list. Defaults to [`Keep ["OCAMLRUNPARAM"]].
 
       [control], if present, is a tuple containing a path to a UNIX domain
       socket that will be created for communication with external process and
@@ -86,7 +88,7 @@ val master_slaves :
        ?background:bool
     -> ?syslog:bool
     -> ?privileged:bool
-    -> ?slave_env:string list
+    -> ?slave_env:[`Inherit | `Keep of string list]
     -> ?control:(Lwt_io.file_name * Release_ipc.handler)
     -> ?main:((unit -> (int * Lwt_unix.file_descr) list) -> unit Lwt.t)
     -> lock_file:Lwt_io.file_name

@@ -41,7 +41,15 @@ let rec produce_ipc fd =
   else
     produce_ipc fd
 
+let check_env () =
+  try_lwt
+    let env = Sys.getenv "RELEASE" in
+    Lwt_log.notice_f "environment check: RELEASE=%s" env
+  with Not_found ->
+    Lwt_log.notice_f "environment RELEASE is empty"
+
 let main fd =
+  lwt () = check_env () in
   let read_t = consume_ipc fd in
   let write_t = produce_ipc fd in
   read_t <?> write_t

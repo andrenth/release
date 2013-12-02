@@ -182,10 +182,13 @@ let getenv k =
   with Not_found ->
     None
 
-let restrict_env allowed =
-  let setenv env k =
-    Option.may_default env (fun v -> v::env) (getenv k) in
-  Array.of_list (List.fold_left setenv ["PATH=/bin:/usr/bin"] allowed)
+let restrict_env = function
+  | `Inherit ->
+      None
+  | `Keep allowed ->
+      let setenv env k =
+        Option.may_default env (fun v -> v::env) (getenv k) in
+      Some (Array.of_list (List.fold_left setenv [] allowed))
 
 let rec exec_process cmd ipc_handler slave_env check_death_rate =
   lwt () = check_death_rate () in
@@ -195,7 +198,7 @@ let rec exec_process cmd ipc_handler slave_env check_death_rate =
       exec_process cmd ipc_handler slave_env check_death_rate in
     Lwt_process.with_process_none
       ~stdin:(`FD_move (Lwt_unix.unix_file_descr slave_fd))
-      ~env:(restrict_env slave_env)
+      ?env:(restrict_env slave_env)
       cmd
       (handle_process master_fd reexec) in
   let _slave_t =
@@ -256,7 +259,7 @@ let setup_syslog () =
     fprintf stderr "could not setup syslog: %s" err;
     exit 1
 
-let default_slave_env = ["TZ"; "OCAMLRUNPARAM"]
+let default_slave_env = `Keep ["TZ"; "OCAMLRUNPARAM"]
 
 let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
                   ?(slave_env = default_slave_env) ?control ?main ~lock_file
