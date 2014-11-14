@@ -8,7 +8,7 @@ let slave_connections = ref None
 let ipc_handler fd =
   let handler req =
     let s = SlaveIpcOps.string_of_request req in
-    lwt () = Lwt_log.notice_f "got request: %s" s in
+    Lwt_log.notice_f "got request: %s" s >>= fun () ->
     match req with
     | SlaveIpcOps.Req1 pid -> return (SlaveIpcOps.Resp1 pid)
     | SlaveIpcOps.Req2 pid -> return (SlaveIpcOps.Resp2 pid) in
@@ -18,19 +18,17 @@ let control_connection_handler fd =
   let handler req =
     match req with
     | ControlIpcOps.Req s ->
-        lwt () = Lwt_log.notice_f "got control request: %s" s in
+        Lwt_log.notice_f "got control request: %s" s >>= fun () ->
         return (ControlIpcOps.response_of_string (String.uppercase s))
     | ControlIpcOps.Broadcast s ->
         let get_conns = Option.some !slave_connections in
         let slave_conns = get_conns () in
-        lwt () = Lwt_list.iter_p
+        Lwt_list.iter_p
           (fun (_, fd) ->
             SlaveIpc.Server.write_response fd (SlaveIpcOps.Broadcast s))
-          slave_conns in
+          slave_conns >>= fun () ->
         return (ControlIpcOps.Broadcast_sent) in
   ControlIpc.Server.handle_request ~timeout:5. fd handler
-
-let lwt_ignore _ = return_unit
 
 let store_slave_connections get_conns =
   slave_connections := Some (get_conns);
@@ -53,5 +51,5 @@ let () =
     ~slave_env:(`Keep ["OCAMLRUNPARAM"; "RELEASE"])
     ~main:store_slave_connections
     ~slaves:[ slave_cmd,  ipc_handler, 1
-            ; helper_cmd, lwt_ignore,  1 ]
+            ; helper_cmd, (fun _ -> return_unit),  1 ]
     ()

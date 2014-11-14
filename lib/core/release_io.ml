@@ -4,12 +4,11 @@ module B = Release_buffer
 module O = Release_util.Option
 
 let rec interrupt_safe f =
-  try_lwt
-    f ()
-  with
-  | Unix.Unix_error (Unix.EINTR, _, _) -> interrupt_safe f
-  | Unix.Unix_error (Unix.EAGAIN, _, _) -> interrupt_safe f
-  | e -> raise_lwt e
+  Lwt.catch f
+    (function
+    | Unix.Unix_error (Unix.EINTR, _, _) -> interrupt_safe f
+    | Unix.Unix_error (Unix.EAGAIN, _, _) -> interrupt_safe f
+    | e -> Lwt.fail e)
 
 let eintr_safe op fd buf offset remain =
   interrupt_safe (fun () -> op fd buf offset remain)
@@ -22,16 +21,16 @@ let read ?(timeout) fd n =
     if remain = 0 then
       return offset
     else
-      lwt k = read_once fd buf offset remain in
+      read_once fd buf offset remain >>= fun k ->
       read_into buf (offset + k) (if k = 0 then 0 else remain - k) in
   let handle_read () =
     let buf = B.create n in
-    match_lwt read_into buf 0 n with
+    read_into buf 0 n >>= function
     | 0 -> return `EOF
     | k -> return (`Data (if k = n then buf else B.sub buf 0 k)) in
   let read_with_timeout t =
     let timeout_t =
-      lwt () = Lwt_unix.sleep t in
+      Lwt_unix.sleep t >>= fun () ->
       return `Timeout in
     Lwt.pick [timeout_t; handle_read ()] in
   O.either handle_read read_with_timeout timeout
@@ -41,6 +40,6 @@ let write fd buf =
     if remain = 0 then
       return_unit
     else
-      lwt k = eintr_safe B.write fd buf offset remain in
+      eintr_safe B.write fd buf offset remain >>= fun k ->
       write (offset + k) (if k = 0 then 0 else remain - k) in
   write 0 (B.length buf)

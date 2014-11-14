@@ -3,7 +3,7 @@ open Printf
 open Release_util
 
 let fork () =
-  lwt () = Lwt_io.flush_all () in
+  Lwt_io.flush_all () >>= fun () ->
   match Lwt_unix.fork () with
   | 0 ->
       return 0
@@ -13,71 +13,84 @@ let fork () =
 
 let daemon f =
   let grandchild () =
-    lwt () = Lwt_unix.chdir "/" in
-    lwt dev_null = Lwt_unix.openfile "/dev/null" [Lwt_unix.O_RDWR] 0 in
+    Lwt_unix.chdir "/" >>= fun () ->
+    Lwt_unix.openfile "/dev/null" [Lwt_unix.O_RDWR] 0 >>= fun dev_null ->
     let close_and_dup fd =
-      lwt () = Lwt_unix.close fd in
+      Lwt_unix.close fd >>= fun () ->
       Lwt_unix.dup2 dev_null fd;
       return_unit in
     let descrs = [Lwt_unix.stdin; Lwt_unix.stdout; Lwt_unix.stderr] in
-    lwt () = Lwt_list.iter_p close_and_dup descrs in
-    lwt () = Lwt_unix.close dev_null in
+    Lwt_list.iter_p close_and_dup descrs >>= fun () ->
+    Lwt_unix.close dev_null >>= fun () ->
     f () in
   let child () =
     ignore (Unix.setsid ());
     Sys.set_signal Sys.sighup Sys.Signal_ignore;
     Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
-    match_lwt fork () with
+    fork () >>= fun pid ->
+    match pid with
     | 0 -> grandchild ()
     | _ -> exit 0 in
   ignore (Unix.umask 0);
-  match_lwt fork () with
+  fork () >>= function
   | 0 -> child ()
   | _ -> exit 0
 
 let read_lock_file path =
-  try_lwt
-    Lwt_io.with_file Lwt_io.input path (fun ch ->
-      match_lwt Lwt_io.read_line_opt ch with
-      | None ->
+  Lwt.catch
+    (fun ()->
+      Lwt_io.with_file Lwt_io.input path (fun ch ->
+        Lwt_io.read_line_opt ch >>= function
+        | None ->
+            return_none
+        | Some l ->
+            Lwt.catch
+              (fun () -> return (Some (int_of_string l)))
+              (fun _ -> return_none)))
+    (function
+    | Unix.Unix_error (Unix.ENOENT, _, _) ->
+        return_none
+    | Unix.Unix_error (e, _, _) ->
+        let err = Unix.error_message e in
+        Lwt_log.error_f "cannot read lock file: %s: %s" path err >>= fun () ->
           return_none
-      | Some l ->
-          try_lwt
-            return (Some (int_of_string l))
-          with _ ->
-            return_none)
-  with
-  | Unix.Unix_error (Unix.ENOENT, _, _) ->
-      return_none
-  | Unix.Unix_error (e, _, _) ->
-      let err = Unix.error_message e in
-      lwt () = Lwt_log.error_f "cannot read lock file: %s: %s" path err in
-      return_none
+    | e ->
+        Lwt.fail e)
 
 let write_pid path =
-  try_lwt
-    Lwt_io.with_file Lwt_io.output path
-      (fun ch -> Lwt_io.fprintf ch "%d\n" (Unix.getpid ()))
-  with Unix.Unix_error (e, _, _) ->
-    let err = Unix.error_message e in
-    Lwt_log.error_f "cannot create lock file %s: %s" path err
+  Lwt.catch
+    (fun () ->
+      Lwt_io.with_file Lwt_io.output path
+        (fun ch -> Lwt_io.fprintf ch "%d\n" (Unix.getpid ())))
+    (function
+    | Unix.Unix_error (e, _, _) ->
+        let err = Unix.error_message e in
+        Lwt_log.error_f "cannot create lock file %s: %s" path err
+    | e ->
+        Lwt.fail e)
 
 let create_lock_file path =
-  match_lwt read_lock_file path with
+  read_lock_file path >>= fun pid ->
+  match pid with
   | None ->
       write_pid path
   | Some pid ->
-      try_lwt
-        Unix.kill pid 0;
-        Lwt_log.error_f "there is already a running instance of %s: %d"
-          Sys.argv.(0) pid
-      with Unix.Unix_error (Unix.ESRCH, _, _) ->
-        lwt () =
-          Lwt_log.warning_f "found a stale pid in lock file %s: %d" path pid in
-        write_pid path
+      Lwt.catch
+        (fun () ->
+          Unix.kill pid 0;
+          Lwt_log.error_f "there is already a running instance of %s: %d"
+            Sys.argv.(0) pid)
+        (function
+        | Unix.Unix_error (Unix.ESRCH, _, _) ->
+            Lwt_log.warning_f "found a stale pid in lock file %s: %d" path pid
+            >>= fun () ->
+            write_pid path
+        | e ->
+            Lwt.fail e)
 
 let remove_lock_file path =
-  match_lwt read_lock_file path with
+  read_lock_file path >>= fun pid ->
+  match pid with
   | None ->
       Lwt_log.warning_f "couldn't find lock file %s" path
   | Some pid ->
@@ -91,7 +104,7 @@ let remove_lock_file path =
 
 let check_user test msg =
   if not (test (Unix.getuid ())) then
-    lwt () = Lwt_log.error_f "%s %s" Sys.argv.(0) msg in
+    Lwt_log.error_f "%s %s" Sys.argv.(0) msg >>= fun () ->
     exit 1
   else
     return_unit
@@ -107,17 +120,21 @@ let try_exec run ((path, _) as cmd) =
     let kind = st.Lwt_unix.st_kind in
     let perm = st.Lwt_unix.st_perm in
     kind = Lwt_unix.S_REG && perm land 0o100 <> 0 in
-  try_lwt
-    lwt st = Lwt_unix.lstat path in
-    if can_exec st then
-      run cmd
-    else
-      lwt () = Lwt_log.error_f "cannot execute `%s'" path in
-      exit 126
-  with Unix.Unix_error (e, _, _) ->
-    let err = Unix.error_message e in
-    lwt () = Lwt_log.error_f "cannot stat `%s': %s" path err in
-    exit 126
+  Lwt.catch
+    (fun () ->
+      Lwt_unix.lstat path >>= fun st ->
+      if can_exec st then
+        run cmd
+      else
+        Lwt_log.error_f "cannot execute `%s'" path >>= fun () ->
+        exit 126)
+    (function
+    | Unix.Unix_error (e, _, _) ->
+        let err = Unix.error_message e in
+        Lwt_log.error_f "cannot stat `%s': %s" path err >>= fun () ->
+        exit 126
+    | e ->
+        Lwt.fail e)
 
 let posix_signals =
   [| "SIGABRT"; "SIGALRM"; "SIGFPE"; "SIGHUP"; "SIGILL"; "SIGINT";
@@ -141,13 +158,13 @@ let slave_connection_map = ref ConnMap.empty
 let slave_connection_map_mtx = Lwt_mutex.create ()
 
 let add_slave_connection pid fd =
-  lwt () = Lwt_mutex.lock slave_connection_map_mtx in
+  Lwt_mutex.lock slave_connection_map_mtx >>= fun () ->
   slave_connection_map := ConnMap.add pid fd !slave_connection_map;
   Lwt_mutex.unlock slave_connection_map_mtx;
   return_unit
 
 let remove_slave_connection pid =
-  lwt () = Lwt_mutex.lock slave_connection_map_mtx in
+  Lwt_mutex.lock slave_connection_map_mtx >>= fun () ->
   slave_connection_map := ConnMap.remove pid !slave_connection_map;
   Lwt_mutex.unlock slave_connection_map_mtx;
   return_unit
@@ -158,14 +175,16 @@ let slave_connections () =
 let handle_process master_fd reexec proc =
   let log fmt = ksprintf (fun s -> Lwt_log.notice_f "process %s" s) fmt in
   let pid = proc#pid in
-  lwt () = add_slave_connection pid master_fd in
-  lwt () = log "%d created" pid in
-  lwt () = match_lwt proc#status with
+  add_slave_connection pid master_fd >>= fun () ->
+  log "%d created" pid >>= fun () ->
+  proc#status >>= fun status ->
+  (match status with
   | Lwt_unix.WEXITED 0 -> log "%d exited normally" pid
   | Lwt_unix.WEXITED s -> log "%d exited with status %s" pid (signame s)
   | Lwt_unix.WSIGNALED s -> log "%d signaled to death by %s" pid (signame s)
-  | Lwt_unix.WSTOPPED s -> log "%d stopped by signal %s" pid (signame s) in
-  lwt () = remove_slave_connection pid in
+  | Lwt_unix.WSTOPPED s -> log "%d stopped by signal %s" pid (signame s))
+  >>= fun () ->
+  remove_slave_connection pid >>= fun () ->
   reexec ()
 
 let setup_ipc ipc_handler =
@@ -191,7 +210,7 @@ let restrict_env = function
       Some (Array.of_list (List.fold_left setenv [] allowed))
 
 let rec exec_process cmd ipc_handler slave_env check_death_rate =
-  lwt () = check_death_rate () in
+  check_death_rate () >>= fun () ->
   let master_fd, slave_fd = setup_ipc ipc_handler in
   let run_proc cmd =
     let reexec () =
@@ -215,7 +234,7 @@ let check_death_rate time tries () =
   end;
   match !tries with
   | 0 ->
-      lwt () = Lwt_log.error "slave process dying too fast" in
+      Lwt_log.error "slave process dying too fast" >>= fun () ->
       exit 1
   | _ ->
       decr tries;
@@ -237,9 +256,9 @@ let signal_slaves signum =
 let async_exit signame signum =
   Lwt.async
     (fun () ->
-      lwt () = Lwt_log.notice_f "got %s, signaling child processes" signame in
-      lwt () = signal_slaves signum in
-      lwt () = Lwt_log.notice "exiting" in
+      Lwt_log.notice_f "got %s, signaling child processes" signame >>= fun () ->
+      signal_slaves signum >>= fun () ->
+      Lwt_log.notice "exiting" >>= fun () ->
       return_unit);
   exit (128 + signum)
 
@@ -259,6 +278,13 @@ let setup_syslog () =
     fprintf stderr "could not setup syslog: %s" err;
     exit 1
 
+let rec loop i n f =
+  if i > n then
+    return_unit
+  else
+    f () >>= fun () ->
+    loop (i+1) n f
+
 let default_slave_env = `Keep ["TZ"; "OCAMLRUNPARAM"]
 
 let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
@@ -266,24 +292,24 @@ let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
                   ~slaves () =
   if syslog then setup_syslog ();
   let create_slaves (cmd, ipc_handler, n) =
-    for_lwt i = 1 to n do
-      let exec_slave = init_exec_slave num_exec_tries in
-      exec_slave cmd ipc_handler slave_env
-    done in
+    loop 1 n
+      (fun () ->
+        let exec_slave = init_exec_slave num_exec_tries in
+        exec_slave cmd ipc_handler slave_env) in
   let work () =
     ignore (Lwt_unix.on_signal Sys.sigint handle_sigint);
     ignore (Lwt_unix.on_signal Sys.sigterm handle_sigterm);
-    lwt () = create_lock_file lock_file in
+    create_lock_file lock_file >>= fun () ->
     Lwt_main.at_exit (fun () -> remove_lock_file lock_file);
     let idle_t, _idle_w = Lwt.wait () in
     let control_t =
       Option.either return (curry Release_ipc.control_socket) control in
-    lwt () = Lwt_list.iter_p create_slaves slaves in
+    Lwt_list.iter_p create_slaves slaves >>= fun () ->
     let main_t =
       Option.either return (fun f -> f slave_connections) main in
     main_t <&> control_t <&> idle_t in
   let main_t =
-    lwt () = if privileged then check_root () else check_nonroot () in
+    if privileged then check_root () else check_nonroot () >>= fun () ->
     if background then daemon work else work () in
   Lwt_main.run main_t
 
@@ -292,21 +318,24 @@ let master_slave ~slave =
   master_slaves ~slaves:[cmd, ipc_handler, 1]
 
 let lose_privileges user =
-  lwt () = check_root () in
-  try_lwt
-    Release_privileges.drop user
-  with Release_privileges.Release_privileges_error err ->
-    lwt () = Lwt_log.error err in
-    exit 1
+  check_root () >>= fun () ->
+  Lwt.catch
+    (fun () -> Release_privileges.drop user)
+    (function
+    | Release_privileges.Release_privileges_error err ->
+        Lwt_log.error err >>= fun () ->
+          exit 1
+    | e ->
+        Lwt.fail e)
 
 let me ?(syslog = true) ?user ~main () =
   let main_t =
-    lwt () = Option.either check_nonroot lose_privileges user in
+    Option.either check_nonroot lose_privileges user >>= fun () ->
     if syslog then setup_syslog ();
     let ipc_fd = Lwt_unix.dup Lwt_unix.stdin in
-    lwt () = Lwt_unix.close Lwt_unix.stdin in
-    lwt () = Lwt_log.notice "starting up" in
-    lwt () = main ipc_fd in
-    lwt () = Lwt_log.notice "stopping" in
+    Lwt_unix.close Lwt_unix.stdin >>= fun () ->
+    Lwt_log.notice "starting up" >>= fun () ->
+    main ipc_fd >>= fun () ->
+    Lwt_log.notice "stopping" >>= fun () ->
     return_unit in
   Lwt_main.run main_t

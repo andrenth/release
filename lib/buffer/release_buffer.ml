@@ -76,7 +76,7 @@ let index buf c =
   index_from buf 0 c
 
 let read fd buf off len =
-  lwt k = Lwt_bytes.read fd buf.bytes off len in
+  Lwt_bytes.read fd buf.bytes off len >>= fun k ->
   buf.len <- max buf.len (off + k);
   return k
 

@@ -63,7 +63,7 @@ let get = C.get
 
 let () =
   Lwt_main.run
-    (match_lwt C.parse (path ^ "/complete.conf") spec with
+    (C.parse (path ^ "/complete.conf") spec >>= function
     | `Configuration conf ->
         assert (getg conf "global_parameter" = `Int 0);
         assert (getg conf "another_global_parameter" = `Bool true);
@@ -85,7 +85,7 @@ let () =
 
 let () =
   Lwt_main.run
-    (match_lwt C.parse (path ^ "/missing-opt-values.conf") spec with
+    (C.parse (path ^ "/missing-opt-values.conf") spec >>= function
     | `Configuration conf ->
         assert (getg conf "global_parameter" = `Int 0);
         assert (getg conf "global-list" = `List [`Int 1]);
@@ -98,7 +98,7 @@ let () =
 
 let () =
   Lwt_main.run
-    (match_lwt C.parse (path ^ "/validation-error.conf") spec with
+    (C.parse (path ^ "/validation-error.conf") spec >>= function
     | `Configuration _ ->
         assert false
     | `Error err ->
@@ -107,7 +107,7 @@ let () =
 
 let () =
   Lwt_main.run
-    (match_lwt C.parse (path ^ "/missing-req-param.conf") spec with
+    (C.parse (path ^ "/missing-req-param.conf") spec >>= function
     | `Configuration _ ->
         assert false
     | `Error err ->
@@ -117,7 +117,7 @@ let () =
 
 let () =
   Lwt_main.run
-    (match_lwt C.parse (path ^ "/unknown-param.conf") spec with
+    (C.parse (path ^ "/unknown-param.conf") spec >>= function
     | `Configuration _ ->
         assert false
     | `Error err ->

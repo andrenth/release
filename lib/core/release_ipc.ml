@@ -6,12 +6,16 @@ module B = Release_buffer
 type handler = (Lwt_unix.file_descr -> unit Lwt.t)
 
 let control_socket path handler =
-  try_lwt
-    let sockaddr = Lwt_unix.ADDR_UNIX path in
-    Release_socket.accept_loop Lwt_unix.SOCK_STREAM sockaddr handler
-  with Unix.Unix_error (Unix.EADDRINUSE, _, _) ->
-    lwt () = Lwt_log.error_f "control socket `%s' already exists" path in
-    exit 1
+  Lwt.catch
+    (fun () ->
+      let sockaddr = Lwt_unix.ADDR_UNIX path in
+      Release_socket.accept_loop Lwt_unix.SOCK_STREAM sockaddr handler)
+    (function
+    | Unix.Unix_error (Unix.EADDRINUSE, _, _) ->
+        Lwt_log.error_f "control socket `%s' already exists" path >>= fun () ->
+        exit 1
+    | e ->
+        Lwt.fail e)
 
 module type Ops = sig
   type request
@@ -101,12 +105,12 @@ struct
     done
 
   let read ?timeout fd =
-    match_lwt Release_io.read ?timeout fd header_length with
+    Release_io.read ?timeout fd header_length >>= function
     | `Timeout | `EOF as other ->
         return other
     | `Data b ->
         try Release_io.read ?timeout fd (read_header b)
-        with Overflow -> raise_lwt (Failure "IPC header length overflow")
+        with Overflow -> Lwt.fail (Failure "IPC header length overflow")
 
   let write fd buf =
     let len = B.length buf in
@@ -129,7 +133,7 @@ struct
 
   module Server = struct
     let read_request ?timeout fd =
-      match_lwt read ?timeout fd with
+      read ?timeout fd >>= function
       | `Data buf -> return (`Request (request_of_buffer buf))
       | `Timeout | `EOF as other -> return other
 
@@ -138,30 +142,31 @@ struct
 
     let handle_request ?timeout ?(eof_warning = true) fd handler =
       let rec handle_req () =
-        lwt () = match_lwt read_request ?timeout fd with
+        read_request ?timeout fd >>= function
         | `Timeout ->
-            lwt () = Lwt_unix.close fd in
-            raise_lwt (Failure "read from slave shouldn't timeout")
+            Lwt_unix.close fd >>= fun () ->
+            Lwt.fail (Failure "read from slave shouldn't timeout")
         | `EOF ->
-            lwt () =
-              if eof_warning then Lwt_log.warning "got EOF on IPC socket"
-              else return_unit in
+            if eof_warning then Lwt_log.warning "got EOF on IPC socket"
+            else return_unit >>= fun () ->
             Lwt_unix.close fd
         | `Request req ->
-            try_lwt
-              lwt resp = handler req in
-              write_response fd resp
-            with e ->
-              let err = Printexc.to_string e in
-              lwt () = Lwt_log.error_f "request handler exception: %s" err in
-              Lwt_unix.close fd in
+            Lwt.catch
+              (fun () ->
+                handler req >>= fun resp ->
+                write_response fd resp)
+              (fun e ->
+                let err = Printexc.to_string e in
+                Lwt_log.error_f "request handler exception: %s" err
+                >>= fun () ->
+                Lwt_unix.close fd) >>= fun () ->
         handle_req () in
       handle_req ()
   end
 
   module Client = struct
     let read_response ?timeout fd =
-      match_lwt read ?timeout fd with
+      read ?timeout fd >>= function
       | `Data buf -> return (`Response (response_of_buffer buf))
       | `Timeout | `EOF as other -> return other
 
@@ -169,8 +174,8 @@ struct
       write fd (buffer_of_request req)
 
     let make_request ?timeout fd req handler =
-      lwt () = write_request fd req in
-      lwt res = read_response ?timeout fd in
+      write_request fd req >>= fun () ->
+      read_response ?timeout fd >>= fun res ->
       handler res
   end
 end

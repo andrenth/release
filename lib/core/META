@@ -1,8 +1,8 @@
 # OASIS_START
-# DO NOT EDIT (digest: 0b2bd1fe7d20694991a21b843c6ecca7)
+# DO NOT EDIT (digest: 861cb503c7ce0c219f9881e64f42e758)
 version = "2.0.0"
 description = "OCaml daemon framework"
-requires = "camlp4 lwt lwt.syntax lwt.unix release.buffer release.util"
+requires = "lwt lwt.unix release.buffer release.util"
 archive(byte) = "release.cma"
 archive(byte, plugin) = "release.cma"
 archive(native) = "release.cmxa"
@@ -21,7 +21,7 @@ package "util" (
 package "config" (
  version = "2.0.0"
  description = "Configuration file support for Release daemons"
- requires = "camlp4 lwt lwt.syntax release.util str unix"
+ requires = "lwt release.util str unix"
  archive(byte) = "release-config.cma"
  archive(byte, plugin) = "release-config.cma"
  archive(native) = "release-config.cmxa"
@@ -43,7 +43,7 @@ package "bytes" (
 package "buffer" (
  version = "2.0.0"
  description = "Buffer type for Release"
- requires = "camlp4 lwt lwt.syntax lwt.unix"
+ requires = "lwt lwt.unix"
  archive(byte) = "release-buffer.cma"
  archive(byte, plugin) = "release-buffer.cma"
  archive(native) = "release-buffer.cmxa"
