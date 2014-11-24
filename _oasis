@@ -9,66 +9,41 @@ BuildTools:  ocamlbuild
 Plugins:     META (0.3), DevFiles (0.3)
 
 Library "release"
+  FindlibName:      release
   Path:             lib/core
-  BuildDepends:     lwt (>= 2.4.7),
-                    lwt.unix (>= 2.4.7),
-                    release.buffer,
-                    release.util
-  CompiledObject:   best
-  Modules:          Release,
-                    Release_io,
-                    Release_ipc,
-                    Release_privileges,
-                    Release_socket
-  XMETADescription: OCaml daemon framework
-
-Library "release-buffer"
-  Path:             lib/buffer
-  FindlibName:      buffer
-  FindlibParent:    release
-  CompiledObject:   best
-  BuildDepends:     lwt (>= 2.4.7),
-                    lwt.unix (>= 2.4.7)
-  Modules:          Release_buffer
-  XMETADescription: Buffer type for Release
-
-Library "release-bytes"
-  FindlibName:      bytes
-  FindlibParent:    release
-  Path:             lib/bytes
-  BuildDepends:     release.buffer,
+  BuildDepends:     str,
+                    unix,
                     uint.uint32 (>= 1.0.1),
                     uint.uint64 (>= 1.0.1),
                     uint.uint128 (>= 1.0.1)
   CompiledObject:   best
-  Modules:          Release_bytes
-  XMETADescription: Binary operations for Release daemons
-
-Library "release-config"
-  FindlibName:      config
-  FindlibParent:    release
-  Path:             lib/config
-  BuildDepends:     lwt (>= 2.4.7),
-                    release.util,
-                    str,
-                    unix
-  BuildTools+:      ocamllex, ocamlyacc
-  CompiledObject:   best
-  Modules:          Release_config,
+  Modules:          Release,
+                    Release_buffer,
+                    Release_bytes,
+                    Release_config,
                     Release_config_lexer,
                     Release_config_parser,
                     Release_config_global,
                     Release_config_values,
-                    Release_config_validations
-  XMETADescription: Configuration file support for Release daemons
+                    Release_config_validations,
+                    Release_future,
+                    Release_io,
+                    Release_ipc,
+                    Release_privileges,
+                    Release_socket,
+                    Release_util
+  XMETADescription: OCaml daemon framework
 
-Library "release-util"
-  Path:             lib/util
-  FindlibName:      util
+Library "release-lwt"
+  FindlibName:      lwt
   FindlibParent:    release
+  Path:             lib/lwt
+  BuildDepends:     lwt (>= 2.4.7),
+                    lwt.unix (>= 2.4.7),
+                    release
   CompiledObject:   best
-  Modules:          Release_util
-  XMETADescription: Miscellaneuous utility functions
+  Modules:          Release_lwt
+  XMETADescription: OCaml daemon framework
 
 Document "release"
   Title:                Release documentation
@@ -77,77 +52,42 @@ Document "release"
   XOCamlbuildPath:      lib/core
   XOCamlbuildLibraries: release
 
-Document "release-buffer"
-  Title:                Release_buffer documentation
-  Type:                 ocamlbuild (0.3)
-  BuildTools+:          ocamldoc
-  XOCamlbuildPath:      lib/buffer
-  XOCamlbuildLibraries: release.buffer
-
-Document "release-bytes"
-  Title:                Release_bytes documentation
-  Type:                 ocamlbuild (0.3)
-  BuildTools+:          ocamldoc
-  XOCamlbuildPath:      lib/bytes
-  XOCamlbuildLibraries: release.bytes
-
-Document "release-config"
-  Title:                Release_config documentation
-  Type:                 ocamlbuild (0.3)
-  BuildTools+:          ocamldoc
-  XOCamlbuildPath:      lib/config
-  XOCamlbuildLibraries: release.config
-
-Executable test_master
+Executable "test_master"
   Path:            lib_test
   MainIs:          master.ml
   Install:         false
   CompiledObject:  best
-  BuildDepends:    camlp4,
-                   lwt,
-                   lwt.unix,
-                   release,
+  BuildDepends:    release.lwt,
                    str
 
-Executable test_slave
+Executable "test_slave"
   Path:            lib_test
   MainIs:          slave.ml
   Install:         false
   CompiledObject:  best
-  BuildDepends:    camlp4,
-                   lwt,
-                   lwt.unix,
-                   release,
+  BuildDepends:    release.lwt,
                    str
 
-Executable test_helper
+Executable "test_helper"
   Path:            lib_test
   MainIs:          helper.ml
   Install:         false
   CompiledObject:  best
-  BuildDepends:    camlp4,
-                   lwt,
-                   lwt.unix,
-                   release,
+  BuildDepends:    release.lwt,
                    str
 
-Executable masterctl
+Executable "masterctl"
   Path:            lib_test
   MainIs:          masterctl.ml
   Install:         false
   CompiledObject:  best
-  BuildDepends:    camlp4,
-                   lwt,
-                   lwt.unix,
-                   release,
+  BuildDepends:    release.lwt,
                    str
 
-Executable test_config
+Executable "test_config"
   Path:            lib_test
   MainIs:          config_test.ml
   Install:         false
   CompiledObject:  best
   BuildTools+:     ocamllex, ocamlyacc
-  BuildDepends:    lwt (>= 2.4.7),
-                   lwt.unix (>= 2.4.7),
-                   release.config
+  BuildDepends:    release.lwt

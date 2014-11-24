@@ -1,7 +1,7 @@
 open Printf
-open Release_config_values
 
-type configuration = (string, (string, value) Hashtbl.t) Hashtbl.t
+type configuration =
+  (string, (string, Release_config_values.t) Hashtbl.t) Hashtbl.t
 
 let configuration : configuration =
   Hashtbl.create 10

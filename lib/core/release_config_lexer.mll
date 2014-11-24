@@ -2,15 +2,6 @@
 
 open Release_config_parser
 
-let log_level_of_string = function
-  | "debug" -> Lwt_log.Debug
-  | "info" -> Lwt_log.Info
-  | "notice" -> Lwt_log.Notice
-  | "warning" -> Lwt_log.Warning
-  | "error" -> Lwt_log.Error
-  | "fatal" -> Lwt_log.Fatal
-  | s -> failwith ("invalid log level: " ^ s)
-
 let char_for_backslash = function
   | 'n' -> '\n'
   | 'r' -> '\r'
@@ -41,7 +32,6 @@ let char_for_hexadecimal lexbuf i =
 
 let digit = ['0'-'9']
 let boolean = "true" | "false"
-let log_level = "debug" | "info" | "notice" | "warning" | "error" | "fatal"
 let ident = ['A'-'Z' 'a'-'z'][^ '#' '=' '[' ']' ' ' '\t' '\n']+
 
 rule token = parse
@@ -56,7 +46,6 @@ rule token = parse
   | "." digit+
   | digit+ "." digit+ as f { FLOAT (float_of_string f) }
   | boolean as b           { BOOL (bool_of_string b) }
-  | log_level as l         { LOG_LEVEL (log_level_of_string l) }
   | '"'                    { STRING (str (Buffer.create 16) lexbuf) }
   | '/'                    { REGEXP (regexp (Buffer.create 16) lexbuf) }
   | ident as id            { IDENT id }

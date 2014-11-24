@@ -1,5 +1,18 @@
 open Printf
 
+type t = Release_config_values.t -> [`Valid | `Invalid of string]
+type result = [`Valid | `Invalid of string]
+
+let keyword kw = function
+  | `Keyword kw' when kw = kw' -> `Valid
+  | `Keyword kw' -> `Invalid (sprintf "keyword: expected %s, got %s" kw kw')
+  | _ -> `Invalid "keyword: not a keyword"
+
+let keywords kws = function
+  | `Keyword kw when List.mem kw kws -> `Valid
+  | `Keyword kw -> `Invalid (sprintf "keywords: %s unexpected" kw)
+  | _ -> `Invalid "keyword: not a keyword"
+
 let bool = function
   | `Bool _ -> `Valid
   | _ -> `Invalid "bool: not a bool"
@@ -20,10 +33,6 @@ let regexp = function
   | `Regexp _ -> `Valid
   | _ -> `Invalid "regexp: not a regular expression"
 
-let log_level = function
-  | `Log_level _ -> `Valid
-  | _ -> `Invalid "log_level: not a log level"
-
 let any_list name f = function
   | `List l ->
       if List.exists (fun x -> f x <> `Valid) l then
@@ -33,10 +42,10 @@ let any_list name f = function
   | _ ->
       `Invalid (sprintf "%s_list: not a list" name)
 
-let bool_list = any_list "bool" bool
-let int_list = any_list "int" int
-let float_list = any_list "float" float
-let string_list = any_list "string" string
+let bool_list : Release_config_values.t -> result = any_list "bool" bool
+let int_list : Release_config_values.t -> result = any_list "int" int
+let float_list : Release_config_values.t -> result = any_list "float" float
+let string_list : Release_config_values.t -> result = any_list "string" string
 
 let int_in_range (min, max) = function
   | `Int x ->
@@ -111,7 +120,8 @@ let string_in l = function
   | _ ->
       `Invalid "string_in: not a string"
 
-let file_with f name err = function
+let file_with f name err (v : Release_config_values.t) : result =
+  match v with
   | `Str file ->
       (try
         let st = Unix.lstat file in
@@ -123,6 +133,7 @@ let file_with f name err = function
       | e ->
         `Invalid (sprintf "%s: %s: %s" name file (Printexc.to_string e)))
   | _ -> `Invalid (sprintf "%s: not a string" name)
+
 
 let existing_file =
   file_with

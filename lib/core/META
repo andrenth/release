@@ -1,54 +1,22 @@
 # OASIS_START
-# DO NOT EDIT (digest: 861cb503c7ce0c219f9881e64f42e758)
+# DO NOT EDIT (digest: aabc2eeec4f31fe7b9bd8922abf03005)
 version = "2.0.0"
 description = "OCaml daemon framework"
-requires = "lwt lwt.unix release.buffer release.util"
+requires = "str unix uint.uint32 uint.uint64 uint.uint128"
 archive(byte) = "release.cma"
 archive(byte, plugin) = "release.cma"
 archive(native) = "release.cmxa"
 archive(native, plugin) = "release.cmxs"
 exists_if = "release.cma"
-package "util" (
+package "lwt" (
  version = "2.0.0"
- description = "Miscellaneuous utility functions"
- archive(byte) = "release-util.cma"
- archive(byte, plugin) = "release-util.cma"
- archive(native) = "release-util.cmxa"
- archive(native, plugin) = "release-util.cmxs"
- exists_if = "release-util.cma"
-)
-
-package "config" (
- version = "2.0.0"
- description = "Configuration file support for Release daemons"
- requires = "lwt release.util str unix"
- archive(byte) = "release-config.cma"
- archive(byte, plugin) = "release-config.cma"
- archive(native) = "release-config.cmxa"
- archive(native, plugin) = "release-config.cmxs"
- exists_if = "release-config.cma"
-)
-
-package "bytes" (
- version = "2.0.0"
- description = "Binary operations for Release daemons"
- requires = "release.buffer uint.uint32 uint.uint64 uint.uint128"
- archive(byte) = "release-bytes.cma"
- archive(byte, plugin) = "release-bytes.cma"
- archive(native) = "release-bytes.cmxa"
- archive(native, plugin) = "release-bytes.cmxs"
- exists_if = "release-bytes.cma"
-)
-
-package "buffer" (
- version = "2.0.0"
- description = "Buffer type for Release"
- requires = "lwt lwt.unix"
- archive(byte) = "release-buffer.cma"
- archive(byte, plugin) = "release-buffer.cma"
- archive(native) = "release-buffer.cmxa"
- archive(native, plugin) = "release-buffer.cmxs"
- exists_if = "release-buffer.cma"
+ description = "OCaml daemon framework"
+ requires = "lwt lwt.unix release"
+ archive(byte) = "release-lwt.cma"
+ archive(byte, plugin) = "release-lwt.cma"
+ archive(native) = "release-lwt.cmxa"
+ archive(native, plugin) = "release-lwt.cmxs"
+ exists_if = "release-lwt.cma"
 )
 # OASIS_STOP
 

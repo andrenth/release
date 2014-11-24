@@ -1,45 +1,80 @@
-open Lwt
+module type S = sig
+  type +'a future
+  type buffer
+  type file_descr
 
-module B = Release_buffer
-module O = Release_util.Option
+  val read_once : file_descr
+               -> buffer
+               -> int
+               -> int
+               -> int future
 
-let rec interrupt_safe f =
-  Lwt.catch f
-    (function
-    | Unix.Unix_error (Unix.EINTR, _, _) -> interrupt_safe f
-    | Unix.Unix_error (Unix.EAGAIN, _, _) -> interrupt_safe f
-    | e -> Lwt.fail e)
+  val read : ?timeout:float
+          -> file_descr
+          -> int
+          -> [`Data of buffer | `EOF | `Timeout] future
 
-let eintr_safe op fd buf offset remain =
-  interrupt_safe (fun () -> op fd buf offset remain)
+  val write : file_descr -> buffer -> unit future
+end
 
-let read_once fd buf offset n =
-  eintr_safe B.read fd buf offset n
+module Make
+  (Future : Release_future.S)
+  (Buffer : Release_buffer.S
+    with type 'a future = 'a Future.t
+      and type file_descr = Future.Unix.file_descr) : S
+  with type 'a future = 'a Future.t
+   and type buffer = Buffer.t
+   and type file_descr = Future.Unix.file_descr =
+struct
+  open Future.Monad
 
-let read ?(timeout) fd n =
-  let rec read_into buf offset remain =
-    if remain = 0 then
-      return offset
-    else
-      read_once fd buf offset remain >>= fun k ->
-      read_into buf (offset + k) (if k = 0 then 0 else remain - k) in
-  let handle_read () =
-    let buf = B.create n in
-    read_into buf 0 n >>= function
-    | 0 -> return `EOF
-    | k -> return (`Data (if k = n then buf else B.sub buf 0 k)) in
-  let read_with_timeout t =
-    let timeout_t =
-      Lwt_unix.sleep t >>= fun () ->
-      return `Timeout in
-    Lwt.pick [timeout_t; handle_read ()] in
-  O.either handle_read read_with_timeout timeout
+  module Option = Release_util.Option
 
-let write fd buf =
-  let rec write offset remain =
-    if remain = 0 then
-      return_unit
-    else
-      eintr_safe B.write fd buf offset remain >>= fun k ->
-      write (offset + k) (if k = 0 then 0 else remain - k) in
-  write 0 (B.length buf)
+  type +'a future = 'a Future.t
+  type buffer = Buffer.t
+  type file_descr = Future.Unix.file_descr
+
+  (* XXX *)
+  let return_unit = return ()
+
+  let rec interrupt_safe f =
+    Future.catch f
+      (function
+      | Unix.Unix_error (Unix.EINTR, _, _) -> interrupt_safe f
+      | Unix.Unix_error (Unix.EAGAIN, _, _) -> interrupt_safe f
+      | e -> Future.fail e)
+
+  let eintr_safe op fd buf offset remain =
+    interrupt_safe (fun () -> op fd buf offset remain)
+
+  let read_once fd buf offset n =
+    eintr_safe Buffer.read fd buf offset n
+
+  let read ?(timeout) fd n =
+    let rec read_into buf offset remain =
+      if remain = 0 then
+        return offset
+      else
+        read_once fd buf offset remain >>= fun k ->
+        read_into buf (offset + k) (if k = 0 then 0 else remain - k) in
+    let handle_read () =
+      let buf = Buffer.create n in
+      read_into buf 0 n >>= function
+      | 0 -> return `EOF
+      | k -> return (`Data (if k = n then buf else Buffer.sub buf 0 k)) in
+    let read_with_timeout t =
+      let timeout_t =
+        Future.Unix.sleep t >>= fun () ->
+        return `Timeout in
+      Future.pick [timeout_t; handle_read ()] in
+    Option.either handle_read read_with_timeout timeout
+
+  let write fd buf =
+    let rec write offset remain =
+      if remain = 0 then
+        return_unit
+      else
+        eintr_safe Buffer.write fd buf offset remain >>= fun k ->
+        write (offset + k) (if k = 0 then 0 else remain - k) in
+    write 0 (Buffer.length buf)
+end

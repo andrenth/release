@@ -2,6 +2,8 @@ open Lwt
 open Printf
 open Ipc
 
+open Release_lwt
+
 let handle_sigterm _ =
   ignore_result (Lwt_log.notice "got sigterm");
   exit 0

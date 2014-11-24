@@ -1,7 +1,9 @@
 open Lwt
 open Printf
 open Ipc
-open Release_util
+
+open Release_lwt
+open Release.Util
 
 let slave_connections = ref None
 

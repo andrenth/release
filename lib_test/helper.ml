@@ -2,6 +2,8 @@ open Lwt
 open Printf
 open Ipc
 
+open Release_lwt
+
 let handle_sigterm _ =
   let log_t =
     Lwt_log.notice "got sigterm, exiting" in
@@ -20,7 +22,7 @@ let control_handler fd =
 
 let main fd =
   let ctrl_ipc_t =
-    Release_ipc.control_socket "/helper.socket" control_handler in
+    Release.IPC.control_socket "/helper.socket" control_handler in
   let bcast_ipc_t =
     let rec bcast_ipc () =
       SlaveIpc.Client.read_response fd >>= function

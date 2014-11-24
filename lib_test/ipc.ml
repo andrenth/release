@@ -1,4 +1,5 @@
 open Printf
+open Release_lwt
 
 module SlaveIpcOps = struct
   type request = Req1 of int
@@ -45,7 +46,7 @@ module SlaveIpcOps = struct
       failwith (sprintf "bad response: %s" s)
 end
 
-module SlaveIpc = Release_ipc.Make (SlaveIpcOps)
+module SlaveIpc = Release.IPC.Make (SlaveIpcOps)
 
 module ControlIpcOps = struct
   type request = Req of string
@@ -72,4 +73,4 @@ module ControlIpcOps = struct
     if s = "bcastok" then Broadcast_sent else Resp s
 end
 
-module ControlIpc = Release_ipc.Make (ControlIpcOps)
+module ControlIpc = Release.IPC.Make (ControlIpcOps)

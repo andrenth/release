@@ -1,9 +1,8 @@
 open Lwt
 open Printf
-open Release_config_values
-open Release_config_validations
 
-module C = Release_config
+open Release_lwt
+module C = Release.Config
 
 let path = "./lib_test"
 
@@ -37,24 +36,26 @@ let validate_empty_list = function
   | _ -> `Invalid ("global-list must be a list")
 
 let spec =
+  let module Default = C.Value.Default in
+  let open C.Validation in
   [ `Global
       [ "global_parameter", None, [validate_global_parameter]
-      ; "another_global_parameter", Some (`Bool true), [bool]
-      ; "global-list", default_int_list [1], [validate_global_list]
-      ; "empty-list", default_string_list [], [validate_empty_list]
-      ; "a-regexp", default_regexp (Str.regexp "."), [regexp]
+      ; "another_global_parameter", Default.bool true, [bool]
+      ; "global-list", Default.int_list [1], [validate_global_list]
+      ; "empty-list", Default.string_list [], [validate_empty_list]
+      ; "a-regexp", Default.regexp (Str.regexp "."), [regexp]
       ]
   ; `Section ("section1",
       [ "my-required-param", None, [string]
-      ; "my-optional-param", default_string "opt", [string]
+      ; "my-optional-param", Default.string "opt", [string]
       ])
   ; `Section ("section2",
-      [ "optional-parameter-1", default_string "opt1", [string]
-      ; "optional-parameter-2", default_string "opt2", [string]
+      [ "optional-parameter-1", Default.string "opt1", [string]
+      ; "optional-parameter-2", Default.string "opt2", [string]
       ])
   ; `Section ("section3",
-      [ "optional-parameter-1", default_string "x", [string]
-      ; "optional-parameter-2", default_string "y", [string]
+      [ "optional-parameter-1", Default.string "x", [string]
+      ; "optional-parameter-2", Default.string "y", [string]
       ])
   ]
 
@@ -62,6 +63,7 @@ let getg = C.get_global
 let get = C.get
 
 let () =
+  let module V = C.Value in
   Lwt_main.run
     (C.parse (path ^ "/complete.conf") spec >>= function
     | `Configuration conf ->
@@ -69,7 +71,7 @@ let () =
         assert (getg conf "another_global_parameter" = `Bool true);
         assert (getg conf "global-list" = `List [`Int 1;`Int 2;`Int 3;`Int 4]);
         assert (getg conf "empty-list" = `List []);
-        assert (Str.string_match (regexp_value (getg conf "a-regexp")) "foo" 0);
+        assert (Str.string_match (V.to_regexp (getg conf "a-regexp")) "foo" 0);
 
         assert (get conf "section1" "my-required-param" = `Str"required-value");
         assert (get conf "section1" "my-optional-param" = `Str"optional-value");
@@ -125,34 +127,37 @@ let () =
         return_unit)
 
 let optspec =
+  let module Default = C.Value.Default in
+  let open C.Validation in
   [ `Global
-      [ "global_parameter", default_int 0, [validate_global_parameter]
-      ; "another_global_parameter", default_bool true, [bool]
-      ; "global-list", default_int_list [1], [validate_global_list]
-      ; "empty-list", default_string_list [], [validate_empty_list]
-      ; "a-regexp", default_regexp (Str.regexp "^x$"), [regexp]
+      [ "global_parameter", Default.int 0, [validate_global_parameter]
+      ; "another_global_parameter", Default.bool true, [bool]
+      ; "global-list", Default.int_list [1], [validate_global_list]
+      ; "empty-list", Default.string_list [], [validate_empty_list]
+      ; "a-regexp", Default.regexp (Str.regexp "^x$"), [regexp]
       ]
   ; `Section ("section1",
-      [ "my-required-param", default_string "required-value", [string]
-      ; "my-optional-param", default_string "opt", [string]
+      [ "my-required-param", Default.string "required-value", [string]
+      ; "my-optional-param", Default.string "opt", [string]
       ])
   ; `Section ("section2",
-      [ "optional-parameter-1", default_string "opt1", [string]
-      ; "optional-parameter-2", default_string "opt2", [string]
+      [ "optional-parameter-1", Default.string "opt1", [string]
+      ; "optional-parameter-2", Default.string "opt2", [string]
       ])
   ; `Section ("section3",
-      [ "optional-parameter-1", default_string "value1", [string]
-      ; "optional-parameter-2", default_string "value2", [string]
+      [ "optional-parameter-1", Default.string "value1", [string]
+      ; "optional-parameter-2", Default.string "value2", [string]
       ])
   ]
 
 let () =
+  let module V = C.Value in
   let conf = C.defaults optspec in
   assert (getg conf "global_parameter" = `Int 0);
   assert (getg conf "another_global_parameter" = `Bool true);
   assert (getg conf "global-list" = `List [`Int 1]);
   assert (getg conf "empty-list" = `List []);
-  assert (Str.string_match (regexp_value (getg conf "a-regexp")) "x" 0);
+  assert (Str.string_match (V.to_regexp (getg conf "a-regexp")) "x" 0);
 
   assert (get conf "section1" "my-required-param" = `Str "required-value");
   assert (get conf "section1" "my-optional-param" = `Str "opt");
