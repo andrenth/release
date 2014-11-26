@@ -1,6 +1,7 @@
 # OASIS_START
-# DO NOT EDIT (digest: 6c1972090ebabfeccc15a5bacd617061)
+# DO NOT EDIT (digest: 447e6f75928398b71c426fea502da91a)
 Release
+Release_future
 Release_buffer
 Release_bytes
 Release_config
@@ -9,7 +10,6 @@ Release_config_parser
 Release_config_global
 Release_config_values
 Release_config_validations
-Release_future
 Release_io
 Release_ipc
 Release_privileges

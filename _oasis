@@ -1,4 +1,4 @@
-OASISFormat: 0.3
+OASISFormat: 0.4
 Name:        release
 Version:     2.0.0
 Synopsis:    OCaml daemon framework
@@ -6,7 +6,7 @@ Authors:     Andre Nathan
 License:     MIT
 
 BuildTools:  ocamlbuild
-Plugins:     META (0.3), DevFiles (0.3)
+Plugins:     META (0.4), DevFiles (0.4)
 
 Library "release"
   FindlibName:      release
@@ -18,7 +18,8 @@ Library "release"
                     uint.uint128 (>= 1.0.1)
   CompiledObject:   best
   Modules:          Release,
-                    Release_buffer,
+                    Release_future
+  InternalModules:  Release_buffer,
                     Release_bytes,
                     Release_config,
                     Release_config_lexer,
@@ -26,7 +27,6 @@ Library "release"
                     Release_config_global,
                     Release_config_values,
                     Release_config_validations,
-                    Release_future,
                     Release_io,
                     Release_ipc,
                     Release_privileges,
@@ -34,7 +34,13 @@ Library "release"
                     Release_util
   XMETADescription: OCaml daemon framework
 
+Flag lwt
+  Description:      Build the Lwt library
+  Default:          false
+
 Library "release-lwt"
+  Build$:           flag(lwt)
+  Install$:         flag(lwt)
   FindlibName:      lwt
   FindlibParent:    release
   Path:             lib/lwt
