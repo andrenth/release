@@ -546,11 +546,15 @@ struct
         Some (Array.of_list (List.fold_left setenv [] allowed))
 
   let rec exec_process cmd ipc_handler slave_env check_death_rate =
-    check_death_rate () >>= fun () ->
     let master_fd, slave_fd = setup_ipc ipc_handler in
     let run_proc cmd =
       let reexec () =
-        exec_process cmd ipc_handler slave_env check_death_rate in
+        check_death_rate () >>= fun restart ->
+        if restart then
+          exec_process cmd ipc_handler slave_env check_death_rate
+        else
+          Future.Logger.error "slave process dying too fast" >>= fun () ->
+          exit 1 in
       Future.Process.with_process_none
         ~stdin:(`FD_move (Future.Unix.unix_file_descr slave_fd))
         ?env:(restrict_env slave_env)
@@ -560,21 +564,27 @@ struct
       try_exec run_proc cmd in
     return_unit
 
-  let num_exec_tries = 10
+  let num_exec_tries = 10 (* per second *)
+  let death_rate_checking_enabled = ref true
+
+  let disable_slave_restart () =
+    death_rate_checking_enabled := false
 
   let check_death_rate time tries () =
-    let now = Unix.time () in
-    if now -. !time > 1. then begin
-      tries := num_exec_tries;
-      time := now
-    end;
-    match !tries with
-    | 0 ->
-        Future.Logger.error "slave process dying too fast" >>= fun () ->
-        exit 1
-    | _ ->
-        decr tries;
-        return_unit
+    if !death_rate_checking_enabled then begin
+      let now = Unix.time () in
+      if now -. !time > 1. then begin
+        tries := num_exec_tries;
+        time := now
+      end;
+      match !tries with
+      | 0 ->
+          return false
+      | _ ->
+          decr tries;
+          return true
+    end else
+      return false
 
   let init_exec_slave max_tries =
     let tries = ref max_tries in
