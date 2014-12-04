@@ -351,7 +351,7 @@ struct
       let close_and_dup fd =
         Future.Unix.close fd >>= fun () ->
         Future.Unix.dup2 dev_null fd;
-        return_unit in
+        Future.Unix.close dev_null in
       let descrs =
         [Future.Unix.stdin; Future.Unix.stdout; Future.Unix.stderr] in
       Future.iter_p close_and_dup descrs >>= fun () ->
