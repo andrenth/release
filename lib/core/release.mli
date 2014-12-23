@@ -29,8 +29,8 @@
 
 module type S = sig
   type +'a future
-  type command
-  type file_descr
+  type command = string * string array
+  type fd
 
   (** This module defines a buffer type [Buffer.t] and a set of operations
       on such buffers. *)
@@ -100,12 +100,12 @@ module type S = sig
       (** [sub buf off len] returns a buffer consisting of [len] bytes from
           [buf] starting at offset [off]. No copying is made. *)
 
-    val read : file_descr -> t -> int -> int -> int future
+    val read : fd -> t -> int -> int -> int future
       (** [read fd buf off n] reads at most [n] bytes from file descriptor [fd]
           into buffer [buf], which is filled starting at offset [off]. Returns
           the number of bytes actually read, and 0 on EOF. *)
 
-    val write : file_descr -> t -> int -> int -> int future
+    val write : fd -> t -> int -> int -> int future
       (** [write fd buf off n] writes at most [n] bytes from [buf] starting at
           offset [off] into file descriptor [fd]. Returns the number of bytes
           actually written. *)
@@ -456,7 +456,7 @@ module type S = sig
       caught.
   *)
   module IO : sig
-    val read_once : file_descr
+    val read_once : fd
                  -> Buffer.t
                  -> int
                  -> int
@@ -466,7 +466,7 @@ module type S = sig
           buffer. The actual number of bytes read is returned. *)
 
     val read : ?timeout:float
-            -> file_descr
+            -> fd
             -> int
             -> [`Data of Buffer.t | `EOF | `Timeout] future
        (** [read fd n] will try to read [n] bytes from file descriptor [fd].
@@ -475,7 +475,7 @@ module type S = sig
            which case [read] is interrupted after the specified amount of
            seconds. *)
 
-    val write : file_descr -> Buffer.t -> unit future
+    val write : fd -> Buffer.t -> unit future
       (** [write fd s] writes the full contents of [s] to file descriptor
           [fd]. *)
   end
@@ -496,7 +496,7 @@ module type S = sig
   *)
   module IPC : sig
     (** The type of IPC handler functions. *)
-    type handler = (file_descr -> unit future)
+    type handler = fd -> unit future
 
     val control_socket : string -> handler -> unit future
       (** [control_socket path handler] creates UNIX domain socket at the
@@ -532,16 +532,16 @@ module type S = sig
             the master process. *)
 
         val read_request : ?timeout:float
-                        -> file_descr
+                        -> fd
                         -> [`Request of request | `EOF | `Timeout] future
           (** Reads an IPC request from a file descriptor. *)
 
-        val write_response : file_descr -> response -> unit future
+        val write_response : fd -> response -> unit future
           (** Writes an IPC response to a file descriptor. *)
 
         val handle_request : ?timeout:float
                           -> ?eof_warning:bool
-                          -> file_descr
+                          -> fd
                           -> (request -> response future)
                           -> unit future
           (** This function reads an IPC {!request} from a file descriptor and
@@ -554,15 +554,15 @@ module type S = sig
             a slave, helper or control process. *)
 
         val read_response : ?timeout:float
-                         -> file_descr
+                         -> fd
                          -> [`Response of response | `EOF | `Timeout] future
           (** Reads an IPC response from a file descriptor. *)
 
-        val write_request : file_descr -> request -> unit future
+        val write_request : fd -> request -> unit future
           (** Writes an IPC request to a file descriptor. *)
 
         val make_request : ?timeout:float
-                        -> file_descr
+                        -> fd
                         -> request
                         -> ([`Response of response | `EOF | `Timeout] ->
                              'a future)
@@ -585,9 +585,9 @@ module type S = sig
   module Socket : sig
     val accept_loop : ?backlog:int
                    -> ?timeout:float
-                   -> Unix.socket_type
+                   -> fd
                    -> Unix.sockaddr
-                   -> (file_descr -> unit future)
+                   -> (fd -> unit future)
                    -> unit future
     (** Returns a thread that creates a socket of the given type, binds it to
         the given address and blocks listening for connections. When a new
@@ -628,7 +628,7 @@ module type S = sig
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
       -> ?control:(string * IPC.handler)
-      -> ?main:((unit -> (int * file_descr) list) -> unit future)
+      -> ?main:((unit -> (int * fd) list) -> unit future)
       -> lock_file:string
       -> unit -> unit
     (** Sets up a master process with one slave.
@@ -676,7 +676,7 @@ module type S = sig
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
       -> ?control:(string * IPC.handler)
-      -> ?main:((unit -> (int * file_descr) list) -> unit future)
+      -> ?main:((unit -> (int * fd) list) -> unit future)
       -> lock_file:string
       -> slaves:(command * IPC.handler * int) list
       -> unit -> unit
@@ -690,7 +690,7 @@ module type S = sig
 
   val me : ?syslog:bool
         -> ?user:string
-        -> main:(file_descr -> unit future)
+        -> main:(fd -> unit future)
         -> unit -> unit
     (** This function is supposed to be called in the slave process.
 
@@ -717,8 +717,7 @@ end
 
 module Make (Future : Release_future.S) : S
   with type 'a future = 'a Future.t
-   and type file_descr = Future.Unix.file_descr
-   and type command = Future.Process.command
+   and type fd = Future.Unix.fd
      (** Functor that builds a {!Release} implementation based on the given
          set of asynchronous operations represented by the [Future] argument
          module (see {!Release_future.S}). *)

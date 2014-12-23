@@ -10,7 +10,7 @@ let slave_connections = ref None
 let ipc_handler fd =
   let handler req =
     let s = SlaveIpcOps.string_of_request req in
-    Lwt_log.notice_f "got request: %s" s >>= fun () ->
+    Lwt_log.notice_f "got IPC request: %s" s >>= fun () ->
     match req with
     | SlaveIpcOps.Req1 pid -> return (SlaveIpcOps.Resp1 pid)
     | SlaveIpcOps.Req2 pid -> return (SlaveIpcOps.Resp2 pid) in
@@ -23,6 +23,7 @@ let control_connection_handler fd =
         Lwt_log.notice_f "got control request: %s" s >>= fun () ->
         return (ControlIpcOps.response_of_string (String.uppercase s))
     | ControlIpcOps.Broadcast s ->
+        Lwt_log.notice_f "got control broadcast request: %s" s >>= fun () ->
         let get_conns = Option.some !slave_connections in
         let slave_conns = get_conns () in
         Lwt_list.iter_p
@@ -45,13 +46,15 @@ let () =
   let helper_cmd = (helper_exec, [|Filename.basename helper_exec|]) in
   let exec = Filename.basename Sys.executable_name in
   Release.master_slaves
-    ~privileged:false
-    ~background:false
-    ~syslog:false
-    ~lock_file:(sprintf "./_build/release%s.pid" exec)
-    ~control:("./_build/master.socket", control_connection_handler)
-    ~slave_env:(`Keep ["OCAMLRUNPARAM"; "RELEASE"])
-    ~main:store_slave_connections
-    ~slaves:[ slave_cmd,  ipc_handler, 1
-            ; helper_cmd, (fun _ -> return_unit),  1 ]
+    ~privileged: false
+    ~background: false
+    ~syslog:     false
+    ~lock_file:  (sprintf "./_build/release-%s.pid" exec)
+    ~control:    ("./_build/master.socket", control_connection_handler)
+    ~slave_env:  (`Keep ["OCAMLRUNPARAM"; "RELEASE"])
+    ~main:       store_slave_connections
+    ~slaves:     [
+      slave_cmd,  ipc_handler, 1;
+      helper_cmd, (fun _ -> return_unit),  1;
+    ]
     ()

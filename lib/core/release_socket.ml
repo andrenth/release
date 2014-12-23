@@ -1,38 +1,40 @@
 module type S = sig
   type +'a future
-  type file_descr
+  type fd
 
   val accept_loop : ?backlog:int
                  -> ?timeout:float
-                 -> Unix.socket_type
+                 -> fd
                  -> Unix.sockaddr
-                 -> (file_descr -> unit future)
+                 -> (fd -> unit future)
                  -> unit future
 end
 
 module Make (Future: Release_future.S) : S
   with type 'a future = 'a Future.t
-   and type file_descr = Future.Unix.file_descr =
+   and type fd = Future.Unix.fd =
 struct
   open Future.Monad
 
   type +'a future = 'a Future.t
-  type file_descr = Future.Unix.file_descr
+  type fd = Future.Unix.fd
 
-  let accept_loop ?(backlog = 10) ?(timeout = 10.0) socktype sockaddr handler =
-    let domain = Unix.domain_of_sockaddr sockaddr in
-    let fd = Future.Unix.socket domain socktype 0 in
-    (match sockaddr with
-    | Unix.ADDR_UNIX s -> Future.Main.at_exit (fun () -> Future.Unix.unlink s)
-    | Unix.ADDR_INET _ -> ());
-    Future.Unix.setsockopt fd Unix.SO_REUSEADDR true;
-    Future.Unix.bind fd sockaddr;
-    Future.Unix.listen fd backlog;
-    let rec accept () =
-      Future.Unix.accept fd >>= fun (cli_fd, _) ->
+  let accept_loop ?(backlog = 10) ?(timeout = 10.0) fd sockaddr handler =
+    let accept, listen =
+      match sockaddr with
+      | Unix.ADDR_UNIX s ->
+          Future.Main.at_exit (fun () -> Future.Unix.unlink s);
+          Future.Unix.accept_unix, Future.Unix.listen_unix
+      | Unix.ADDR_INET _ ->
+          Future.Unix.accept_inet, Future.Unix.listen_inet in
+    Future.Unix.setsockopt_unix_bool fd Unix.SO_REUSEADDR true;
+    Future.Unix.bind fd sockaddr >>= fun fd ->
+    let fd = listen fd backlog in
+    let rec loop () =
+      accept fd >>= fun (cli_fd, _) ->
       let timeout_t =
         Future.Unix.sleep timeout >>= fun () ->
-        Future.Logger.warning_f "timeout on handler" in
+        Future.Logger.error "timeout on handler" in
       let handler_t =
         Future.catch
           (fun () ->
@@ -40,11 +42,11 @@ struct
           (fun e ->
             let err = Printexc.to_string e in
             Future.Logger.error_f "accept handler exception: %s" err) in
-      let close_fd () =
-        Future.Unix.close cli_fd in
       ignore (
-        Future.finalize (fun () -> Future.pick [timeout_t; handler_t]) close_fd
+        Future.finalize
+          (fun () -> Future.pick [timeout_t; handler_t])
+          (fun () -> Future.Unix.close (cli_fd))
       );
-      accept () in
-    accept ()
+      loop () in
+    loop ()
 end

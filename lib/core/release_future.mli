@@ -1,14 +1,13 @@
 module type S = sig
   type +'a t
   type +'a future = 'a t
-  type 'a u
 
   (* XXX *)
   val catch : (unit -> 'a t) -> (exn -> 'a t) -> 'a t
   val fail : exn -> 'a t
-  val wait : unit -> 'a t * 'a u
+  val idle : unit -> 'a t
   val iter_p : ('a -> unit t) -> 'a list -> unit t
-  val async : (unit -> 'a t) ->  unit
+  val async : (unit -> 'a t) -> unit
   val join : unit t list -> unit t
   val pick : 'a t list -> 'a t
   val finalize : (unit -> 'a t) -> (unit -> unit t) -> 'a t
@@ -16,41 +15,6 @@ module type S = sig
   module Monad : sig
     val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
     val return : 'a -> 'a t
-  end
-
-  module Process : sig
-    type command = string * string array
-    type redirection =
-      [ `Close
-      | `Dev_null
-      | `FD_copy of Unix.file_descr
-      | `FD_move of Unix.file_descr
-      | `Keep
-      ]
-    type resource_usage
-    type state
-
-    class process_none :
-      ?timeout : float ->
-      ?env : string array ->
-      ?stdin : redirection ->
-      ?stdout : redirection ->
-      ?stderr : redirection ->
-      command ->
-    object
-      method pid : int
-      method state : state
-      method kill : int -> unit
-      method terminate : unit
-      method status : Unix.process_status future
-      method rusage : resource_usage future
-      method close : Unix.process_status future
-    end
-
-    val with_process_none : ?timeout:float -> ?env:string array
-                         -> ?stdin:redirection -> ?stdout:redirection
-                         -> ?stderr:redirection -> command
-                         -> (process_none -> 'a future) -> 'a future
   end
 
   module Mutex : sig
@@ -63,101 +27,66 @@ module type S = sig
   end
 
   module Main : sig
-    type 'a sequence
-
     val at_exit : (unit -> unit future) -> unit
-    val exit_hooks : (unit -> unit future) sequence
     val run : 'a future -> 'a
   end
 
   module Logger : sig
-    type t
-
-    type syslog_facility =
-      [ `Auth
-      | `Authpriv
-      | `Console
-      | `Cron
-      | `Daemon
-      | `FTP
-      | `Kernel
-      | `LPR
-      | `Local0
-      | `Local1
-      | `Local2
-      | `Local3
-      | `Local4
-      | `Local5
-      | `Local6
-      | `Local7
-      | `Mail
-      | `NTP
-      | `News
-      | `Security
-      | `Syslog
-      | `UUCP
-      | `User ]
-
-    val default : t ref
+    val log_to_syslog : unit -> unit
+    val debug : string -> unit future
+    val debug_f : ('a, unit, string, unit future) format4 -> 'a
+    val info : string -> unit future
+    val info_f : ('a, unit, string, unit future) format4 -> 'a
     val error : string -> unit future
     val error_f : ('a, unit, string, unit future) format4 -> 'a
-    val notice : string -> unit future
-    val notice_f : ('a, unit, string, unit future) format4 -> 'a
-    val warning : string -> unit future
-    val warning_f : ('a, unit, string, unit future) format4 -> 'a
-    val syslog : syslog_facility -> t
   end
 
   module IO : sig
-    type input
-    type output
-    type 'a mode
-    type 'a channel
+    type input_channel
+    type output_channel
 
-    val flush_all : unit -> unit future
-    val fprintf : output channel -> ('a, unit, string, unit future) format4
+    val fprintf : output_channel -> ('a, unit, string, unit future) format4
                -> 'a
-    val input : input mode
-    val output : output mode
-    val read_line_opt : input channel -> string option future
-    val with_file : 'a mode -> string -> ('a channel -> 'b future)
-                 -> 'b future
+    val read_line : input_channel -> string option future
+    val with_input_file : string -> (input_channel -> 'a future) -> 'a future
+    val with_output_file : string -> (output_channel -> 'a future) -> 'a future
   end
 
   module Unix : sig
-    type file_descr
-    type signal_handler_id
+    type fd
 
-    val accept : file_descr -> (file_descr * Unix.sockaddr) future
-    val bind : file_descr -> Unix.sockaddr -> unit
+    val accept_unix : fd -> (fd * Unix.sockaddr) future
+    val accept_inet : fd -> (fd * Unix.sockaddr) future
+    val bind : fd -> Unix.sockaddr -> fd future
     val chdir : string -> unit future
     val chroot : string -> unit future
-    val close : file_descr -> unit future
-    val dup : file_descr -> file_descr
-    val dup2 : file_descr -> file_descr -> unit
+    val close : fd -> unit future
+    val dup : fd -> fd future
+    val dup2 : fd -> fd -> unit future
+    val exit : int -> 'a future
     val fork : unit -> int future
     val getpwnam : string -> Unix.passwd_entry future
-    val listen : file_descr -> int -> unit
+    val listen_unix : fd -> int -> fd
+    val listen_inet : fd -> int -> fd
     val lstat : string -> Unix.stats future
-    val on_signal : int -> (int -> unit) -> signal_handler_id
-    val openfile : string -> Unix.open_flag list -> Unix.file_perm
-                -> file_descr future
-    val set_close_on_exec : file_descr -> unit
-    val setsockopt : file_descr -> Unix.socket_bool_option -> bool -> unit
+    val on_signal : int -> (int -> unit) -> unit
+    val openfile : string -> Unix.open_flag list -> Unix.file_perm -> fd future
+    val set_close_on_exec : fd -> unit
+    val setsockopt_unix_bool : fd -> Unix.socket_bool_option -> bool -> unit
     val sleep : float -> unit future
-    val socket : Unix.socket_domain -> Unix.socket_type -> int -> file_descr
-    val socketpair : Unix.socket_domain -> Unix.socket_type -> int
-                  -> file_descr * file_descr
-    val stderr : file_descr
-    val stdin : file_descr
-    val stdout : file_descr
-    val unix_file_descr : file_descr -> Unix.file_descr
+    val unix_socket : unit -> fd
+    val socketpair : unit -> fd * fd
+    val stderr : fd
+    val stdin : fd
+    val stdout : fd
+    val unix_file_descr : fd -> Unix.file_descr
     val unlink : string -> unit future
+    val waitpid : int -> Unix.process_status future
   end
 
   module Bytes : sig
     type t
-    type file_descr = Unix.file_descr
+    type fd = Unix.fd
 
     val blit : t -> int -> t -> int -> int -> unit
     val blit_string_bytes : string -> int -> t -> int -> int -> unit
@@ -167,9 +96,9 @@ module type S = sig
     val length : t -> int
     val of_string : string -> t
     val proxy : t -> int -> int -> t
-    val read : file_descr -> t -> int -> int -> int future
+    val read : fd -> t -> int -> int -> int future
     val set : t -> int -> char -> unit
     val to_string : t -> string
-    val write : file_descr -> t -> int -> int -> int future
+    val write : fd -> t -> int -> int -> int future
   end
 end

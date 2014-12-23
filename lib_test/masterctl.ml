@@ -6,6 +6,8 @@ let response_handler res =
   match res with
   | `Response (ControlIpcOps.Broadcast_sent) -> Lwt_io.printlf "- bcast sent"
   | `Response r -> Lwt_io.printlf "< %s" (ControlIpcOps.string_of_response r)
+  | `Timeout -> Lwt_io.printl "@ timeout"
+  | `EOF -> Lwt_io.printl "# EOF"
   | _ -> Lwt_io.printl "! bad response"
 
 let () =

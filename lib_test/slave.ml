@@ -27,7 +27,6 @@ let rec consume_ipc fd =
   consume_ipc fd
 
 let rec produce_ipc fd =
-  ignore (Lwt_unix.on_signal Sys.sigterm handle_sigterm);
   let pid = Unix.getpid () in
   let t1 =
     Lwt_log.notice_f "t1 (%d)" pid >>= fun () ->
@@ -35,10 +34,10 @@ let rec produce_ipc fd =
     ipc_request fd (SlaveIpcOps.Req1 pid) in
   let t2 =
     Lwt_log.notice_f "t2 (%d)" pid >>= fun () ->
-    Lwt_unix.sleep (float_of_int (Random.int 3)) >>= fun () ->
+    Lwt_unix.sleep (float_of_int (Random.int 3)) >>= fun () -> 
     ipc_request fd (SlaveIpcOps.Req2 pid) in
   Lwt.join [t1; t2] >>= fun () ->
-  if Random.float 1.0 < 0.5 then
+  if false then
     Lwt_log.notice_f "exiting (%d)" (Unix.getpid ()) >>= fun () ->
     exit 0
   else
@@ -57,6 +56,7 @@ let check_env () =
 
 let main fd =
   check_env () >>= fun () ->
+  ignore (Lwt_unix.on_signal Sys.sigterm handle_sigterm);
   let read_t = consume_ipc fd in
   let write_t = produce_ipc fd in
   read_t <?> write_t

@@ -1,30 +1,30 @@
 module type S = sig
   type +'a future
   type buffer
-  type file_descr
+  type fd
 
-  val read_once : file_descr
+  val read_once : fd
                -> buffer
                -> int
                -> int
                -> int future
 
   val read : ?timeout:float
-          -> file_descr
+          -> fd
           -> int
           -> [`Data of buffer | `EOF | `Timeout] future
 
-  val write : file_descr -> buffer -> unit future
+  val write : fd -> buffer -> unit future
 end
 
 module Make
   (Future : Release_future.S)
   (Buffer : Release_buffer.S
     with type 'a future = 'a Future.t
-      and type file_descr = Future.Unix.file_descr) : S
+      and type fd = Future.Unix.fd) : S
   with type 'a future = 'a Future.t
    and type buffer = Buffer.t
-   and type file_descr = Future.Unix.file_descr =
+   and type fd = Future.Unix.fd =
 struct
   open Future.Monad
 
@@ -32,7 +32,7 @@ struct
 
   type +'a future = 'a Future.t
   type buffer = Buffer.t
-  type file_descr = Future.Unix.file_descr
+  type fd = Future.Unix.fd
 
   (* XXX *)
   let return_unit = return ()

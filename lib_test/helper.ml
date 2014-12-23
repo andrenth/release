@@ -4,11 +4,14 @@ open Ipc
 
 open Release_lwt
 
+let socket_path =
+  sprintf "%s/_build/helper.socket" (Unix.getcwd ())
+
 let handle_sigterm _ =
   let log_t =
     Lwt_log.notice "got sigterm, exiting" in
   let ctrl_t =
-    Lwt_unix.unlink "/helper.socket" in
+    Lwt_unix.unlink socket_path in
   Lwt_main.run (log_t >>= fun () -> ctrl_t);
   exit 0
 
@@ -22,12 +25,14 @@ let control_handler fd =
 
 let main fd =
   let ctrl_ipc_t =
-    Release.IPC.control_socket "/helper.socket" control_handler in
+    Release.IPC.control_socket socket_path control_handler in
   let bcast_ipc_t =
     let rec bcast_ipc () =
       SlaveIpc.Client.read_response fd >>= function
       | `Response (SlaveIpcOps.Broadcast s) ->
           Lwt_log.notice_f "got broadcast: %s" s
+      | `Response (SlaveIpcOps.Resp1 i | SlaveIpcOps.Resp2 i) ->
+          Lwt_log.notice_f "got unexpected IPC response: %d" i
       | _ ->
           Lwt_log.error "helper IPC error" >>= fun () ->
           Lwt_unix.sleep 1.0 >>= fun () ->

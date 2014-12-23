@@ -2,7 +2,7 @@ module type S = sig
   type t
 
   type +'a future
-  type file_descr
+  type fd
 
   val create : int -> t
   val make : int -> char -> t
@@ -20,18 +20,18 @@ module type S = sig
   val of_string : string -> t
   val blit : t -> int -> t -> int -> int -> unit
   val sub : t -> int -> int -> t
-  val read : file_descr -> t -> int -> int -> int future
-  val write : file_descr -> t -> int -> int -> int future
+  val read : fd -> t -> int -> int -> int future
+  val write : fd -> t -> int -> int -> int future
 end
 
 module Make (Future : Release_future.S) : S
   with type 'a future = 'a Future.t
-   and type file_descr = Future.Unix.file_descr =
+   and type fd = Future.Unix.fd =
 struct
   open Future.Monad
 
   type +'a future = 'a Future.t
-  type file_descr = Future.Unix.file_descr
+  type fd = Future.Unix.fd
 
   type t =
     { bytes       : Future.Bytes.t
