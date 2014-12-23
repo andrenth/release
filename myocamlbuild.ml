@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 6b838c600b1601f52feaaff01f421d38) *)
+(* DO NOT EDIT (digest: 3fb0515b56f6534d7e1189ea37f6244c) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -608,10 +608,19 @@ open Ocamlbuild_plugin;;
 let package_default =
   {
      MyOCamlbuildBase.lib_ocaml =
-       [("release", ["lib/core"], []); ("release-lwt", ["lib/lwt"], [])];
+       [
+          ("release", ["lib/core"], []);
+          ("release-async", ["lib/async"], []);
+          ("release-lwt", ["lib/lwt"], [])
+       ];
      lib_c = [];
      flags = [];
-     includes = [("lib_test", ["lib/lwt"]); ("lib/lwt", ["lib/core"])]
+     includes =
+       [
+          ("lib_test", ["lib/lwt"]);
+          ("lib/lwt", ["lib/core"]);
+          ("lib/async", ["lib/core"])
+       ]
   }
   ;;
 
@@ -619,7 +628,7 @@ let conf = {MyOCamlbuildFindlib.no_automatic_syntax = false}
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
-# 623 "myocamlbuild.ml"
+# 632 "myocamlbuild.ml"
 (* OASIS_STOP *)
 (*flag ["ocaml"; "compile"; "ppopt_lwt_debug"] & S[A"-ppopt"; A"-lwt-debug"];*)
 flag ["ocaml"; "compile"; "warn_error"] & S[A"-warn-error"; A"A"];

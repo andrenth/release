@@ -34,6 +34,24 @@ Library "release"
                     Release_util
   XMETADescription: OCaml daemon framework
 
+Flag async
+  Description:      Build the Core Async library
+  Default:          false
+
+Library "release-async"
+  Build$:           flag(async)
+  Install$:         flag(async)
+  FindlibName:      async
+  FindlibParent:    release
+  Path:             lib/async
+  BuildDepends:     async,
+                    async_extended,
+                    threads,
+                    release
+  CompiledObject:   best
+  Modules:          Release_async
+  XMETADescription: OCaml daemon framework
+
 Flag lwt
   Description:      Build the Lwt library
   Default:          false

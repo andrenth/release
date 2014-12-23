@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 029fe3563e1910a41565202745a0ac8f)
+# DO NOT EDIT (digest: 32f8e72ff8d8f4b9f86fc878787ab987)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -21,6 +21,17 @@ true: annot, bin_annot
 <lib/core/*.ml{,i,y}>: pkg_uint.uint32
 <lib/core/*.ml{,i,y}>: pkg_uint.uint64
 <lib/core/*.ml{,i,y}>: pkg_unix
+# Library release-async
+"lib/async/release-async.cmxs": use_release-async
+<lib/async/*.ml{,i,y}>: pkg_async
+<lib/async/*.ml{,i,y}>: pkg_async_extended
+<lib/async/*.ml{,i,y}>: pkg_str
+<lib/async/*.ml{,i,y}>: pkg_threads
+<lib/async/*.ml{,i,y}>: pkg_uint.uint128
+<lib/async/*.ml{,i,y}>: pkg_uint.uint32
+<lib/async/*.ml{,i,y}>: pkg_uint.uint64
+<lib/async/*.ml{,i,y}>: pkg_unix
+<lib/async/*.ml{,i,y}>: use_release
 # Library release-lwt
 "lib/lwt/release-lwt.cmxs": use_release-lwt
 <lib/lwt/*.ml{,i,y}>: pkg_lwt

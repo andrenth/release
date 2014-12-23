@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: aabc2eeec4f31fe7b9bd8922abf03005)
+# DO NOT EDIT (digest: 50b11a6c273a3a561d340fcd5f454bad)
 version = "2.0.0"
 description = "OCaml daemon framework"
 requires = "str unix uint.uint32 uint.uint64 uint.uint128"
@@ -17,6 +17,17 @@ package "lwt" (
  archive(native) = "release-lwt.cmxa"
  archive(native, plugin) = "release-lwt.cmxs"
  exists_if = "release-lwt.cma"
+)
+
+package "async" (
+ version = "2.0.0"
+ description = "OCaml daemon framework"
+ requires = "async async_extended threads release"
+ archive(byte) = "release-async.cma"
+ archive(byte, plugin) = "release-async.cma"
+ archive(native) = "release-async.cmxa"
+ archive(native, plugin) = "release-async.cmxs"
+ exists_if = "release-async.cma"
 )
 # OASIS_STOP
 
