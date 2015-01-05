@@ -1,6 +1,6 @@
 open Lwt
 open Printf
-open Ipc
+open Ipc_lwt
 
 open Release_lwt
 

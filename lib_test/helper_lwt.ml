@@ -1,11 +1,11 @@
 open Lwt
 open Printf
-open Ipc
+open Ipc_lwt
 
 open Release_lwt
 
 let socket_path =
-  sprintf "%s/_build/helper.socket" (Unix.getcwd ())
+  sprintf "%s/_build/helper_lwt.socket" (Unix.getcwd ())
 
 let handle_sigterm _ =
   let log_t =

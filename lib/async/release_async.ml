@@ -14,8 +14,8 @@ struct
     ignore (Thread_safe.run_in_async_wait_exn f)
 
   let catch f h =
-    try_with f
-    >>= function
+    try_with ~extract_exn:true f >>= fun r ->
+    match r with
     | Ok x -> return x
     | Error e -> h e
 
@@ -25,10 +25,7 @@ struct
   let join = Deferred.all_unit
   let pick = Deferred.any
   let finalize f g =
-    try_with f
-    >>= function
-    | Ok x -> g () >>= fun () -> return x
-    | Error e -> g () >>= fun () -> fail e
+    Monitor.protect f ~finally:g
 
   module Monad = struct
     let (>>=) = Deferred.bind
@@ -59,24 +56,25 @@ struct
     let unlock = Mutex.unlock
     let with_lock m f =
       lock m >>= fun () ->
-      finalize f (fun () -> unlock m; return ())
+      Monitor.protect f ~finally:(fun () -> unlock m; return ())
   end
 
   module Main = struct
     let at_exit = Shutdown.at_shutdown
-    let run (t: 'a future) =
-      Thread_safe.run_in_async_wait_exn (fun () -> t)
+    let run (_: 'a future) =
+      let _ = Scheduler.go () in
+      assert false
   end
 
   module Logger = struct
-    let logger = ref (Log.create `Info [Log.Output.stdout ()])
+    let logger = Log.create `Info [Log.Output.stdout ()]
 
-    let log_to_syslog () = Log.set_output !logger [Log.Syslog.output ()]
-    let debug s = return (Log.debug !logger "%s" s)
+    let log_to_syslog () = Log.set_output logger [Log.Syslog.output ()]
+    let debug s = return (Log.debug logger "%s" s)
     let debug_f fmt = ksprintf (fun s -> debug s) fmt
-    let info s = return (Log.info !logger "%s" s)
+    let info s = return (Log.info logger "%s" s)
     let info_f fmt = ksprintf (fun s -> info s) fmt
-    let error s = return (Log.error !logger "%s" s)
+    let error s = return (Log.error logger "%s" s)
     let error_f fmt = ksprintf (fun s -> error s) fmt
   end
 

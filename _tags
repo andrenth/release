@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 32f8e72ff8d8f4b9f86fc878787ab987)
+# DO NOT EDIT (digest: 2cf5c4ccba1bd0708cc3298a6a83d3c9)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -42,56 +42,109 @@ true: annot, bin_annot
 <lib/lwt/*.ml{,i,y}>: pkg_uint.uint64
 <lib/lwt/*.ml{,i,y}>: pkg_unix
 <lib/lwt/*.ml{,i,y}>: use_release
-# Executable test_master
-<lib_test/master.{native,byte}>: pkg_lwt
-<lib_test/master.{native,byte}>: pkg_lwt.unix
-<lib_test/master.{native,byte}>: pkg_str
-<lib_test/master.{native,byte}>: pkg_uint.uint128
-<lib_test/master.{native,byte}>: pkg_uint.uint32
-<lib_test/master.{native,byte}>: pkg_uint.uint64
-<lib_test/master.{native,byte}>: pkg_unix
-<lib_test/master.{native,byte}>: use_release
-<lib_test/master.{native,byte}>: use_release-lwt
-# Executable test_slave
-<lib_test/slave.{native,byte}>: pkg_lwt
-<lib_test/slave.{native,byte}>: pkg_lwt.unix
-<lib_test/slave.{native,byte}>: pkg_str
-<lib_test/slave.{native,byte}>: pkg_uint.uint128
-<lib_test/slave.{native,byte}>: pkg_uint.uint32
-<lib_test/slave.{native,byte}>: pkg_uint.uint64
-<lib_test/slave.{native,byte}>: pkg_unix
-<lib_test/slave.{native,byte}>: use_release
-<lib_test/slave.{native,byte}>: use_release-lwt
-# Executable test_helper
-<lib_test/helper.{native,byte}>: pkg_lwt
-<lib_test/helper.{native,byte}>: pkg_lwt.unix
-<lib_test/helper.{native,byte}>: pkg_str
-<lib_test/helper.{native,byte}>: pkg_uint.uint128
-<lib_test/helper.{native,byte}>: pkg_uint.uint32
-<lib_test/helper.{native,byte}>: pkg_uint.uint64
-<lib_test/helper.{native,byte}>: pkg_unix
-<lib_test/helper.{native,byte}>: use_release
-<lib_test/helper.{native,byte}>: use_release-lwt
-# Executable masterctl
-<lib_test/masterctl.{native,byte}>: pkg_lwt
-<lib_test/masterctl.{native,byte}>: pkg_lwt.unix
-<lib_test/masterctl.{native,byte}>: pkg_str
-<lib_test/masterctl.{native,byte}>: pkg_uint.uint128
-<lib_test/masterctl.{native,byte}>: pkg_uint.uint32
-<lib_test/masterctl.{native,byte}>: pkg_uint.uint64
-<lib_test/masterctl.{native,byte}>: pkg_unix
-<lib_test/masterctl.{native,byte}>: use_release
-<lib_test/masterctl.{native,byte}>: use_release-lwt
-# Executable test_config
-<lib_test/config_test.{native,byte}>: pkg_lwt
-<lib_test/config_test.{native,byte}>: pkg_lwt.unix
-<lib_test/config_test.{native,byte}>: pkg_str
-<lib_test/config_test.{native,byte}>: pkg_uint.uint128
-<lib_test/config_test.{native,byte}>: pkg_uint.uint32
-<lib_test/config_test.{native,byte}>: pkg_uint.uint64
-<lib_test/config_test.{native,byte}>: pkg_unix
-<lib_test/config_test.{native,byte}>: use_release
-<lib_test/config_test.{native,byte}>: use_release-lwt
+# Executable async_test_master
+<lib_test/master_async.{native,byte}>: pkg_async
+<lib_test/master_async.{native,byte}>: pkg_async_extended
+<lib_test/master_async.{native,byte}>: pkg_str
+<lib_test/master_async.{native,byte}>: pkg_threads
+<lib_test/master_async.{native,byte}>: pkg_uint.uint128
+<lib_test/master_async.{native,byte}>: pkg_uint.uint32
+<lib_test/master_async.{native,byte}>: pkg_uint.uint64
+<lib_test/master_async.{native,byte}>: pkg_unix
+<lib_test/master_async.{native,byte}>: use_release
+<lib_test/master_async.{native,byte}>: use_release-async
+# Executable async_test_slave
+<lib_test/slave_async.{native,byte}>: pkg_async
+<lib_test/slave_async.{native,byte}>: pkg_async_extended
+<lib_test/slave_async.{native,byte}>: pkg_str
+<lib_test/slave_async.{native,byte}>: pkg_threads
+<lib_test/slave_async.{native,byte}>: pkg_uint.uint128
+<lib_test/slave_async.{native,byte}>: pkg_uint.uint32
+<lib_test/slave_async.{native,byte}>: pkg_uint.uint64
+<lib_test/slave_async.{native,byte}>: pkg_unix
+<lib_test/slave_async.{native,byte}>: use_release
+<lib_test/slave_async.{native,byte}>: use_release-async
+# Executable async_test_helper
+<lib_test/helper_async.{native,byte}>: pkg_async
+<lib_test/helper_async.{native,byte}>: pkg_async_extended
+<lib_test/helper_async.{native,byte}>: pkg_str
+<lib_test/helper_async.{native,byte}>: pkg_threads
+<lib_test/helper_async.{native,byte}>: pkg_uint.uint128
+<lib_test/helper_async.{native,byte}>: pkg_uint.uint32
+<lib_test/helper_async.{native,byte}>: pkg_uint.uint64
+<lib_test/helper_async.{native,byte}>: pkg_unix
+<lib_test/helper_async.{native,byte}>: use_release
+<lib_test/helper_async.{native,byte}>: use_release-async
+# Executable async_masterctl
+<lib_test/masterctl_async.{native,byte}>: pkg_async
+<lib_test/masterctl_async.{native,byte}>: pkg_async_extended
+<lib_test/masterctl_async.{native,byte}>: pkg_str
+<lib_test/masterctl_async.{native,byte}>: pkg_threads
+<lib_test/masterctl_async.{native,byte}>: pkg_uint.uint128
+<lib_test/masterctl_async.{native,byte}>: pkg_uint.uint32
+<lib_test/masterctl_async.{native,byte}>: pkg_uint.uint64
+<lib_test/masterctl_async.{native,byte}>: pkg_unix
+<lib_test/masterctl_async.{native,byte}>: use_release
+<lib_test/masterctl_async.{native,byte}>: use_release-async
+<lib_test/*.ml{,i,y}>: pkg_async
+<lib_test/*.ml{,i,y}>: pkg_async_extended
+<lib_test/*.ml{,i,y}>: pkg_threads
+<lib_test/*.ml{,i,y}>: use_release-async
+# Executable async_test_config
+<lib_test/config/config_test_async.{native,byte}>: pkg_async
+<lib_test/config/config_test_async.{native,byte}>: pkg_async_extended
+<lib_test/config/config_test_async.{native,byte}>: pkg_str
+<lib_test/config/config_test_async.{native,byte}>: pkg_threads
+<lib_test/config/config_test_async.{native,byte}>: pkg_uint.uint128
+<lib_test/config/config_test_async.{native,byte}>: pkg_uint.uint32
+<lib_test/config/config_test_async.{native,byte}>: pkg_uint.uint64
+<lib_test/config/config_test_async.{native,byte}>: pkg_unix
+<lib_test/config/config_test_async.{native,byte}>: use_release
+<lib_test/config/config_test_async.{native,byte}>: use_release-async
+<lib_test/config/*.ml{,i,y}>: pkg_async
+<lib_test/config/*.ml{,i,y}>: pkg_async_extended
+<lib_test/config/*.ml{,i,y}>: pkg_threads
+<lib_test/config/*.ml{,i,y}>: use_release-async
+# Executable lwt_test_master
+<lib_test/master_lwt.{native,byte}>: pkg_lwt
+<lib_test/master_lwt.{native,byte}>: pkg_lwt.unix
+<lib_test/master_lwt.{native,byte}>: pkg_str
+<lib_test/master_lwt.{native,byte}>: pkg_uint.uint128
+<lib_test/master_lwt.{native,byte}>: pkg_uint.uint32
+<lib_test/master_lwt.{native,byte}>: pkg_uint.uint64
+<lib_test/master_lwt.{native,byte}>: pkg_unix
+<lib_test/master_lwt.{native,byte}>: use_release
+<lib_test/master_lwt.{native,byte}>: use_release-lwt
+# Executable lwt_test_slave
+<lib_test/slave_lwt.{native,byte}>: pkg_lwt
+<lib_test/slave_lwt.{native,byte}>: pkg_lwt.unix
+<lib_test/slave_lwt.{native,byte}>: pkg_str
+<lib_test/slave_lwt.{native,byte}>: pkg_uint.uint128
+<lib_test/slave_lwt.{native,byte}>: pkg_uint.uint32
+<lib_test/slave_lwt.{native,byte}>: pkg_uint.uint64
+<lib_test/slave_lwt.{native,byte}>: pkg_unix
+<lib_test/slave_lwt.{native,byte}>: use_release
+<lib_test/slave_lwt.{native,byte}>: use_release-lwt
+# Executable lwt_test_helper
+<lib_test/helper_lwt.{native,byte}>: pkg_lwt
+<lib_test/helper_lwt.{native,byte}>: pkg_lwt.unix
+<lib_test/helper_lwt.{native,byte}>: pkg_str
+<lib_test/helper_lwt.{native,byte}>: pkg_uint.uint128
+<lib_test/helper_lwt.{native,byte}>: pkg_uint.uint32
+<lib_test/helper_lwt.{native,byte}>: pkg_uint.uint64
+<lib_test/helper_lwt.{native,byte}>: pkg_unix
+<lib_test/helper_lwt.{native,byte}>: use_release
+<lib_test/helper_lwt.{native,byte}>: use_release-lwt
+# Executable lwt_masterctl
+<lib_test/masterctl_lwt.{native,byte}>: pkg_lwt
+<lib_test/masterctl_lwt.{native,byte}>: pkg_lwt.unix
+<lib_test/masterctl_lwt.{native,byte}>: pkg_str
+<lib_test/masterctl_lwt.{native,byte}>: pkg_uint.uint128
+<lib_test/masterctl_lwt.{native,byte}>: pkg_uint.uint32
+<lib_test/masterctl_lwt.{native,byte}>: pkg_uint.uint64
+<lib_test/masterctl_lwt.{native,byte}>: pkg_unix
+<lib_test/masterctl_lwt.{native,byte}>: use_release
+<lib_test/masterctl_lwt.{native,byte}>: use_release-lwt
 <lib_test/*.ml{,i,y}>: pkg_lwt
 <lib_test/*.ml{,i,y}>: pkg_lwt.unix
 <lib_test/*.ml{,i,y}>: pkg_str
@@ -101,6 +154,25 @@ true: annot, bin_annot
 <lib_test/*.ml{,i,y}>: pkg_unix
 <lib_test/*.ml{,i,y}>: use_release
 <lib_test/*.ml{,i,y}>: use_release-lwt
+# Executable lwt_test_config
+<lib_test/config/config_test_lwt.{native,byte}>: pkg_lwt
+<lib_test/config/config_test_lwt.{native,byte}>: pkg_lwt.unix
+<lib_test/config/config_test_lwt.{native,byte}>: pkg_str
+<lib_test/config/config_test_lwt.{native,byte}>: pkg_uint.uint128
+<lib_test/config/config_test_lwt.{native,byte}>: pkg_uint.uint32
+<lib_test/config/config_test_lwt.{native,byte}>: pkg_uint.uint64
+<lib_test/config/config_test_lwt.{native,byte}>: pkg_unix
+<lib_test/config/config_test_lwt.{native,byte}>: use_release
+<lib_test/config/config_test_lwt.{native,byte}>: use_release-lwt
+<lib_test/config/*.ml{,i,y}>: pkg_lwt
+<lib_test/config/*.ml{,i,y}>: pkg_lwt.unix
+<lib_test/config/*.ml{,i,y}>: pkg_str
+<lib_test/config/*.ml{,i,y}>: pkg_uint.uint128
+<lib_test/config/*.ml{,i,y}>: pkg_uint.uint32
+<lib_test/config/*.ml{,i,y}>: pkg_uint.uint64
+<lib_test/config/*.ml{,i,y}>: pkg_unix
+<lib_test/config/*.ml{,i,y}>: use_release
+<lib_test/config/*.ml{,i,y}>: use_release-lwt
 # OASIS_STOP
 <lib/option/*.ml>: annot
 <lib/option/*.ml>: warn_error_A

@@ -1,6 +1,6 @@
 open Lwt
 open Printf
-open Ipc
+open Ipc_lwt
 
 open Release_lwt
 open Release.Util
@@ -39,9 +39,9 @@ let store_slave_connections get_conns =
 
 let () =
   let slave_exec =
-    sprintf "%s/_build/lib_test/slave.native" (Unix.getcwd ()) in
+    sprintf "%s/_build/lib_test/slave_lwt.native" (Unix.getcwd ()) in
   let helper_exec =
-    sprintf "%s/_build/lib_test/helper.native" (Unix.getcwd ()) in
+    sprintf "%s/_build/lib_test/helper_lwt.native" (Unix.getcwd ()) in
   let slave_cmd = (slave_exec, [|Filename.basename slave_exec|]) in
   let helper_cmd = (helper_exec, [|Filename.basename helper_exec|]) in
   let exec = Filename.basename Sys.executable_name in
@@ -49,8 +49,8 @@ let () =
     ~privileged: false
     ~background: false
     ~syslog:     false
-    ~lock_file:  (sprintf "./_build/release-%s.pid" exec)
-    ~control:    ("./_build/master.socket", control_connection_handler)
+    ~lock_file:  (sprintf "./_build/release_lwt-%s.pid" exec)
+    ~control:    ("./_build/master_lwt.socket", control_connection_handler)
     ~slave_env:  (`Keep ["OCAMLRUNPARAM"; "RELEASE"])
     ~main:       store_slave_connections
     ~slaves:     [
