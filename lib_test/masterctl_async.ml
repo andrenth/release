@@ -19,10 +19,9 @@ let () =
     let str = "example" in
     printf "> %s" str;
     let req = ControlIpcOps.request_of_string str in
-    let fd = Socket.fd sock in
-    let req_t = ControlIpc.Client.make_request fd req response_handler in
+    let req_t = ControlIpc.Client.make_request sock req response_handler in
     let bcast = "mybroadcast" in
     let req = ControlIpcOps.Broadcast bcast in
-    let bcast_t = ControlIpc.Client.make_request fd req response_handler in
+    let bcast_t = ControlIpc.Client.make_request sock req response_handler in
     Deferred.all_unit [req_t; bcast_t] in
   never_returns (Scheduler.go ())

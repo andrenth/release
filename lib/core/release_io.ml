@@ -20,19 +20,15 @@ end
 module Make
   (Future : Release_future.S)
   (Buffer : Release_buffer.S
-    with type 'a future = 'a Future.t
-      and type fd = Future.Unix.fd) : S
-  with type 'a future = 'a Future.t
-   and type buffer = Buffer.t
-   and type fd = Future.Unix.fd =
+    with type 'a future := 'a Future.t
+      and type fd := Future.Unix.fd) : S
+  with type 'a future := 'a Future.t
+   and type buffer := Buffer.t
+   and type fd := Future.Unix.fd =
 struct
   open Future.Monad
 
   module Option = Release_util.Option
-
-  type +'a future = 'a Future.t
-  type buffer = Buffer.t
-  type fd = Future.Unix.fd
 
   (* XXX *)
   let return_unit = return ()

@@ -2,9 +2,9 @@ open Printf
 
 module type S = sig
   type +'a future
-  type fd
 
-  type handler = fd -> unit future
+  type socket
+  type handler = socket -> unit future
 
   val control_socket : string -> handler -> unit future
 
@@ -25,23 +25,23 @@ module type S = sig
 
     module Server : sig
       val read_request : ?timeout:float
-                      -> fd
+                      -> socket
                       -> [`Request of request | `EOF | `Timeout] future
-      val write_response : fd -> response -> unit future
+      val write_response : socket -> response -> unit future
       val handle_request : ?timeout:float
                         -> ?eof_warning:bool
-                        -> fd
+                        -> socket
                         -> (request -> response future)
                         -> unit future
     end
 
     module Client : sig
       val read_response : ?timeout:float
-                       -> fd
+                       -> socket
                        -> [`Response of response | `EOF | `Timeout] future
-      val write_request : fd -> request -> unit future
+      val write_request : socket -> request -> unit future
       val make_request : ?timeout:float
-                      -> fd
+                      -> socket
                       -> request
                       -> ([`Response of response | `EOF | `Timeout] ->
                            'a future)
@@ -55,31 +55,34 @@ end
 
 module Make
   (Future : Release_future.S)
-  (Buffer : Release_buffer.S with type 'a future = 'a Future.t)
+  (Buffer : Release_buffer.S
+    with type 'a future := 'a Future.t
+     and type fd := Future.Unix.fd)
   (IO : Release_io.S
-    with type 'a future = 'a Future.t
-     and type buffer = Buffer.t
-     and type fd = Future.Unix.fd)
+    with type 'a future := 'a Future.t
+     and type buffer := Buffer.t
+     and type fd := Future.Unix.fd)
   (Socket : Release_socket.S
-    with type 'a future = 'a Future.t
-     and type fd = Future.Unix.fd) : S
-  with type 'a future = 'a Future.t
-   and type fd = Future.Unix.fd =
+    with type 'a future := 'a Future.t
+     and type unix = Future.Unix.unix
+     and type inet = Future.Unix.inet
+     and type addr = Future.Unix.addr
+     and type ('state, 'addr) t = ('state, 'addr) Future.Unix.socket) : S
+  with type 'a future := 'a Future.t
+   and type socket = ([`Active], Future.Unix.unix) Future.Unix.socket =
 struct
   open Future.Monad
 
-  type 'a future = 'a Future.t
-  type fd = Future.Unix.fd
-
-  type handler = fd -> unit future
+  type socket = ([`Active], Future.Unix.unix) Future.Unix.socket
+  type handler = socket -> unit Future.t
 
   let control_socket path handler =
     let pid = Unix.getpid () in
     Future.catch
       (fun () ->
         let fd = Future.Unix.unix_socket () in
-        let sockaddr = Unix.ADDR_UNIX path in
-        Socket.accept_loop fd sockaddr handler)
+        let addr = `Unix path in
+        Socket.accept_loop fd addr handler)
       (function
       | Unix.Unix_error (Unix.EADDRINUSE, _, _) ->
           Future.Logger.error_f
@@ -113,31 +116,31 @@ struct
 
     module Server : sig
       val read_request : ?timeout:float
-                      -> fd
-                      -> [`Request of request | `EOF | `Timeout] future
+                      -> socket
+                      -> [`Request of request | `EOF | `Timeout] Future.t
 
-      val write_response : fd -> response -> unit future
+      val write_response : socket -> response -> unit Future.t
 
       val handle_request : ?timeout:float
                         -> ?eof_warning:bool
-                        -> fd
-                        -> (request -> response future)
-                        -> unit future
+                        -> socket
+                        -> (request -> response Future.t)
+                        -> unit Future.t
     end
 
     module Client : sig
       val read_response : ?timeout:float
-                       -> fd
-                       -> [`Response of response | `EOF | `Timeout] future
+                       -> socket
+                       -> [`Response of response | `EOF | `Timeout] Future.t
 
-      val write_request : fd -> request -> unit future
+      val write_request : socket -> request -> unit Future.t
 
       val make_request : ?timeout:float
-                      -> fd
+                      -> socket
                       -> request
                       -> ([`Response of response | `EOF | `Timeout] ->
-                            'a future)
-                      -> 'a future
+                            'a Future.t)
+                      -> 'a Future.t
     end
   end
 
@@ -216,25 +219,25 @@ struct
 
     module Server = struct
       let read_request ?timeout fd =
-        read ?timeout fd >>= function
+        read ?timeout (Future.Unix.socket_fd fd) >>= function
         | `Data buf -> return (`Request (request_of_buffer buf))
         | `Timeout | `EOF as other -> return other
 
       let write_response fd resp =
-        write fd (buffer_of_response resp)
+        write (Future.Unix.socket_fd fd) (buffer_of_response resp)
 
       let handle_request ?timeout ?(eof_warning = true) fd handler =
         let rec handle_req () =
           read_request ?timeout fd >>= function
           | `Timeout ->
-              Future.Unix.close fd >>= fun () ->
+              Future.Unix.close (Future.Unix.socket_fd fd) >>= fun () ->
               Future.Logger.error "read from a slave shouldn't timeout"
               >>= fun () ->
               Future.Unix.exit 1
           | `EOF ->
               if eof_warning then Future.Logger.error "got EOF on IPC socket"
               else return_unit >>= fun () ->
-              Future.Unix.close fd
+              Future.Unix.close (Future.Unix.socket_fd fd)
           | `Request req ->
               Future.catch
                 (fun () ->
@@ -245,18 +248,18 @@ struct
                   let err = Printexc.to_string e in
                   Future.Logger.error_f "request handler exception: %s" err
                   >>= fun () ->
-                  Future.Unix.close fd) in
+                  Future.Unix.close (Future.Unix.socket_fd fd)) in
         handle_req ()
     end
 
     module Client = struct
       let read_response ?timeout fd =
-        read ?timeout fd >>= function
+        read ?timeout (Future.Unix.socket_fd fd) >>= function
         | `Data buf -> return (`Response (response_of_buffer buf))
         | `Timeout | `EOF as other -> return other
 
       let write_request fd req =
-        write fd (buffer_of_request req)
+        write (Future.Unix.socket_fd fd) (buffer_of_request req)
 
       let make_request ?timeout fd req handler =
         write_request fd req >>= fun () ->

@@ -29,8 +29,8 @@
 
 module type S = sig
   type +'a future
-  type command = string * string array
   type fd
+  type command = string * string array
 
   (** This module defines a buffer type [Buffer.t] and a set of operations
       on such buffers. *)
@@ -109,6 +109,36 @@ module type S = sig
       (** [write fd buf off n] writes at most [n] bytes from [buf] starting at
           offset [off] into file descriptor [fd]. Returns the number of bytes
           actually written. *)
+  end
+
+  (** This module contains the file descriptor type definition and functions
+      for easy and safe network I/O functions. The functions are safe in the
+      sense that reads and writes are automatically retried when [Unix.EINTR]
+      or [Unix.EAGAIN] errors are caught.
+  *)
+  module IO : sig
+    val read_once : fd
+                 -> Buffer.t
+                 -> int
+                 -> int
+                 -> int future
+      (** [read_once fd buf off n] reads at most [n] bytes from file
+          descriptor [fd] into buffer [buf], starting at offset [off] in the
+          buffer. The actual number of bytes read is returned. *)
+
+    val read : ?timeout:float
+            -> fd
+            -> int
+            -> [`Data of Buffer.t | `EOF | `Timeout] future
+       (** [read fd n] will try to read [n] bytes from file descriptor [fd].
+           Data will be read until [n] bytes are read or an end-of-file
+           condition occurs. An optional [timeout] argument may be given, in
+           which case [read] is interrupted after the specified amount of
+           seconds. *)
+
+    val write : fd -> Buffer.t -> unit future
+      (** [write fd s] writes the full contents of [s] to file descriptor
+          [fd]. *)
   end
 
   (** This module contains functions for handling binary representation of
@@ -450,34 +480,28 @@ module type S = sig
 
   end
 
-  (** This module contains functions for easy and safe network I/O functions.
-      The functions are safe in the sense that reads and writes are
-      automatically retried when [Unix.EINTR] or [Unix.EAGAIN] errors are
-      caught.
+  (** Socket type definition and miscellaneous socket-related utility
+      functions.
   *)
-  module IO : sig
-    val read_once : fd
-                 -> Buffer.t
-                 -> int
-                 -> int
-                 -> int future
-      (** [read_once fd buf off n] reads at most [n] bytes from file
-          descriptor [fd] into buffer [buf], starting at offset [off] in the
-          buffer. The actual number of bytes read is returned. *)
+  module Socket : sig
+    type unix = [ `Unix of string ]
+    type inet = [ `Inet of Unix.inet_addr * int ]
+    type addr = [ unix | inet ]
+    type ('state, 'addr) t
+      constraint 'state = [< `Unconnected | `Bound | `Passive | `Active ]
+      constraint 'addr  = [< addr ]
 
-    val read : ?timeout:float
-            -> fd
-            -> int
-            -> [`Data of Buffer.t | `EOF | `Timeout] future
-       (** [read fd n] will try to read [n] bytes from file descriptor [fd].
-           Data will be read until [n] bytes are read or an end-of-file
-           condition occurs. An optional [timeout] argument may be given, in
-           which case [read] is interrupted after the specified amount of
-           seconds. *)
-
-    val write : fd -> Buffer.t -> unit future
-      (** [write fd s] writes the full contents of [s] to file descriptor
-          [fd]. *)
+    val accept_loop : ?backlog:int
+                   -> ?timeout:float
+                   -> ([`Unconnected], 'addr) t
+                   -> 'addr
+                   -> (([`Active], 'addr) t -> unit future)
+                   -> 'a future
+    (** Returns a thread that creates a socket of the given type, binds it to
+        the given address and blocks listening for connections. When a new
+        connection is established, the callback function is called in a handler
+        thread. The default [backlog] value is 10 and the default [timeout] is
+        10 seconds. *)
   end
 
   (** This module allows one to implement type-safe inter-process communication
@@ -495,8 +519,11 @@ module type S = sig
       header parsing.
   *)
   module IPC : sig
+    (** IPC sockets are active unix sockets. *)
+    type socket = ([`Active], Socket.unix) Socket.t
+
     (** The type of IPC handler functions. *)
-    type handler = fd -> unit future
+    type handler = socket -> unit future
 
     val control_socket : string -> handler -> unit future
       (** [control_socket path handler] creates UNIX domain socket at the
@@ -532,16 +559,16 @@ module type S = sig
             the master process. *)
 
         val read_request : ?timeout:float
-                        -> fd
+                        -> socket
                         -> [`Request of request | `EOF | `Timeout] future
           (** Reads an IPC request from a file descriptor. *)
 
-        val write_response : fd -> response -> unit future
+        val write_response : socket -> response -> unit future
           (** Writes an IPC response to a file descriptor. *)
 
         val handle_request : ?timeout:float
                           -> ?eof_warning:bool
-                          -> fd
+                          -> socket
                           -> (request -> response future)
                           -> unit future
           (** This function reads an IPC {!request} from a file descriptor and
@@ -554,15 +581,15 @@ module type S = sig
             a slave, helper or control process. *)
 
         val read_response : ?timeout:float
-                         -> fd
+                         -> socket
                          -> [`Response of response | `EOF | `Timeout] future
           (** Reads an IPC response from a file descriptor. *)
 
-        val write_request : fd -> request -> unit future
+        val write_request : socket -> request -> unit future
           (** Writes an IPC request to a file descriptor. *)
 
         val make_request : ?timeout:float
-                        -> fd
+                        -> socket
                         -> request
                         -> ([`Response of response | `EOF | `Timeout] ->
                              'a future)
@@ -579,21 +606,6 @@ module type S = sig
             given the request and response types and the appropriate string
             conversion functions. *)
 
-  end
-
-  (** Miscellaneous socket-related utility functions. *)
-  module Socket : sig
-    val accept_loop : ?backlog:int
-                   -> ?timeout:float
-                   -> fd
-                   -> Unix.sockaddr
-                   -> (fd -> unit future)
-                   -> unit future
-    (** Returns a thread that creates a socket of the given type, binds it to
-        the given address and blocks listening for connections. When a new
-        connection is established, the callback function is called in a handler
-        thread. The default [backlog] value is 10 and the default [timeout] is
-        10 seconds. *)
   end
 
   module Util : sig
@@ -628,7 +640,7 @@ module type S = sig
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
       -> ?control:(string * IPC.handler)
-      -> ?main:((unit -> (int * fd) list) -> unit future)
+      -> ?main:((unit -> (int * IPC.socket) list) -> unit future)
       -> lock_file:string
       -> unit -> unit
     (** Sets up a master process with one slave.
@@ -676,7 +688,7 @@ module type S = sig
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
       -> ?control:(string * IPC.handler)
-      -> ?main:((unit -> (int * fd) list) -> unit future)
+      -> ?main:((unit -> (int * IPC.socket) list) -> unit future)
       -> lock_file:string
       -> slaves:(command * IPC.handler * int) list
       -> unit -> unit
@@ -690,7 +702,7 @@ module type S = sig
 
   val me : ?syslog:bool
         -> ?user:string
-        -> main:(fd -> unit future)
+        -> main:(IPC.socket -> unit future)
         -> unit -> unit
     (** This function is supposed to be called in the slave process.
 
@@ -716,8 +728,9 @@ module type S = sig
 end
 
 module Make (Future : Release_future.S) : S
-  with type 'a future = 'a Future.t
-   and type fd = Future.Unix.fd
+  with type 'a future := 'a Future.t
+   and type fd := Future.Unix.fd
+   and type ('state, 'addr) Socket.t = ('state, 'addr) Future.Unix.socket
      (** Functor that builds a {!Release} implementation based on the given
          set of asynchronous operations represented by the [Future] argument
          module (see {!Release_future.S}). *)

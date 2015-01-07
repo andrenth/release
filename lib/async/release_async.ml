@@ -5,7 +5,8 @@ open Async_extended.Std
 
 module Future : Release_future.S
   with type 'a t = 'a Deferred.t
-   and type Unix.fd = Fd.t =
+   and type Unix.fd = Fd.t
+   and type ('state, 'addr) Unix.socket = ('state, 'addr) Socket.t =
 struct
   type +'a t = 'a Deferred.t
   type +'a future = 'a t
@@ -83,29 +84,17 @@ struct
 
     type fd = Fd.t
 
-    let accept family sock =
-      Unix.Socket.accept sock >>= function
-      | `Ok (sock', addr) ->
-          return (Unix.Socket.fd sock', Unix.Socket.Address.to_sockaddr addr)
-      | `Socket_closed ->
-          failwith ("accept_" ^ family ^ ": socket closed")
+    type unix = Socket.Address.Unix.t
+    type inet = Socket.Address.Inet.t
+    type addr = Socket.Address.t
+    type ('state, 'addr) socket = ('state, 'addr) Socket.t
 
-    let accept_unix fd =
-      accept "unix" (Unix.Socket.of_fd fd Socket.Type.unix)
+    let accept sock =
+      Socket.accept sock >>| function
+      | `Ok (sock', addr) -> (sock', Socket.Address.to_sockaddr addr)
+      | `Socket_closed -> failwith "accept: socket closed"
 
-    let accept_inet fd =
-      accept "inet" (Unix.Socket.of_fd fd Socket.Type.tcp)
-
-    let bind fd sockaddr =
-      match sockaddr with
-      | Unix.ADDR_UNIX s ->
-          let addr = Unix.Socket.Address.Unix.create s in
-          Unix.Socket.bind (Unix.Socket.of_fd fd Socket.Type.unix) addr
-          >>| Unix.Socket.fd
-      | Unix.ADDR_INET (a, p) ->
-          let addr = Unix.Socket.Address.Inet.create a p in
-          Unix.Socket.bind (Unix.Socket.of_fd fd Socket.Type.tcp) addr
-          >>| Unix.Socket.fd
+    let bind sock addr = Socket.bind sock addr
 
     let chdir = Unix.chdir
 
@@ -134,8 +123,6 @@ struct
 
     let exit code = Shutdown.exit code
 
-    let fd_of_socket = Socket.fd
-
     let fork () =
       In_thread.syscall_exn ~name:"fork"
         (fun () ->
@@ -156,14 +143,13 @@ struct
       }
 
     let listen sock backlog =
-      let sock' = Unix.Socket.listen ~max_pending_connections:backlog sock in
-      Unix.Socket.fd sock'
+      Socket.listen ~max_pending_connections:backlog sock
 
     let listen_unix fd backlog =
-      listen (Socket.of_fd fd Unix.Socket.Type.unix) backlog
+      listen (Socket.of_fd fd Socket.Type.unix) backlog
 
     let listen_inet fd backlog =
-      listen (Socket.of_fd fd Unix.Socket.Type.tcp) backlog
+      listen (Socket.of_fd fd Socket.Type.tcp) backlog
 
     let lstat path =
       Unix.lstat path >>| fun st ->
@@ -215,29 +201,33 @@ struct
 
     let set_close_on_exec = Unix.set_close_on_exec
 
-    let setsockopt_unix_bool fd opt value =
+    let setsockopt sock opt value =
       let convert = function
-        | Std_unix.SO_DEBUG      -> Unix.Socket.Opt.debug
-        | Std_unix.SO_BROADCAST  -> Unix.Socket.Opt.broadcast
-        | Std_unix.SO_REUSEADDR  -> Unix.Socket.Opt.reuseaddr
-        | Std_unix.SO_KEEPALIVE  -> Unix.Socket.Opt.keepalive
-        | Std_unix.SO_DONTROUTE  -> Unix.Socket.Opt.dontroute
-        | Std_unix.SO_OOBINLINE  -> Unix.Socket.Opt.oobinline
-        | Std_unix.SO_ACCEPTCONN -> Unix.Socket.Opt.acceptconn
-        | Std_unix.TCP_NODELAY   -> Unix.Socket.Opt.nodelay
-        | Std_unix.IPV6_ONLY     -> failwith "IPV6_ONLY option not supported"
-      in
-      let sock = Socket.of_fd fd Unix.Socket.Type.unix in
-      Unix.Socket.setopt sock (convert opt) value
+        | Std_unix.SO_DEBUG      -> Socket.Opt.debug
+        | Std_unix.SO_BROADCAST  -> Socket.Opt.broadcast
+        | Std_unix.SO_REUSEADDR  -> Socket.Opt.reuseaddr
+        | Std_unix.SO_KEEPALIVE  -> Socket.Opt.keepalive
+        | Std_unix.SO_DONTROUTE  -> Socket.Opt.dontroute
+        | Std_unix.SO_OOBINLINE  -> Socket.Opt.oobinline
+        | Std_unix.SO_ACCEPTCONN -> Socket.Opt.acceptconn
+        | Std_unix.TCP_NODELAY   -> Socket.Opt.nodelay
+        | Std_unix.IPV6_ONLY     -> failwith "IPV6_ONLY option not supported" in
+      Socket.setopt sock (convert opt) value
 
     let sleep sec =
       Clock.after (Time.Span.of_sec sec) >>| fun _ -> ()
 
-    let unix_socket () =
-      let sock = Unix.Socket.create Unix.Socket.Type.unix in
-      Unix.Socket.fd sock
+    let socket_fd = Socket.fd
 
-    let socketpair = Unix.socketpair
+    let socketpair () =
+      let fd1, fd2 = Unix.socketpair () in
+      (Socket.of_fd fd1 Socket.Type.unix, Socket.of_fd fd2 Socket.Type.unix)
+
+    let unix_socket () =
+      Socket.create Socket.Type.unix
+
+    let unix_socket_of_fd fd =
+      Socket.of_fd fd Socket.Type.unix
 
     let stderr = Fd.stderr ()
 

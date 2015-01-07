@@ -3,8 +3,8 @@ open Release_util
 
 module type S = sig
   type +'a future
-  type command = string * string array
   type fd
+  type command = string * string array
 
   module Buffer : sig
     type t
@@ -27,6 +27,19 @@ module type S = sig
     val sub : t -> int -> int -> t
     val read : fd -> t -> int -> int -> int future
     val write : fd -> t -> int -> int -> int future
+  end
+
+  module IO : sig
+    val read_once : fd
+                 -> Buffer.t
+                 -> int
+                 -> int
+                 -> int future
+    val read : ?timeout:float
+            -> fd
+            -> int
+            -> [`Data of Buffer.t | `EOF | `Timeout] future
+    val write : fd -> Buffer.t -> unit future
   end
 
   module Bytes : sig
@@ -198,21 +211,25 @@ module type S = sig
     val get_global : t -> string -> Value.t
   end
 
-  module IO : sig
-    val read_once : fd
-                 -> Buffer.t
-                 -> int
-                 -> int
-                 -> int future
-    val read : ?timeout:float
-            -> fd
-            -> int
-            -> [`Data of Buffer.t | `EOF | `Timeout] future
-    val write : fd -> Buffer.t -> unit future
+  module Socket : sig
+    type unix = [ `Unix of string ]
+    type inet = [ `Inet of Unix.inet_addr * int ]
+    type addr = [ unix | inet ]
+    type ('state, 'addr) t
+      constraint 'state = [< `Unconnected | `Bound | `Passive | `Active ]
+      constraint 'addr  = [< addr ]
+
+    val accept_loop : ?backlog:int
+                   -> ?timeout:float
+                   -> ([`Unconnected], 'addr) t
+                   -> 'addr
+                   -> (([`Active], 'addr) t -> unit future)
+                   -> 'a future
   end
 
   module IPC : sig
-    type handler = fd -> unit future
+    type socket = ([`Active], Socket.unix) Socket.t
+    type handler = socket -> unit future
 
     val control_socket : string -> handler -> unit future
 
@@ -232,23 +249,23 @@ module type S = sig
 
       module Server : sig
         val read_request : ?timeout:float
-                        -> fd
+                        -> socket
                         -> [`Request of request | `EOF | `Timeout] future
-        val write_response : fd -> response -> unit future
+        val write_response : socket -> response -> unit future
         val handle_request : ?timeout:float
                           -> ?eof_warning:bool
-                          -> fd
+                          -> socket
                           -> (request -> response future)
                           -> unit future
       end
 
       module Client : sig
         val read_response : ?timeout:float
-                         -> fd
+                         -> socket
                          -> [`Response of response | `EOF | `Timeout] future
-        val write_request : fd -> request -> unit future
+        val write_request : socket -> request -> unit future
         val make_request : ?timeout:float
-                        -> fd
+                        -> socket
                         -> request
                         -> ([`Response of response | `EOF | `Timeout] ->
                              'a future)
@@ -258,15 +275,6 @@ module type S = sig
 
     module Make (O : Ops) : S
       with type request = O.request and type response = O.response
-  end
-
-  module Socket : sig
-    val accept_loop : ?backlog:int
-                   -> ?timeout:float
-                   -> fd
-                   -> Unix.sockaddr
-                   -> (fd -> unit future)
-                   -> unit future
   end
 
   module Util : sig
@@ -292,7 +300,7 @@ module type S = sig
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
       -> ?control:(string * IPC.handler)
-      -> ?main:((unit -> (int * fd) list) -> unit future)
+      -> ?main:((unit -> (int * IPC.socket) list) -> unit future)
       -> lock_file:string
       -> unit -> unit
 
@@ -302,43 +310,31 @@ module type S = sig
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
       -> ?control:(string * IPC.handler)
-      -> ?main:((unit -> (int * fd) list) -> unit future)
+      -> ?main:((unit -> (int * IPC.socket) list) -> unit future)
       -> lock_file:string
       -> slaves:(command * IPC.handler * int) list
       -> unit -> unit
 
   val me : ?syslog:bool
         -> ?user:string
-        -> main:(fd -> unit future)
+        -> main:(IPC.socket -> unit future)
         -> unit -> unit
 end
 
 module Make (Future : Release_future.S) : S
-  with type 'a future = 'a Future.t
-   and type fd = Future.Unix.fd =
+  with type 'a future := 'a Future.t
+   and type fd := Future.Unix.fd
+   and type ('state, 'addr) Socket.t = ('state, 'addr) Future.Unix.socket =
 struct
-  (* XXX this isn't working *)
-  module Future = struct
-    include (Future : Release_future.S
-      with type 'a t = 'a Future.t
-       and type Unix.fd = Future.Unix.fd
-       and module Monad := Future.Monad)
-    module Monad = struct
-      include Future.Monad
-      let return_unit = return ()
-      let return_none = return None
-      let (<&>) t t' = join [t; t']
-    end
-  end
   open Future.Monad
-
-  type +'a future = 'a Future.t
-  type fd = Future.Unix.fd
+  let return_unit = return ()
+  let return_none = return None
+  let (<&>) t t' = Future.join [t; t']
 
   type command = string * string array
 
   module Buffer = Release_buffer.Make (Future)
-  module Bytes = Release_bytes.Make (Buffer)
+  module Bytes = Release_bytes.Make (Future) (Buffer)
   module Config = Release_config.Make (Future)
   module Socket = Release_socket.Make (Future)
   module IO = Release_io.Make (Future) (Buffer)
@@ -513,7 +509,7 @@ struct
 
   let setup_ipc ipc_handler =
     let master_fd, slave_fd = Future.Unix.socketpair () in
-    Future.Unix.set_close_on_exec master_fd;
+    Future.Unix.set_close_on_exec (Future.Unix.socket_fd master_fd);
     let _ipc_t = ipc_handler master_fd in
     master_fd, slave_fd
 
@@ -550,7 +546,7 @@ struct
 
   let fork_exec (path, argv) env master_fd slave_fd reexec =
     let child () =
-      move_fd slave_fd Future.Unix.stdin >>= fun () ->
+      move_fd (Future.Unix.socket_fd slave_fd) Future.Unix.stdin >>= fun () ->
       try
         Unix.execve path argv env
       with _ ->
@@ -559,7 +555,7 @@ struct
     let parent pid =
       Future.Logger.error_f "process %d created" pid >>= fun () ->
       add_slave_connection pid master_fd >>= fun () ->
-      Future.Unix.close slave_fd >>= fun () ->
+      Future.Unix.close (Future.Unix.socket_fd slave_fd) >>= fun () ->
       wait_child pid master_fd reexec in
     Future.Unix.fork () >>= function
     | 0 -> child ()
@@ -701,7 +697,8 @@ struct
       Future.Unix.close Future.Unix.stdin >>= fun () ->
       let pid = Unix.getpid () in
       Future.Logger.info_f "starting up (PID %d)" pid >>= fun () ->
-      main ipc_fd >>= fun () ->
+      let ipc_sock = Future.Unix.unix_socket_of_fd ipc_fd in
+      main ipc_sock >>= fun () ->
       Future.Logger.info_f "stopping (PID %d)" pid >>= fun () ->
       return_unit in
     Future.Main.run main_t

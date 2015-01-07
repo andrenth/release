@@ -25,13 +25,10 @@ module type S = sig
 end
 
 module Make (Future : Release_future.S) : S
-  with type 'a future = 'a Future.t
-   and type fd = Future.Unix.fd =
+  with type 'a future := 'a Future.t
+   and type fd := Future.Unix.fd =
 struct
   open Future.Monad
-
-  type +'a future = 'a Future.t
-  type fd = Future.Unix.fd
 
   type t =
     { bytes       : Future.Bytes.t

@@ -1,6 +1,7 @@
 module Future : Release_future.S
   with type 'a t = 'a Lwt.t
-   and type Unix.fd = Lwt_unix.file_descr =
+   and type Unix.fd = Lwt_unix.file_descr
+   and type ('state, 'addr) Unix.socket = Lwt_unix.file_descr =
 struct
   type +'a t = 'a Lwt.t
   type +'a future = 'a t
@@ -61,15 +62,38 @@ struct
   module Unix = struct
     type fd = Lwt_unix.file_descr
 
+    type unix = [ `Unix of string ]
+    type inet = [ `Inet of Unix.inet_addr * int ]
+    type addr = [ unix | inet ]
+    type ('state, 'addr) socket = fd
+      constraint 'state = [< `Unconnected | `Bound | `Passive | `Active ]
+      constraint 'addr  = [< addr]
+
+    type 'addr unconnected_socket = ([`Unconnected], 'addr) socket
+    type 'addr bound_socket = ([`Bound], 'addr) socket
+    type 'addr passive_socket = ([`Passive], 'addr) socket
+    type 'addr active_socket = ([`Active], 'addr) socket
+
+    let sockaddr_of_addr = function
+      | `Unix s -> Unix.ADDR_UNIX s
+      | `Inet (a, p) -> Unix.ADDR_INET (a, p)
+
     let (>>=) = Lwt.(>>=)
     let return = Lwt.return
 
-    let accept_unix = Lwt_unix.accept
-    let accept_inet = Lwt_unix.accept
+    let socket_fd (sock: ('state, 'addr) socket) : fd = sock
+    let socket_of_fd (fd: fd) : ('state, 'addr) socket = fd
 
-    let bind sock addr =
-      Lwt_unix.bind sock addr;
-      return sock
+    let accept (sock: 'addr passive_socket) =
+      Lwt_unix.accept (socket_fd sock) >>= fun (fd, sockaddr) ->
+      let sock' : 'addr active_socket = socket_of_fd fd in
+      return (sock', sockaddr)
+
+    let bind (sock: 'addr unconnected_socket) addr =
+      let sockaddr = sockaddr_of_addr addr in
+      Lwt_unix.bind (socket_fd sock) sockaddr;
+      return (sock: 'addr bound_socket)
+
     let chdir = Lwt_unix.chdir
     let chroot = Lwt_unix.chroot
     let close = Lwt_unix.close
@@ -95,7 +119,7 @@ struct
     let on_signal signum handler = ignore (Lwt_unix.on_signal signum handler)
     let openfile = Lwt_unix.openfile
     let set_close_on_exec = Lwt_unix.set_close_on_exec
-    let setsockopt_unix_bool = Lwt_unix.setsockopt
+    let setsockopt = Lwt_unix.setsockopt
     let sleep = Lwt_unix.sleep
     let unix_socket () = Lwt_unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0
     let socketpair () = Lwt_unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0
@@ -103,6 +127,7 @@ struct
     let stdin = Lwt_unix.stdin
     let stdout = Lwt_unix.stdout
     let unix_file_descr = Lwt_unix.unix_file_descr
+    let unix_socket_of_fd fd = fd
     let unlink = Lwt_unix.unlink
     let waitpid pid =
       Lwt_unix.waitpid [] pid >>= fun (_, status) -> return status

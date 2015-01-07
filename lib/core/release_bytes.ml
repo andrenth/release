@@ -68,11 +68,13 @@ module type S = sig
   module Little_endian : IntegerOps
 end
 
-module Make (Buffer : Release_buffer.S) : S
-  with type buffer = Buffer.t =
+module Make
+  (Future : Release_future.S)
+  (Buffer : Release_buffer.S
+    with type 'a future := 'a Future.t
+     and type fd := Future.Unix.fd) : S
+    with type buffer := Buffer.t =
 struct
-  type buffer = Buffer.t
-
   let read_byte_at i buf =
     int_of_char (Buffer.get buf i)
 
@@ -96,9 +98,9 @@ struct
 
   module type ByteOps = sig
     type t
-    val read_at : int -> buffer -> t
-    val write_byte : t -> buffer -> unit
-    val write : t -> buffer -> unit
+    val read_at : int -> Buffer.t -> t
+    val write_byte : t -> Buffer.t -> unit
+    val write : t -> Buffer.t -> unit
   end
 
   module MakeBig (I : Integer) : ByteOps with type t = I.t = struct
@@ -255,40 +257,40 @@ struct
   module type IntegerOps = sig
     module Make (I : Integer) : ByteOps with type t = I.t
 
-    val read_int16_at : int -> buffer -> int
-    val read_int16 : buffer -> int
-    val write_int16_byte : int -> buffer -> unit
-    val write_int16 : int -> buffer -> unit
+    val read_int16_at : int -> Buffer.t -> int
+    val read_int16 : Buffer.t -> int
+    val write_int16_byte : int -> Buffer.t -> unit
+    val write_int16 : int -> Buffer.t -> unit
 
-    val read_int_at : int -> buffer -> int
-    val read_int : buffer -> int
-    val write_int_byte : int -> buffer -> unit
-    val write_int : int -> buffer -> unit
+    val read_int_at : int -> Buffer.t -> int
+    val read_int : Buffer.t -> int
+    val write_int_byte : int -> Buffer.t -> unit
+    val write_int : int -> Buffer.t -> unit
 
-    val read_int32_at : int -> buffer -> int32
-    val read_int32 : buffer -> int32
-    val write_int32_byte : int32 -> buffer -> unit
-    val write_int32 : int32 -> buffer -> unit
+    val read_int32_at : int -> Buffer.t -> int32
+    val read_int32 : Buffer.t -> int32
+    val write_int32_byte : int32 -> Buffer.t -> unit
+    val write_int32 : int32 -> Buffer.t -> unit
 
-    val read_uint32_at : int -> buffer -> Uint32.t
-    val read_uint32 : buffer -> Uint32.t
-    val write_uint32_byte : Uint32.t -> buffer -> unit
-    val write_uint32 : Uint32.t -> buffer -> unit
+    val read_uint32_at : int -> Buffer.t -> Uint32.t
+    val read_uint32 : Buffer.t -> Uint32.t
+    val write_uint32_byte : Uint32.t -> Buffer.t -> unit
+    val write_uint32 : Uint32.t -> Buffer.t -> unit
 
-    val read_int64_at : int -> buffer -> int64
-    val read_int64 : buffer -> int64
-    val write_int64_byte : int64 -> buffer -> unit
-    val write_int64 : int64 -> buffer -> unit
+    val read_int64_at : int -> Buffer.t -> int64
+    val read_int64 : Buffer.t -> int64
+    val write_int64_byte : int64 -> Buffer.t -> unit
+    val write_int64 : int64 -> Buffer.t -> unit
 
-    val read_uint64_at : int -> buffer -> Uint64.t
-    val read_uint64 : buffer -> Uint64.t
-    val write_uint64_byte : Uint64.t -> buffer -> unit
-    val write_uint64 : Uint64.t -> buffer -> unit
+    val read_uint64_at : int -> Buffer.t -> Uint64.t
+    val read_uint64 : Buffer.t -> Uint64.t
+    val write_uint64_byte : Uint64.t -> Buffer.t -> unit
+    val write_uint64 : Uint64.t -> Buffer.t -> unit
 
-    val read_uint128_at : int -> buffer -> Uint128.t
-    val read_uint128 : buffer -> Uint128.t
-    val write_uint128_byte : Uint128.t -> buffer -> unit
-    val write_uint128 : Uint128.t -> buffer -> unit
+    val read_uint128_at : int -> Buffer.t -> Uint128.t
+    val read_uint128 : Buffer.t -> Uint128.t
+    val write_uint128_byte : Uint128.t -> Buffer.t -> unit
+    val write_uint128 : Uint128.t -> Buffer.t -> unit
 
   end
 

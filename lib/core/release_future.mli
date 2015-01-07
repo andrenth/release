@@ -55,9 +55,17 @@ module type S = sig
   module Unix : sig
     type fd
 
-    val accept_unix : fd -> (fd * Unix.sockaddr) future
-    val accept_inet : fd -> (fd * Unix.sockaddr) future
-    val bind : fd -> Unix.sockaddr -> fd future
+    type unix = [ `Unix of string ]
+    type inet = [ `Inet of Unix.inet_addr * int ]
+    type addr = [ unix | inet ]
+    type ('state, 'addr) socket
+      constraint 'state = [< `Unconnected | `Bound | `Passive | `Active ]
+      constraint 'addr  = [< addr]
+
+    val accept : ([`Passive], 'addr) socket
+              -> (([`Active], 'addr) socket * Unix.sockaddr) future
+    val bind : ([`Unconnected], 'addr) socket -> 'addr
+            -> ([`Bound], 'addr) socket future
     val chdir : string -> unit future
     val chroot : string -> unit future
     val close : fd -> unit future
@@ -66,20 +74,25 @@ module type S = sig
     val exit : int -> 'a future
     val fork : unit -> int future
     val getpwnam : string -> Unix.passwd_entry future
-    val listen_unix : fd -> int -> fd
-    val listen_inet : fd -> int -> fd
+    val listen : ([`Bound], 'addr) socket -> int -> ([`Passive], 'addr) socket
     val lstat : string -> Unix.stats future
     val on_signal : int -> (int -> unit) -> unit
     val openfile : string -> Unix.open_flag list -> Unix.file_perm -> fd future
     val set_close_on_exec : fd -> unit
-    val setsockopt_unix_bool : fd -> Unix.socket_bool_option -> bool -> unit
+    val setsockopt
+          : ([< `Unconnected | `Bound | `Passive | `Active], 'addr) socket
+         -> Unix.socket_bool_option -> bool -> unit
     val sleep : float -> unit future
-    val unix_socket : unit -> fd
-    val socketpair : unit -> fd * fd
+    val socket_fd
+          : ([< `Unconnected | `Bound | `Passive | `Active], 'addr) socket
+         -> fd
+    val socketpair : unit -> ([`Active], unix) socket * ([`Active], unix) socket
     val stderr : fd
     val stdin : fd
     val stdout : fd
     val unix_file_descr : fd -> Unix.file_descr
+    val unix_socket : unit -> ([`Unconnected], unix) socket
+    val unix_socket_of_fd : fd -> ('state, unix) socket
     val unlink : string -> unit future
     val waitpid : int -> Unix.process_status future
   end

@@ -1,37 +1,46 @@
 module type S = sig
   type +'a future
-  type fd
+
+  type unix = [ `Unix of string ]
+  type inet = [ `Inet of Unix.inet_addr * int ]
+  type addr = [ unix | inet ]
+  type ('state, 'addr) t
+    constraint 'state = [< `Unconnected | `Bound | `Passive | `Active ]
+    constraint 'addr  = [< addr ]
 
   val accept_loop : ?backlog:int
                  -> ?timeout:float
-                 -> fd
-                 -> Unix.sockaddr
-                 -> (fd -> unit future)
-                 -> unit future
+                 -> ([`Unconnected], 'addr) t
+                 -> 'addr
+                 -> (([`Active], 'addr) t -> unit future)
+                 -> 'a future
 end
 
 module Make (Future: Release_future.S) : S
-  with type 'a future = 'a Future.t
-   and type fd = Future.Unix.fd =
+  with type 'a future := 'a Future.t
+   and type unix = Future.Unix.unix
+   and type inet = Future.Unix.inet
+   and type addr = Future.Unix.addr
+   and type ('state, 'addr) t = ('state, 'addr) Future.Unix.socket =
 struct
   open Future.Monad
 
-  type +'a future = 'a Future.t
-  type fd = Future.Unix.fd
+  type unix = Future.Unix.unix
+  type inet = Future.Unix.inet
+  type addr = Future.Unix.addr
+  type ('state, 'addr) t = ('state, 'addr) Future.Unix.socket
+    constraint 'state = [< `Unconnected | `Bound | `Passive | `Active ]
+    constraint 'addr  = [< addr ]
 
-  let accept_loop ?(backlog = 10) ?(timeout = 10.0) fd sockaddr handler =
-    let accept, listen =
-      match sockaddr with
-      | Unix.ADDR_UNIX s ->
-          Future.Main.at_exit (fun () -> Future.Unix.unlink s);
-          Future.Unix.accept_unix, Future.Unix.listen_unix
-      | Unix.ADDR_INET _ ->
-          Future.Unix.accept_inet, Future.Unix.listen_inet in
-    Future.Unix.setsockopt_unix_bool fd Unix.SO_REUSEADDR true;
-    Future.Unix.bind fd sockaddr >>= fun fd ->
-    let fd = listen fd backlog in
+  let accept_loop ?(backlog = 10) ?(timeout = 10.0) fd addr handler =
+    (match addr with
+    | `Unix s -> Future.Main.at_exit (fun () -> Future.Unix.unlink s)
+    | `Inet _ -> ());
+    Future.Unix.setsockopt fd Unix.SO_REUSEADDR true;
+    Future.Unix.bind fd addr >>= fun fd ->
+    let fd = Future.Unix.listen fd backlog in
     let rec loop () =
-      accept fd >>= fun (cli_fd, _) ->
+      Future.Unix.accept fd >>= fun (cli_fd, _) ->
       let timeout_t =
         Future.Unix.sleep timeout >>= fun () ->
         Future.Logger.error "timeout on handler" in
@@ -45,7 +54,7 @@ struct
       ignore (
         Future.finalize
           (fun () -> Future.pick [timeout_t; handler_t])
-          (fun () -> Future.Unix.close (cli_fd))
+          (fun () -> Future.Unix.close (Future.Unix.socket_fd cli_fd))
       );
       loop () in
     loop ()
