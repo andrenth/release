@@ -33,8 +33,9 @@ let add_char buf c =
   set buf buf.len c
 
 let add_string buf s =
+  let b = Bytes.of_string s in
   let len = String.length s in
-  Lwt_bytes.blit_string_bytes s 0 buf.bytes buf.len len;
+  Lwt_bytes.blit_from_bytes b 0 buf.bytes buf.len len;
   buf.len <- buf.len + len
 
 let sub buf off len =
