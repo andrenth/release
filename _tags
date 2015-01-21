@@ -1,7 +1,7 @@
 # OASIS_START
-# DO NOT EDIT (digest: 4f5c576bd81ae50e0bcea01e7eccde8d)
-# Ignore VCS directories, you can use the same kind of rule outside 
-# OASIS_START/STOP if you want to exclude directories that contains 
+# DO NOT EDIT (digest: 160933e786bd66f5899364ff81b76de8)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
 <**/.svn>: -traverse
 <**/.svn>: not_hygienic
@@ -15,83 +15,93 @@
 "_darcs": not_hygienic
 # Library release-buffer
 "lib/buffer/release-buffer.cmxs": use_release-buffer
+<lib/buffer/*.ml{,i}>: pkg_camlp4
 <lib/buffer/*.ml{,i}>: pkg_lwt
 <lib/buffer/*.ml{,i}>: pkg_lwt.syntax
 <lib/buffer/*.ml{,i}>: pkg_lwt.unix
 # Library release-bytes
 "lib/bytes/release-bytes.cmxs": use_release-bytes
-<lib/bytes/*.ml{,i}>: use_release-buffer
+<lib/bytes/*.ml{,i}>: pkg_camlp4
 <lib/bytes/*.ml{,i}>: pkg_lwt
 <lib/bytes/*.ml{,i}>: pkg_lwt.syntax
 <lib/bytes/*.ml{,i}>: pkg_lwt.unix
+<lib/bytes/*.ml{,i}>: pkg_uint.uint128
 <lib/bytes/*.ml{,i}>: pkg_uint.uint32
 <lib/bytes/*.ml{,i}>: pkg_uint.uint64
-<lib/bytes/*.ml{,i}>: pkg_uint.uint128
+<lib/bytes/*.ml{,i}>: use_release-buffer
 # Library release-util
 "lib/util/release-util.cmxs": use_release-util
 # Library release-config
 "lib/config/release-config.cmxs": use_release-config
-<lib/config/*.ml{,i}>: use_release-util
+<lib/config/*.ml{,i}>: pkg_camlp4
 <lib/config/*.ml{,i}>: pkg_lwt
 <lib/config/*.ml{,i}>: pkg_lwt.syntax
 <lib/config/*.ml{,i}>: pkg_str
 <lib/config/*.ml{,i}>: pkg_unix
+<lib/config/*.ml{,i}>: use_release-util
 # Library release
 "lib/core/release.cmxs": use_release
-<lib/core/*.ml{,i}>: use_release-buffer
-<lib/core/*.ml{,i}>: use_release-util
+<lib/core/*.ml{,i}>: pkg_camlp4
 <lib/core/*.ml{,i}>: pkg_lwt
 <lib/core/*.ml{,i}>: pkg_lwt.syntax
 <lib/core/*.ml{,i}>: pkg_lwt.unix
+<lib/core/*.ml{,i}>: use_release-buffer
+<lib/core/*.ml{,i}>: use_release-util
 # Executable test_master
-<lib_test/master.{native,byte}>: use_release
-<lib_test/master.{native,byte}>: use_release-buffer
-<lib_test/master.{native,byte}>: use_release-util
+<lib_test/master.{native,byte}>: pkg_camlp4
 <lib_test/master.{native,byte}>: pkg_lwt
 <lib_test/master.{native,byte}>: pkg_lwt.syntax
 <lib_test/master.{native,byte}>: pkg_lwt.unix
 <lib_test/master.{native,byte}>: pkg_str
+<lib_test/master.{native,byte}>: use_release
+<lib_test/master.{native,byte}>: use_release-buffer
+<lib_test/master.{native,byte}>: use_release-util
 # Executable test_slave
-<lib_test/slave.{native,byte}>: use_release
-<lib_test/slave.{native,byte}>: use_release-buffer
-<lib_test/slave.{native,byte}>: use_release-util
+<lib_test/slave.{native,byte}>: pkg_camlp4
 <lib_test/slave.{native,byte}>: pkg_lwt
 <lib_test/slave.{native,byte}>: pkg_lwt.syntax
 <lib_test/slave.{native,byte}>: pkg_lwt.unix
 <lib_test/slave.{native,byte}>: pkg_str
+<lib_test/slave.{native,byte}>: use_release
+<lib_test/slave.{native,byte}>: use_release-buffer
+<lib_test/slave.{native,byte}>: use_release-util
 # Executable test_helper
-<lib_test/helper.{native,byte}>: use_release
-<lib_test/helper.{native,byte}>: use_release-buffer
-<lib_test/helper.{native,byte}>: use_release-util
+<lib_test/helper.{native,byte}>: pkg_camlp4
 <lib_test/helper.{native,byte}>: pkg_lwt
 <lib_test/helper.{native,byte}>: pkg_lwt.syntax
 <lib_test/helper.{native,byte}>: pkg_lwt.unix
 <lib_test/helper.{native,byte}>: pkg_str
+<lib_test/helper.{native,byte}>: use_release
+<lib_test/helper.{native,byte}>: use_release-buffer
+<lib_test/helper.{native,byte}>: use_release-util
 # Executable masterctl
-<lib_test/masterctl.{native,byte}>: use_release
-<lib_test/masterctl.{native,byte}>: use_release-buffer
-<lib_test/masterctl.{native,byte}>: use_release-util
+<lib_test/masterctl.{native,byte}>: pkg_camlp4
 <lib_test/masterctl.{native,byte}>: pkg_lwt
 <lib_test/masterctl.{native,byte}>: pkg_lwt.syntax
 <lib_test/masterctl.{native,byte}>: pkg_lwt.unix
 <lib_test/masterctl.{native,byte}>: pkg_str
+<lib_test/masterctl.{native,byte}>: use_release
+<lib_test/masterctl.{native,byte}>: use_release-buffer
+<lib_test/masterctl.{native,byte}>: use_release-util
 <lib_test/*.ml{,i}>: use_release
 <lib_test/*.ml{,i}>: use_release-buffer
 # Executable test_config
-<lib_test/config_test.{native,byte}>: use_release-config
-<lib_test/config_test.{native,byte}>: use_release-util
+<lib_test/config_test.{native,byte}>: pkg_camlp4
 <lib_test/config_test.{native,byte}>: pkg_lwt
 <lib_test/config_test.{native,byte}>: pkg_lwt.syntax
 <lib_test/config_test.{native,byte}>: pkg_lwt.unix
 <lib_test/config_test.{native,byte}>: pkg_str
 <lib_test/config_test.{native,byte}>: pkg_unix
-<lib_test/*.ml{,i}>: use_release-config
-<lib_test/*.ml{,i}>: use_release-util
+<lib_test/config_test.{native,byte}>: use_release-config
+<lib_test/config_test.{native,byte}>: use_release-util
+<lib_test/*.ml{,i}>: pkg_camlp4
 <lib_test/*.ml{,i}>: pkg_lwt
 <lib_test/*.ml{,i}>: pkg_lwt.syntax
 <lib_test/*.ml{,i}>: pkg_lwt.unix
 <lib_test/*.ml{,i}>: pkg_str
 <lib_test/*.ml{,i}>: pkg_unix
+<lib_test/*.ml{,i}>: use_release-config
+<lib_test/*.ml{,i}>: use_release-util
 # OASIS_STOP
 <lib/option/*.ml>: annot
 <lib/option/*.ml>: warn_error_A

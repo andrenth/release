@@ -1,6 +1,6 @@
 OASISFormat: 0.3
 Name:        release
-Version:     1.1.0
+Version:     1.1.1
 Synopsis:    OCaml daemon framework
 Authors:     Andre Nathan
 License:     MIT
@@ -10,9 +10,10 @@ Plugins:     META (0.3)
 
 Library "release"
   Path:             lib/core
-  BuildDepends:     lwt (>= 2.4.0),
-                    lwt.syntax (>= 2.4.0),
-                    lwt.unix (>= 2.4.0),
+  BuildDepends:     camlp4,
+                    lwt (>= 2.4.7),
+                    lwt.syntax (>= 2.4.7),
+                    lwt.unix (>= 2.4.7),
                     release.buffer,
                     release.util
   CompiledObject:   best
@@ -28,9 +29,10 @@ Library "release-buffer"
   FindlibName:      buffer
   FindlibParent:    release
   CompiledObject:   best
-  BuildDepends:     lwt (>= 2.4.0),
-                    lwt.syntax (>= 2.4.0),
-                    lwt.unix (>= 2.4.0)
+  BuildDepends:     camlp4,
+                    lwt (>= 2.4.7),
+                    lwt.syntax (>= 2.4.7),
+                    lwt.unix (>= 2.4.7)
   Modules:          Release_buffer
   XMETADescription: Buffer type for Release
 
@@ -50,8 +52,9 @@ Library "release-config"
   FindlibName:      config
   FindlibParent:    release
   Path:             lib/config
-  BuildDepends:     lwt (>= 2.4.0),
-                    lwt.syntax (>= 2.4.0),
+  BuildDepends:     camlp4,
+                    lwt (>= 2.4.7),
+                    lwt.syntax (>= 2.4.7),
                     release.util,
                     str,
                     unix
@@ -106,7 +109,8 @@ Executable test_master
   MainIs:          master.ml
   Install:         false
   CompiledObject:  best
-  BuildDepends:    lwt,
+  BuildDepends:    camlp4,
+                   lwt,
                    lwt.unix,
                    lwt.syntax,
                    release,
@@ -117,7 +121,8 @@ Executable test_slave
   MainIs:          slave.ml
   Install:         false
   CompiledObject:  best
-  BuildDepends:    lwt,
+  BuildDepends:    camlp4,
+                   lwt,
                    lwt.unix,
                    lwt.syntax,
                    release,
@@ -128,7 +133,8 @@ Executable test_helper
   MainIs:          helper.ml
   Install:         false
   CompiledObject:  best
-  BuildDepends:    lwt,
+  BuildDepends:    camlp4,
+                   lwt,
                    lwt.unix,
                    lwt.syntax,
                    release,
@@ -139,7 +145,8 @@ Executable masterctl
   MainIs:          masterctl.ml
   Install:         false
   CompiledObject:  best
-  BuildDepends:    lwt,
+  BuildDepends:    camlp4,
+                   lwt,
                    lwt.unix,
                    lwt.syntax,
                    release,
@@ -151,7 +158,8 @@ Executable test_config
   Install:         false
   CompiledObject:  best
   BuildTools+:     ocamllex, ocamlyacc
-  BuildDepends:    lwt (>= 2.4.0),
-                   lwt.syntax (>= 2.4.0),
-                   lwt.unix (>= 2.4.0),
+  BuildDepends:    camlp4,
+                   lwt (>= 2.4.7),
+                   lwt.syntax (>= 2.4.7),
+                   lwt.unix (>= 2.4.7),
                    release.config
