@@ -10,9 +10,9 @@ Plugins:     META (0.3), DevFiles (0.3)
 
 Library "release"
   Path:             lib/core
-  BuildDepends:     lwt (>= 2.4.0),
-                    lwt.syntax (>= 2.4.0),
-                    lwt.unix (>= 2.4.0),
+  BuildDepends:     lwt (>= 2.4.7),
+                    lwt.syntax (>= 2.4.7),
+                    lwt.unix (>= 2.4.7),
                     release.buffer,
                     release.util
   CompiledObject:   best
@@ -28,9 +28,9 @@ Library "release-buffer"
   FindlibName:      buffer
   FindlibParent:    release
   CompiledObject:   best
-  BuildDepends:     lwt (>= 2.4.0),
-                    lwt.syntax (>= 2.4.0),
-                    lwt.unix (>= 2.4.0)
+  BuildDepends:     lwt (>= 2.4.7),
+                    lwt.syntax (>= 2.4.7),
+                    lwt.unix (>= 2.4.7)
   Modules:          Release_buffer
   XMETADescription: Buffer type for Release
 
@@ -50,8 +50,8 @@ Library "release-config"
   FindlibName:      config
   FindlibParent:    release
   Path:             lib/config
-  BuildDepends:     lwt (>= 2.4.0),
-                    lwt.syntax (>= 2.4.0),
+  BuildDepends:     lwt (>= 2.4.7),
+                    lwt.syntax (>= 2.4.7),
                     release.util,
                     str,
                     unix
@@ -151,7 +151,7 @@ Executable test_config
   Install:         false
   CompiledObject:  best
   BuildTools+:     ocamllex, ocamlyacc
-  BuildDepends:    lwt (>= 2.4.0),
-                   lwt.syntax (>= 2.4.0),
-                   lwt.unix (>= 2.4.0),
+  BuildDepends:    lwt (>= 2.4.7),
+                   lwt.syntax (>= 2.4.7),
+                   lwt.unix (>= 2.4.7),
                    release.config
