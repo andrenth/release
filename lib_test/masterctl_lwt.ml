@@ -1,6 +1,7 @@
 open Lwt
 open Printf
 open Ipc_lwt
+open Release_lwt
 
 let response_handler res =
   match res with
@@ -17,10 +18,11 @@ let () =
     Lwt_unix.connect sock sock_addr >>= fun () ->
     let str = "example" in
     Lwt_io.printlf "> %s" str >>= fun () ->
+    let conn = Release.IPC.create_connection sock in
     let req = ControlIpcOps.request_of_string str in
-    let req_t = ControlIpc.Client.make_request sock req response_handler in
+    let req_t = ControlIpc.Client.make_request conn req response_handler in
     let bcast = "mybroadcast" in
     let req = ControlIpcOps.Broadcast bcast in
-    let bcast_t = ControlIpc.Client.make_request sock req response_handler in
+    let bcast_t = ControlIpc.Client.make_request conn req response_handler in
     req_t <&> bcast_t in
   Lwt_main.run request_t

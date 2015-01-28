@@ -519,11 +519,14 @@ module type S = sig
       header parsing.
   *)
   module IPC : sig
-    (** IPC sockets are active unix sockets. *)
-    type socket = ([`Active], Socket.unix) Socket.t
+    (** The type of IPC connections. *)
+    type connection
 
     (** The type of IPC handler functions. *)
-    type handler = socket -> unit future
+    type handler = connection -> unit future
+
+    val create_connection : ([`Active], Socket.unix) Socket.t -> connection
+      (** Creates an IPC connection from an active unix socket. *)
 
     val control_socket : string -> handler -> unit future
       (** [control_socket path handler] creates UNIX domain socket at the
@@ -559,16 +562,16 @@ module type S = sig
             the master process. *)
 
         val read_request : ?timeout:float
-                        -> socket
+                        -> connection
                         -> [`Request of request | `EOF | `Timeout] future
           (** Reads an IPC request from a file descriptor. *)
 
-        val write_response : socket -> response -> unit future
+        val write_response : connection -> response -> unit future
           (** Writes an IPC response to a file descriptor. *)
 
         val handle_request : ?timeout:float
                           -> ?eof_warning:bool
-                          -> socket
+                          -> connection
                           -> (request -> response future)
                           -> unit future
           (** This function reads an IPC {!request} from a file descriptor and
@@ -581,15 +584,15 @@ module type S = sig
             a slave, helper or control process. *)
 
         val read_response : ?timeout:float
-                         -> socket
+                         -> connection
                          -> [`Response of response | `EOF | `Timeout] future
           (** Reads an IPC response from a file descriptor. *)
 
-        val write_request : socket -> request -> unit future
+        val write_request : connection -> request -> unit future
           (** Writes an IPC request to a file descriptor. *)
 
         val make_request : ?timeout:float
-                        -> socket
+                        -> connection
                         -> request
                         -> ([`Response of response | `EOF | `Timeout] ->
                              'a future)
@@ -640,7 +643,7 @@ module type S = sig
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
       -> ?control:(string * IPC.handler)
-      -> ?main:((unit -> (int * IPC.socket) list) -> unit future)
+      -> ?main:((unit -> (int * IPC.connection) list) -> unit future)
       -> lock_file:string
       -> unit -> unit
     (** Sets up a master process with one slave.
@@ -688,7 +691,7 @@ module type S = sig
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
       -> ?control:(string * IPC.handler)
-      -> ?main:((unit -> (int * IPC.socket) list) -> unit future)
+      -> ?main:((unit -> (int * IPC.connection) list) -> unit future)
       -> lock_file:string
       -> slaves:(command * IPC.handler * int) list
       -> unit -> unit
@@ -702,7 +705,7 @@ module type S = sig
 
   val me : ?syslog:bool
         -> ?user:string
-        -> main:(IPC.socket -> unit future)
+        -> main:(IPC.connection -> unit future)
         -> unit -> unit
     (** This function is supposed to be called in the slave process.
 

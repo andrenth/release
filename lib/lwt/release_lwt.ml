@@ -1,3 +1,5 @@
+open Lwt
+
 module Future : Release_future.S
   with type 'a t = 'a Lwt.t
    and type Unix.fd = Lwt_unix.file_descr

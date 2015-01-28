@@ -212,9 +212,7 @@ struct
 
     let socket_fd = Socket.fd
 
-    let socketpair () =
-      let fd1, fd2 = Unix.socketpair () in
-      (Socket.of_fd fd1 Socket.Type.unix, Socket.of_fd fd2 Socket.Type.unix)
+    let socketpair = Unix.socketpair
 
     let unix_socket () =
       Socket.create Socket.Type.unix

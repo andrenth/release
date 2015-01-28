@@ -44,7 +44,8 @@ let main fd =
           sleep 1.0 >>= fun () ->
       bcast_ipc () in
     bcast_ipc () in
-    Deferred.all_unit [ctrl_ipc_t; bcast_ipc_t]
+    Deferred.all_unit [ctrl_ipc_t; bcast_ipc_t] >>= fun () ->
+    exit 0
 
 let () =
   Signal.handle [Signal.term] handle_sigterm;

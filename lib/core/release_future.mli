@@ -80,11 +80,10 @@ module type S = sig
     val setsockopt
           : ([< `Unconnected | `Bound | `Passive | `Active], 'addr) socket
          -> Unix.socket_bool_option -> bool -> unit
-    val sleep : float -> unit future
     val socket_fd
           : ([< `Unconnected | `Bound | `Passive | `Active], 'addr) socket
          -> fd
-    val socketpair : unit -> ([`Active], unix) socket * ([`Active], unix) socket
+    val socketpair : unit -> fd * fd
     val stderr : fd
     val stdin : fd
     val stdout : fd

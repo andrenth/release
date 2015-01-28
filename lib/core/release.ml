@@ -228,9 +228,10 @@ module type S = sig
   end
 
   module IPC : sig
-    type socket = ([`Active], Socket.unix) Socket.t
-    type handler = socket -> unit future
+    type connection
+    type handler = connection -> unit future
 
+    val create_connection : ([`Active], Socket.unix) Socket.t -> connection
     val control_socket : string -> handler -> unit future
 
     module type Ops = sig
@@ -249,23 +250,23 @@ module type S = sig
 
       module Server : sig
         val read_request : ?timeout:float
-                        -> socket
+                        -> connection
                         -> [`Request of request | `EOF | `Timeout] future
-        val write_response : socket -> response -> unit future
+        val write_response : connection -> response -> unit future
         val handle_request : ?timeout:float
                           -> ?eof_warning:bool
-                          -> socket
+                          -> connection
                           -> (request -> response future)
                           -> unit future
       end
 
       module Client : sig
         val read_response : ?timeout:float
-                         -> socket
+                         -> connection
                          -> [`Response of response | `EOF | `Timeout] future
-        val write_request : socket -> request -> unit future
+        val write_request : connection -> request -> unit future
         val make_request : ?timeout:float
-                        -> socket
+                        -> connection
                         -> request
                         -> ([`Response of response | `EOF | `Timeout] ->
                              'a future)
@@ -300,7 +301,7 @@ module type S = sig
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
       -> ?control:(string * IPC.handler)
-      -> ?main:((unit -> (int * IPC.socket) list) -> unit future)
+      -> ?main:((unit -> (int * IPC.connection) list) -> unit future)
       -> lock_file:string
       -> unit -> unit
 
@@ -310,14 +311,14 @@ module type S = sig
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
       -> ?control:(string * IPC.handler)
-      -> ?main:((unit -> (int * IPC.socket) list) -> unit future)
+      -> ?main:((unit -> (int * IPC.connection) list) -> unit future)
       -> lock_file:string
       -> slaves:(command * IPC.handler * int) list
       -> unit -> unit
 
   val me : ?syslog:bool
         -> ?user:string
-        -> main:(IPC.socket -> unit future)
+        -> main:(IPC.connection -> unit future)
         -> unit -> unit
 end
 
@@ -338,7 +339,7 @@ struct
   module Config = Release_config.Make (Future)
   module Socket = Release_socket.Make (Future)
   module IO = Release_io.Make (Future) (Buffer)
-  module IPC = Release_ipc.Make (Future) (Buffer) (IO) (Socket)
+  module IPC = Release_ipc.Make (Future) (Buffer) (Bytes) (IO) (Socket)
   module Util = Release_util
 
   let daemon f =
@@ -507,12 +508,6 @@ struct
   let slave_connections () =
     ConnMap.bindings !slave_connection_map
 
-  let setup_ipc ipc_handler =
-    let master_fd, slave_fd = Future.Unix.socketpair () in
-    Future.Unix.set_close_on_exec (Future.Unix.socket_fd master_fd);
-    let _ipc_t = ipc_handler master_fd in
-    master_fd, slave_fd
-
   let getenv k =
     try
       let v = Sys.getenv k in
@@ -528,11 +523,7 @@ struct
           Option.may_default env (fun v -> v::env) (getenv k) in
         Array.of_list (List.fold_left setenv [] allowed)
 
-  let move_fd fd fd' =
-    Future.Unix.dup2 fd fd' >>= fun () ->
-    Future.Unix.close fd
-
-  let wait_child pid master_fd reexec =
+  let wait_child pid reexec =
     let log fmt =
       ksprintf (fun s -> Future.Logger.info_f "process %s" s) fmt in
     Future.Unix.waitpid pid >>= begin function
@@ -544,25 +535,31 @@ struct
     remove_slave_connection pid >>= fun () ->
     reexec ()
 
-  let fork_exec (path, argv) env master_fd slave_fd reexec =
+  let fork_exec (path, argv) env ipc_handler reexec =
+    let master_fd, slave_fd = Future.Unix.socketpair () in
+    Future.Unix.set_close_on_exec master_fd;
     let child () =
-      move_fd (Future.Unix.socket_fd slave_fd) Future.Unix.stdin >>= fun () ->
+      Future.Unix.dup2 slave_fd Future.Unix.stdin >>= fun () ->
+      Future.Unix.close slave_fd >>= fun () ->
       try
         Unix.execve path argv env
       with _ ->
         Future.Logger.error_f "execve: %s" path >>= fun () ->
         Future.Unix.exit 127 in
     let parent pid =
+      let master_sock = Future.Unix.unix_socket_of_fd master_fd in
+      let master_conn = IPC.create_connection master_sock in
       Future.Logger.error_f "process %d created" pid >>= fun () ->
-      add_slave_connection pid master_fd >>= fun () ->
-      Future.Unix.close (Future.Unix.socket_fd slave_fd) >>= fun () ->
-      wait_child pid master_fd reexec in
+      let _ipc_t = ipc_handler master_conn in
+      add_slave_connection pid master_conn >>= fun () ->
+      (* XXX this causes EPIPE on async for whatever reason *)
+      (* Future.Unix.close slave_fd >>= fun () -> *)
+      wait_child pid reexec in
     Future.Unix.fork () >>= function
     | 0 -> child ()
     | pid -> parent pid
 
   let rec exec_process cmd ipc_handler slave_env check_death_rate =
-    let master_fd, slave_fd = setup_ipc ipc_handler in
     let run_proc cmd =
       let reexec () =
         check_death_rate () >>= fun restart ->
@@ -571,7 +568,8 @@ struct
         else
           Future.Logger.error "slave process dying too fast" >>= fun () ->
           Future.Unix.exit 1 in
-      fork_exec cmd (restrict_env slave_env) master_fd slave_fd reexec in
+      let env = restrict_env slave_env in
+      fork_exec cmd env ipc_handler reexec in
     let _slave_t =
       try_exec run_proc cmd in
     return_unit
@@ -698,7 +696,8 @@ struct
       let pid = Unix.getpid () in
       Future.Logger.info_f "starting up (PID %d)" pid >>= fun () ->
       let ipc_sock = Future.Unix.unix_socket_of_fd ipc_fd in
-      main ipc_sock >>= fun () ->
+      let ipc_conn = IPC.create_connection ipc_sock in
+      main ipc_conn >>= fun () ->
       Future.Logger.info_f "stopping (PID %d)" pid >>= fun () ->
       return_unit in
     Future.Main.run main_t
