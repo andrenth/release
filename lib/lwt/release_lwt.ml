@@ -10,10 +10,10 @@ struct
   let async = Lwt.async
   let catch = Lwt.catch
   let fail = Lwt.fail
+  let finalize = Lwt.finalize
   let idle () = fst (Lwt.wait ())
   let iter_p = Lwt_list.iter_p
   let join = Lwt.join
-  let finalize = Lwt.finalize
 
   let with_timeout timeout thread =
     let timeout_t =
@@ -126,7 +126,6 @@ struct
     let openfile = Lwt_unix.openfile
     let set_close_on_exec = Lwt_unix.set_close_on_exec
     let setsockopt = Lwt_unix.setsockopt
-    let sleep = Lwt_unix.sleep
     let unix_socket () = Lwt_unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0
     let socketpair () = Lwt_unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0
     let stderr = Lwt_unix.stderr

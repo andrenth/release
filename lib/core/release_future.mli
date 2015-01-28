@@ -3,18 +3,29 @@ module type S = sig
   type +'a future = 'a t
 
   (* XXX *)
+  val async : (unit -> 'a t) -> unit
   val catch : (unit -> 'a t) -> (exn -> 'a t) -> 'a t
   val fail : exn -> 'a t
+  val finalize : (unit -> 'a t) -> (unit -> unit t) -> 'a t
   val idle : unit -> 'a t
   val iter_p : ('a -> unit t) -> 'a list -> unit t
-  val async : (unit -> 'a t) -> unit
   val join : unit t list -> unit t
-  val finalize : (unit -> 'a t) -> (unit -> unit t) -> 'a t
   val with_timeout : float -> 'a t -> [`Timeout | `Result of 'a] t
 
   module Monad : sig
     val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
     val return : 'a -> 'a t
+  end
+
+  module IO : sig
+    type input_channel
+    type output_channel
+
+    val fprintf : output_channel -> ('a, unit, string, unit future) format4
+               -> 'a
+    val read_line : input_channel -> string option future
+    val with_input_file : string -> (input_channel -> 'a future) -> 'a future
+    val with_output_file : string -> (output_channel -> 'a future) -> 'a future
   end
 
   module Mutex : sig
@@ -37,17 +48,6 @@ module type S = sig
     val info_f : ('a, unit, string, unit future) format4 -> 'a
     val error : string -> unit future
     val error_f : ('a, unit, string, unit future) format4 -> 'a
-  end
-
-  module IO : sig
-    type input_channel
-    type output_channel
-
-    val fprintf : output_channel -> ('a, unit, string, unit future) format4
-               -> 'a
-    val read_line : input_channel -> string option future
-    val with_input_file : string -> (input_channel -> 'a future) -> 'a future
-    val with_output_file : string -> (output_channel -> 'a future) -> 'a future
   end
 
   module Unix : sig
