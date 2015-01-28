@@ -107,11 +107,9 @@ struct
     let close fd = Unix.close fd
 
     let dup fd =
-      In_thread.syscall_exn ~name:"dup"
-        (fun () ->
-          Fd.with_file_descr_exn fd
-            (fun file_descr ->
-              Core_unix.dup file_descr))
+      Fd.syscall_in_thread_exn fd ~name:"dup"
+        (fun file_descr ->
+          Core_unix.dup file_descr)
       >>= fun dup_file_descr ->
       Fd.Kind.infer_using_stat dup_file_descr >>| fun kind ->
       Fd.create kind dup_file_descr (Info.of_string "dup")
