@@ -263,20 +263,39 @@ struct
     let get = Bigstring.get
     let length = Bigstring.length
     let of_string s = Bigstring.of_string s
+
     let proxy buf pos len =
       Bigstring.sub_shared ~pos ~len buf
-    let read fd buf pos len =
-      let reader = Reader.create fd in
-      let substr = Bigsubstring.of_bigstring (proxy buf pos len) in
-      Reader.read_bigsubstring reader substr >>| function
-      | `Ok n -> n
-      | `Eof -> 0
+
     let set = Bigstring.set
     let to_string b = Bigstring.to_string b
+
+   let rec nonblocking fd what f ~name =
+     let module U = Std_unix in
+     let module B = Bigstring in
+     try
+       return (Fd.syscall_exn fd ~nonblocking:true f)
+     with B.IOError (_, U.Unix_error ((U.EAGAIN | U.EWOULDBLOCK), _, _)) ->
+       Fd.ready_to fd what
+       >>= function
+       | `Bad_fd | `Closed -> failwith (name ^ ": descriptor is invalid")
+       | `Ready -> nonblocking fd what f ~name
+
+    let read fd buf pos len =
+      if Fd.supports_nonblock fd then
+        nonblocking fd `Read ~name:"nonblocking_read"
+          (fun fd -> Bigstring.read_assume_fd_is_nonblocking fd buf ~pos ~len)
+      else
+        Fd.syscall_in_thread_exn fd ~name:"read"
+          (fun fd -> Bigstring.read fd buf ~pos ~len)
+
     let write fd buf pos len =
-      let writer = Writer.create fd in
-      Writer.write_bigstring ~pos ~len writer buf;
-      return (Int63.to_int_exn (Writer.bytes_written writer))
+      if Fd.supports_nonblock fd then
+        nonblocking fd `Write ~name:"nonblocking write"
+          (fun fd -> Bigstring.write_assume_fd_is_nonblocking fd buf ~pos ~len)
+      else
+        Fd.syscall_in_thread_exn fd ~name:"write"
+          (fun fd -> Bigstring.write fd buf ~pos ~len)
   end
 end
 
