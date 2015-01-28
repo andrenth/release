@@ -12,7 +12,7 @@ struct
   type +'a future = 'a t
 
   let async f =
-    ignore (Thread_safe.run_in_async_wait_exn f)
+    ignore (Thread_safe.block_on_async_exn f)
 
   let catch f h =
     try_with ~extract_exn:true f >>= fun r ->
