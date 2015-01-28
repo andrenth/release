@@ -241,7 +241,6 @@ struct
 
   module Bytes = struct
     type t = Bigstring.t
-    type fd = Fd.t
 
     let blit src src_pos dst dst_pos len =
       Bigstring.blit ~src ~src_pos ~len ~dst ~dst_pos

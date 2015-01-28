@@ -97,7 +97,6 @@ module type S = sig
 
   module Bytes : sig
     type t
-    type fd = Unix.fd
 
     val blit : t -> int -> t -> int -> int -> unit
     val blit_string_bytes : string -> int -> t -> int -> int -> unit
@@ -107,9 +106,9 @@ module type S = sig
     val length : t -> int
     val of_string : string -> t
     val proxy : t -> int -> int -> t
-    val read : fd -> t -> int -> int -> int future
+    val read : Unix.fd -> t -> int -> int -> int future
     val set : t -> int -> char -> unit
     val to_string : t -> string
-    val write : fd -> t -> int -> int -> int future
+    val write : Unix.fd -> t -> int -> int -> int future
   end
 end

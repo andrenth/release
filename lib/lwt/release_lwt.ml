@@ -141,7 +141,6 @@ struct
 
   module Bytes = struct
     type t = Lwt_bytes.t
-    type fd = Lwt_unix.file_descr
 
     let blit = Lwt_bytes.blit
     let blit_string_bytes src src_pos dst dst_pos len =
