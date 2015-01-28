@@ -210,9 +210,6 @@ struct
         | Std_unix.IPV6_ONLY     -> failwith "IPV6_ONLY option not supported" in
       Socket.setopt sock (convert opt) value
 
-    let sleep sec =
-      Clock.after (Time.Span.of_sec sec) >>| fun _ -> ()
-
     let socket_fd = Socket.fd
 
     let socketpair () =

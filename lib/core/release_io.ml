@@ -59,10 +59,9 @@ struct
       | 0 -> return `EOF
       | k -> return (`Data (if k = n then buf else Buffer.sub buf 0 k)) in
     let read_with_timeout t =
-      let timeout_t =
-        Future.Unix.sleep t >>= fun () ->
-        return `Timeout in
-      Future.pick [timeout_t; handle_read ()] in
+      Future.with_timeout t (handle_read ()) >>= function
+      | `Result res -> return res
+      | `Timeout -> return `Timeout in
     Option.either handle_read read_with_timeout timeout
 
   let write fd buf =

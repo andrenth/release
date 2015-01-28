@@ -9,8 +9,8 @@ module type S = sig
   val iter_p : ('a -> unit t) -> 'a list -> unit t
   val async : (unit -> 'a t) -> unit
   val join : unit t list -> unit t
-  val pick : 'a t list -> 'a t
   val finalize : (unit -> 'a t) -> (unit -> unit t) -> 'a t
+  val with_timeout : float -> 'a t -> [`Timeout | `Result of 'a] t
 
   module Monad : sig
     val (>>=) : 'a t -> ('a -> 'b t) -> 'b t

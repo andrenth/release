@@ -41,9 +41,6 @@ struct
     let fd = Future.Unix.listen fd backlog in
     let rec loop () =
       Future.Unix.accept fd >>= fun (cli_fd, _) ->
-      let timeout_t =
-        Future.Unix.sleep timeout >>= fun () ->
-        Future.Logger.error "timeout on handler" in
       let handler_t =
         Future.catch
           (fun () ->
@@ -53,8 +50,12 @@ struct
             Future.Logger.error_f "accept handler exception: %s" err) in
       ignore (
         Future.finalize
-          (fun () -> Future.pick [timeout_t; handler_t])
-          (fun () -> Future.Unix.close (Future.Unix.socket_fd cli_fd))
+          (fun () ->
+            Future.with_timeout timeout handler_t >>= function
+            | `Result res -> return res
+            | `Timeout -> Future.Logger.error "timeout on handler")
+          (fun () ->
+            Future.Unix.close (Future.Unix.socket_fd cli_fd))
       );
       loop () in
     loop ()

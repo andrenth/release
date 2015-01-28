@@ -13,8 +13,16 @@ struct
   let idle () = fst (Lwt.wait ())
   let iter_p = Lwt_list.iter_p
   let join = Lwt.join
-  let pick = Lwt.pick
   let finalize = Lwt.finalize
+
+  let with_timeout timeout thread =
+    let timeout_t =
+      Lwt_unix.sleep timeout >>= fun () ->
+      return `Timeout in
+    let work_t =
+      thread >>= fun r ->
+      return (`Result r) in
+    Lwt.choose [timeout_t; work_t]
 
   module Monad = struct
     let (>>=) = Lwt.bind
