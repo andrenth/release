@@ -52,16 +52,10 @@ struct
   end
 
   module Mutex = struct
-    type t = Mutex.t
+    type t = unit Sequencer.t
 
-    let create = Mutex.create
-    let lock m =
-      Mutex.lock m;
-      return ()
-    let unlock = Mutex.unlock
-    let with_lock m f =
-      lock m >>= fun () ->
-      Monitor.protect f ~finally:(fun () -> unlock m; return ())
+    let create () = Sequencer.create ()
+    let with_lock = Throttle.enqueue
   end
 
   module Main = struct

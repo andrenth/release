@@ -21,8 +21,6 @@ module type S = sig
     type t
 
     val create : unit -> t
-    val lock : t -> unit future
-    val unlock : t -> unit
     val with_lock : t -> (unit -> 'a future) -> 'a future
   end
 

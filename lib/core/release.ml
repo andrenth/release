@@ -492,17 +492,17 @@ struct
   let slave_connection_map = ref ConnMap.empty
   let slave_connection_map_mtx = Future.Mutex.create ()
 
-  let add_slave_connection pid fd =
-    Future.Mutex.lock slave_connection_map_mtx >>= fun () ->
-    slave_connection_map := ConnMap.add pid fd !slave_connection_map;
-    Future.Mutex.unlock slave_connection_map_mtx;
-    return_unit
+  let add_slave_connection pid conn =
+    Future.Mutex.with_lock slave_connection_map_mtx
+      (fun () ->
+        slave_connection_map := ConnMap.add pid conn !slave_connection_map;
+        return_unit)
 
   let remove_slave_connection pid =
-    Future.Mutex.lock slave_connection_map_mtx >>= fun () ->
-    slave_connection_map := ConnMap.remove pid !slave_connection_map;
-    Future.Mutex.unlock slave_connection_map_mtx;
-    return_unit
+    Future.Mutex.with_lock slave_connection_map_mtx
+      (fun () ->
+        slave_connection_map := ConnMap.remove pid !slave_connection_map;
+        return_unit)
 
   let slave_connections () =
     ConnMap.bindings !slave_connection_map

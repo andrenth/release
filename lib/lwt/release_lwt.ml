@@ -38,8 +38,6 @@ struct
     type t = Lwt_mutex.t
 
     let create = Lwt_mutex.create
-    let lock = Lwt_mutex.lock
-    let unlock = Lwt_mutex.unlock
     let with_lock = Lwt_mutex.with_lock
   end
 
