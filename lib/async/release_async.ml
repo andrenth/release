@@ -21,12 +21,16 @@ struct
     | Error e -> h e
 
   let fail e = raise e
+
+  let finalize f g =
+    Monitor.protect f ~finally:g
+
   let idle = Deferred.never
   let iter_p f t = Deferred.List.iter ~how:`Parallel ~f t
   let join = Deferred.all_unit
-  let pick = Deferred.any
-  let finalize f g =
-    Monitor.protect f ~finally:g
+
+  let with_timeout t d =
+    Clock.with_timeout (sec t) d
 
   module Monad = struct
     let (>>=) = Deferred.bind
@@ -41,8 +45,8 @@ struct
     let read_line ch =
       Reader.read_line ch
       >>| function
-      | `Ok line -> Some line
-      | `Eof -> None
+        | `Ok line -> Some line
+        | `Eof -> None
     let with_input_file path f = Reader.with_file path ~f
     let with_output_file path f = Writer.with_file path ~f
   end
@@ -244,7 +248,7 @@ struct
       | Ok () -> Std_unix.WEXITED 0
       | Error (`Exit_non_zero s) -> Std_unix.WEXITED s
       | Error (`Signal s) -> Std_unix.WSIGNALED (Signal.to_caml_int s)
- end
+  end
 
   module Bytes = struct
     type t = Bigstring.t
