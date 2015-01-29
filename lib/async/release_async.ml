@@ -112,10 +112,10 @@ struct
       In_thread.syscall_exn ~name:"dup2"
         (fun () ->
           Fd.with_file_descr_exn src
-            (fun src_file_descr ->
+            (fun src ->
               Fd.with_file_descr_exn dst
-                (fun dst_file_descr ->
-                  Core_unix.dup2 ~src:src_file_descr ~dst:dst_file_descr)))
+                (fun dst ->
+                  Core_unix.dup2 ~src ~dst)))
 
     let exit code = Shutdown.exit code
 
