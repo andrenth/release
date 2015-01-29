@@ -10,14 +10,10 @@ let handle_sigterm _ =
   Thread_safe.run_in_async_wait_exn (fun () -> Log.info "got sigterm");
   Pervasives.exit 0
 
-let ipc_lock = Mutex.create ()
-
-let with_lock m f =
-  Mutex.lock m;
-  Monitor.protect f ~finally:(fun () -> Mutex.unlock m; return ())
+let ipc_lock = Sequencer.create ()
 
 let ipc_request fd req =
-  with_lock ipc_lock
+  Throttle.enqueue ipc_lock
     (fun () -> SlaveIpc.Client.write_request fd req)
 
 let sleep sec =
@@ -62,11 +58,8 @@ let main fd =
   Signal.handle [Signal.term] handle_sigterm;
   let read_t = consume_ipc fd in
   let write_t = produce_ipc fd in
-  Deferred.any [read_t; write_t]
-
-let sleep _ =
-  Deferred.all_unit [sleep (Float.of_int (Random.int 60)) >>= fun () ->
-  Log.info_f "exiting (%d)" (Pid.to_int (Unix.getpid ()))]
+  Deferred.any [read_t; write_t] >>= fun () ->
+  exit 0
 
 let () =
   Random.self_init ();
