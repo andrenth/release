@@ -3,7 +3,7 @@ module type S = sig
   type +'a future = 'a t
 
   (* XXX *)
-  val async : (unit -> 'a t) -> unit
+  val async : (unit -> unit t) -> unit
   val catch : (unit -> 'a t) -> (exn -> 'a t) -> 'a t
   val fail : exn -> 'a t
   val finalize : (unit -> 'a t) -> (unit -> unit t) -> 'a t
