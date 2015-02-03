@@ -98,7 +98,15 @@ struct
 
     let chroot = Unix.chroot
 
-    let close fd = Unix.close fd
+    let close fd =
+      let file_descr = Fd.file_descr_exn fd in
+      (* Async always calls shutdown() when Fd.close is called for
+       * sockets, so we close the descriptor manually. This avoids
+       * an EPIPE error when we fork and close unused descriptors
+       * on either process. *)
+      Fd.close ~should_close_file_descriptor:false fd >>= fun () ->
+      Std_unix.close file_descr;
+      return ()
 
     let dup fd =
       Fd.syscall_in_thread_exn fd ~name:"dup"
