@@ -559,12 +559,12 @@ struct
   let rec exec_process cmd ipc_handler slave_env check_death_rate =
     let run_proc cmd =
       let reexec () =
-        check_death_rate () >>= fun restart ->
-        if restart then
-          exec_process cmd ipc_handler slave_env check_death_rate
-        else
-          Future.Logger.error "slave process dying too fast" >>= fun () ->
-          Future.Unix.exit 1 in
+        match check_death_rate () with
+        | `Ok -> exec_process cmd ipc_handler slave_env check_death_rate
+        | `Disabled -> return_unit
+        | `Exceeded ->
+            Future.Logger.error "slave process dying too fast" >>= fun () ->
+            Future.Unix.exit 1 in
       let env = restrict_env slave_env in
       fork_exec cmd env ipc_handler reexec in
     let _slave_t =
@@ -586,12 +586,12 @@ struct
       end;
       match !tries with
       | 0 ->
-          return false
+          `Exceeded
       | _ ->
           decr tries;
-          return true
+          `Ok
     end else
-      return false
+      `Disabled
 
   let init_exec_slave max_tries =
     let tries = ref max_tries in
