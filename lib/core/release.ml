@@ -608,6 +608,7 @@ struct
       (slave_connections ())
 
   let async_exit signame signum =
+    disable_slave_restart ();
     Future.async
       (fun () ->
         Future.Logger.info_f "got %s, signaling child processes" signame
