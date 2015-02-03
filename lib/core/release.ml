@@ -344,28 +344,27 @@ struct
 
   let daemon f =
     let grandchild () =
-      Future.Unix.chdir "/" >>= fun () ->
-      Future.Unix.openfile "/dev/null" [Unix.O_RDWR] 0 >>= fun dev_null ->
+      Unix.chdir "/";
+      let dev_null = Unix.openfile "/dev/null" [Unix.O_RDWR] 0 in
       let close_and_dup fd =
-        Future.Unix.close fd >>= fun () ->
-        Future.Unix.dup2 dev_null fd >>= fun () ->
-        Future.Unix.close dev_null in
-      let descrs =
-        [Future.Unix.stdin; Future.Unix.stdout; Future.Unix.stderr] in
-      Future.iter_p close_and_dup descrs >>= fun () ->
-      Future.Unix.close dev_null >>= fun () ->
+        Unix.close fd;
+        Unix.dup2 dev_null fd;
+        Unix.close dev_null in
+      let descrs = [Unix.stdin; Unix.stdout; Unix.stderr] in
+      List.iter close_and_dup descrs;
+      Unix.close dev_null;
       f () in
     let child () =
       ignore (Unix.setsid ());
       Sys.set_signal Sys.sighup Sys.Signal_ignore;
       Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
-      Future.Unix.fork () >>= function
+      match Unix.fork () with
       | 0 -> grandchild ()
-      | _ -> Future.Unix.exit 0 in
+      | _ -> exit 0 in
     ignore (Unix.umask 0);
-    Future.Unix.fork () >>= function
+    match Unix.fork () with
     | 0 -> child ()
-    | _ -> Future.Unix.exit 0
+    | _ -> exit 0
 
   let read_lock_file path =
     Future.catch
@@ -536,26 +535,22 @@ struct
     reexec ()
 
   let fork_exec (path, argv) env ipc_handler reexec =
-    let master_fd, slave_fd = Future.Unix.socketpair () in
-    Future.Unix.set_close_on_exec master_fd;
+    let master_fd, slave_fd = Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 in
+    Unix.set_close_on_exec master_fd;
     let child () =
-      Future.Unix.dup2 slave_fd Future.Unix.stdin >>= fun () ->
-      Future.Unix.close slave_fd >>= fun () ->
-      try
-        Unix.execve path argv env
-      with _ ->
-        Future.Logger.error_f "execve: %s" path >>= fun () ->
-        Future.Unix.exit 127 in
+      Unix.dup2 slave_fd Unix.stdin;
+      Unix.close slave_fd;
+      Unix.execve path argv env in
     let parent pid =
+      let master_fd = Future.Unix.wrap_file_descr master_fd in
       let master_sock = Future.Unix.unix_socket_of_fd master_fd in
       let master_conn = IPC.create_connection master_sock in
       Future.Logger.error_f "process %d created" pid >>= fun () ->
       let _ipc_t = ipc_handler master_conn in
       add_slave_connection pid master_conn >>= fun () ->
-      (* XXX this causes EPIPE on async for whatever reason *)
-      (* Future.Unix.close slave_fd >>= fun () -> *)
+      Unix.close slave_fd;
       wait_child pid reexec in
-    Future.Unix.fork () >>= function
+    match Unix.fork () with
     | 0 -> child ()
     | pid -> parent pid
 
