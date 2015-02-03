@@ -585,11 +585,8 @@ struct
         time := now
       end;
       match !tries with
-      | 0 ->
-          `Exceeded
-      | _ ->
-          decr tries;
-          `Ok
+      | 0 -> `Exceeded
+      | _ -> decr tries; `Ok
     end else
       `Disabled
 

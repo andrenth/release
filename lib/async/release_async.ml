@@ -15,10 +15,10 @@ struct
     don't_wait_for (f ())
 
   let catch f h =
-    try_with ~extract_exn:true f >>= fun r ->
-    match r with
-    | Ok x -> return x
-    | Error e -> h e
+    try_with ~extract_exn:true f
+    >>= function
+      | Ok x -> return x
+      | Error e -> h e
 
   let fail e = raise e
 
