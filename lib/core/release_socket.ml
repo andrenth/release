@@ -34,7 +34,7 @@ struct
 
   let accept_loop ?(backlog = 10) ?(timeout = 10.0) fd addr handler =
     (match addr with
-    | `Unix s -> Future.Main.at_exit (fun () -> Future.Unix.unlink s)
+    | `Unix s -> Future.at_exit (fun () -> Future.Unix.unlink s)
     | `Inet _ -> ());
     Future.Unix.setsockopt fd Unix.SO_REUSEADDR true;
     Future.Unix.bind fd addr >>= fun fd ->

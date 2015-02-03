@@ -366,18 +366,21 @@ struct
     | 0 -> child ()
     | _ -> exit 0
 
+  let read_pid fd =
+    let buf = Buffer.create 32 in
+    IO.read_once fd buf 0 32 >>= fun k ->
+    let pid = String.trim (Buffer.to_string (Buffer.sub buf 0 k)) in
+    Future.catch
+      (fun () -> return (Some (int_of_string pid)))
+      (fun _ -> return_none)
+
   let read_lock_file path =
     Future.catch
-      (fun ()->
-        Future.IO.with_input_file path
-          (fun ch ->
-            Future.IO.read_line ch >>= function
-            | None ->
-                return_none
-            | Some l ->
-                Future.catch
-                  (fun () -> return (Some (int_of_string l)))
-                  (fun _ -> return_none)))
+      (fun () ->
+        Future.Unix.openfile path [Unix.O_RDONLY] 0 >>= fun fd ->
+        Future.finalize
+          (fun () -> read_pid fd)
+          (fun () -> Future.Unix.close fd))
       (function
       | Unix.Unix_error (Unix.ENOENT, _, _) ->
           return_none
@@ -392,8 +395,10 @@ struct
   let write_pid path =
     Future.catch
       (fun () ->
-        Future.IO.with_output_file path
-          (fun ch -> Future.IO.fprintf ch "%d\n" (Unix.getpid ())))
+        let buf = Buffer.of_string (string_of_int (Unix.getpid ()) ^ "\n") in
+        let flags = [Unix.O_CREAT; Unix.O_WRONLY] in
+        Future.Unix.openfile path flags 0o644 >>= fun fd ->
+        IO.write fd buf)
       (function
       | Unix.Unix_error (e, _, _) ->
           let err = Unix.error_message e in
@@ -652,7 +657,7 @@ struct
       Future.Unix.on_signal Sys.sigint handle_sigint;
       Future.Unix.on_signal Sys.sigterm handle_sigterm;
       create_lock_file lock_file >>= fun () ->
-      Future.Main.at_exit (fun () -> remove_lock_file lock_file);
+      Future.at_exit (fun () -> remove_lock_file lock_file);
       let idle_t = Future.idle () in
       let control_t =
         Option.either return (curry IPC.control_socket) control in
@@ -663,7 +668,7 @@ struct
     let main_t =
       if privileged then check_root () else check_nonroot () >>= fun () ->
       if background then daemon work else work () in
-    Future.Main.run main_t
+    Future.run main_t
 
   let master_slave ~slave =
     let (cmd, ipc_handler) = slave in
@@ -695,5 +700,5 @@ struct
       main ipc_conn >>= fun () ->
       Future.Logger.info_f "stopping (PID %d)" pid >>= fun () ->
       return_unit in
-    Future.Main.run main_t
+    Future.run main_t
 end

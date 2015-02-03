@@ -14,6 +14,8 @@ struct
   let async f =
     don't_wait_for (f ())
 
+  let at_exit = Shutdown.at_shutdown
+
   let catch f h =
     try_with ~extract_exn:true f
     >>= function
@@ -32,23 +34,13 @@ struct
   let with_timeout t d =
     Clock.with_timeout (sec t) d
 
+  let run (_: 'a future) =
+    let _ = Scheduler.go () in
+    assert false
+
   module Monad = struct
     let (>>=) = Deferred.bind
     let return = Deferred.return
-  end
-
-  module IO = struct
-    type input_channel = Reader.t
-    type output_channel = Writer.t
-
-    let fprintf w fmt = ksprintf (fun s -> return (fprintf w "%s" s)) fmt
-    let read_line ch =
-      Reader.read_line ch
-      >>| function
-        | `Ok line -> Some line
-        | `Eof -> None
-    let with_input_file path f = Reader.with_file path ~f
-    let with_output_file path f = Writer.with_file path ~f
   end
 
   module Mutex = struct
@@ -56,13 +48,6 @@ struct
 
     let create () = Sequencer.create ()
     let with_lock = Throttle.enqueue
-  end
-
-  module Main = struct
-    let at_exit = Shutdown.at_shutdown
-    let run (_: 'a future) =
-      let _ = Scheduler.go () in
-      assert false
   end
 
   module Logger = struct
@@ -168,6 +153,24 @@ struct
     let on_signal signum handler =
       let signal = Signal.of_caml_int signum in
       Signal.handle [signal] (fun s -> handler (Signal.to_caml_int s))
+
+    let openfile file flags perm =
+      let convert = function
+        | Core.Std.Unix.O_RDONLY   -> `Rdonly
+        | Core.Std.Unix.O_WRONLY   -> `Wronly
+        | Core.Std.Unix.O_RDWR     -> `Rdwr
+        | Core.Std.Unix.O_NONBLOCK -> `Nonblock
+        | Core.Std.Unix.O_APPEND   -> `Append
+        | Core.Std.Unix.O_CREAT    -> `Creat
+        | Core.Std.Unix.O_TRUNC    -> `Trunc
+        | Core.Std.Unix.O_EXCL     -> `Excl
+        | Core.Std.Unix.O_NOCTTY   -> `Noctty
+        | Core.Std.Unix.O_DSYNC    -> `Dsync
+        | Core.Std.Unix.O_SYNC     -> `Sync
+        | Core.Std.Unix.O_RSYNC    -> `Rsync
+        | _                    -> failwith "unsupported open flag" in
+      let flags = List.map ~f:convert flags in
+      Unix.openfile ~mode:flags ~perm file
 
     let set_close_on_exec = Unix.set_close_on_exec
 

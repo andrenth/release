@@ -10,12 +10,14 @@ struct
 
   (* XXX *)
   let async = Lwt.async
+  let at_exit = Lwt_main.at_exit
   let catch = Lwt.catch
   let fail = Lwt.fail
   let finalize = Lwt.finalize
   let idle () = fst (Lwt.wait ())
   let iter_p = Lwt_list.iter_p
   let join = Lwt.join
+  let run = Lwt_main.run
 
   let with_timeout timeout thread =
     let timeout_t =
@@ -31,29 +33,11 @@ struct
     let return = Lwt.return
   end
 
-  module IO = struct
-    type input_channel = Lwt_io.input_channel
-    type output_channel = Lwt_io.output_channel
-
-    let fprintf = Lwt_io.fprintf
-    let input = Lwt_io.input
-    let output = Lwt_io.output
-    let read_line = Lwt_io.read_line_opt
-    let with_file mode path f = Lwt_io.with_file ~mode path f
-    let with_input_file path f = Lwt_io.with_file ~mode:Lwt_io.input path f
-    let with_output_file path f = Lwt_io.with_file ~mode:Lwt_io.output path f
-  end
-
   module Mutex = struct
     type t = Lwt_mutex.t
 
     let create = Lwt_mutex.create
     let with_lock = Lwt_mutex.with_lock
-  end
-
-  module Main = struct
-    let at_exit = Lwt_main.at_exit
-    let run = Lwt_main.run
   end
 
   module Logger = struct
@@ -116,6 +100,7 @@ struct
     let listen_inet = listen
     let lstat = Lwt_unix.stat
     let on_signal signum handler = ignore (Lwt_unix.on_signal signum handler)
+    let openfile = Lwt_unix.openfile
     let set_close_on_exec = Lwt_unix.set_close_on_exec
     let setsockopt = Lwt_unix.setsockopt
     let unix_socket () = Lwt_unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0
