@@ -232,7 +232,9 @@ struct
      let module B = Bigstring in
      try
        return (Fd.syscall_exn fd ~nonblocking:true f)
-     with B.IOError (_, U.Unix_error ((U.EAGAIN | U.EWOULDBLOCK), _, _)) ->
+     with
+     | B.IOError (_, U.Unix_error ((U.EAGAIN | U.EWOULDBLOCK), _, _))
+     | U.Unix_error ((U.EAGAIN | U.EWOULDBLOCK), _, _) ->
        Fd.ready_to fd what
        >>= function
        | `Bad_fd | `Closed -> failwith (name ^ ": descriptor is invalid")
