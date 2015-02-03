@@ -28,12 +28,9 @@ module type S = sig
 
   module Logger : sig
     val log_to_syslog : unit -> unit
-    val debug : string -> unit future
-    val debug_f : ('a, unit, string, unit future) format4 -> 'a
-    val info : string -> unit future
-    val info_f : ('a, unit, string, unit future) format4 -> 'a
-    val error : string -> unit future
-    val error_f : ('a, unit, string, unit future) format4 -> 'a
+    val debug : ('a, unit, string, unit future) format4 -> 'a
+    val info : ('a, unit, string, unit future) format4 -> 'a
+    val error : ('a, unit, string, unit future) format4 -> 'a
   end
 
   module Unix : sig

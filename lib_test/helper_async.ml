@@ -20,7 +20,7 @@ let handle_sigterm _ =
 let control_handler fd =
   let handler req =
     let s = ControlIpcOps.string_of_request req in
-    Log.info_f "got control request: %s" s >>= fun () ->
+    Log.info "got control request: %s" s >>= fun () ->
     return (ControlIpcOps.response_of_string (String.uppercase s)) in
   ControlIpc.Server.handle_request ~timeout:5. fd handler >>= fun () ->
   return ()
@@ -35,9 +35,9 @@ let main fd =
     let rec bcast_ipc () =
       SlaveIpc.Client.read_response fd >>= function
       | `Response (SlaveIpcOps.Broadcast s) ->
-          Log.info_f "got broadcast: %s" s
+          Log.info "got broadcast: %s" s
       | `Response (SlaveIpcOps.Resp1 i | SlaveIpcOps.Resp2 i) ->
-          Log.info_f "got unexpected IPC response: %d" i
+          Log.info "got unexpected IPC response: %d" i
       | _ ->
           Log.error "helper IPC error" >>= fun () ->
           sleep 1.0 >>= fun () ->

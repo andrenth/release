@@ -54,12 +54,9 @@ struct
     let logger = Log.create `Info [Log.Output.stdout ()]
 
     let log_to_syslog () = Log.set_output logger [Log.Syslog.output ()]
-    let debug s = return (Log.debug logger "%s" s)
-    let debug_f fmt = ksprintf (fun s -> debug s) fmt
-    let info s = return (Log.info logger "%s" s)
-    let info_f fmt = ksprintf (fun s -> info s) fmt
-    let error s = return (Log.error logger "%s" s)
-    let error_f fmt = ksprintf (fun s -> error s) fmt
+    let debug fmt = ksprintf (fun s -> return (Log.debug logger "%s" s)) fmt
+    let info fmt = ksprintf (fun s -> return (Log.info logger "%s" s)) fmt
+    let error fmt = ksprintf (fun s -> return (Log.error logger "%s" s)) fmt
   end
 
   module Unix = struct

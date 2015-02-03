@@ -47,7 +47,7 @@ struct
             handler cli_fd)
           (fun e ->
             let err = Printexc.to_string e in
-            Future.Logger.error_f "accept handler exception: %s" err) in
+            Future.Logger.error "accept handler exception: %s" err) in
       ignore (
         Future.finalize
           (fun () ->

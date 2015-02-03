@@ -22,9 +22,9 @@ let sleep sec =
 let rec consume_ipc fd =
   SlaveIpc.Client.read_response fd >>= begin function
   | `Response (SlaveIpcOps.Broadcast s) ->
-      Log.info_f "got broadcast message: %s" s
+      Log.info "got broadcast message: %s" s
   | `Response (SlaveIpcOps.Resp1 i | SlaveIpcOps.Resp2 i) ->
-      Log.info_f "got response: %d" i
+      Log.info "got response: %d" i
   | `Timeout | `EOF ->
       Log.info "direct IPC error" >>= fun () ->
       sleep 1.0
@@ -34,23 +34,23 @@ let rec consume_ipc fd =
 let rec produce_ipc fd =
   let pid = Pid.to_int (Unix.getpid ()) in
   let t1 =
-    Log.info_f "t1 (%d)" pid >>= fun () ->
+    Log.info "t1 (%d)" pid >>= fun () ->
     sleep (Float.of_int (Random.int 3)) >>= fun () ->
     ipc_request fd (SlaveIpcOps.Req1 pid) in
   let t2 =
-    Log.info_f "t2 (%d)" pid >>= fun () ->
+    Log.info "t2 (%d)" pid >>= fun () ->
     sleep (Float.of_int (Random.int 3)) >>= fun () ->
     ipc_request fd (SlaveIpcOps.Req2 pid) in
   Deferred.all_unit [t1; t2] >>= fun () ->
   if false then
-    Log.info_f "exiting (%d)" (Pid.to_int (Unix.getpid ())) >>= fun () ->
+    Log.info "exiting (%d)" (Pid.to_int (Unix.getpid ())) >>= fun () ->
     exit 0
   else
     produce_ipc fd
 
 let check_env () =
   match Sys.getenv "RELEASE" with
-  | Some env -> Log.info_f "environment check: RELEASE=%s" env
+  | Some env -> Log.info "environment check: RELEASE=%s" env
   | None -> Log.info "environment RELEASE is empty"
 
 let main fd =

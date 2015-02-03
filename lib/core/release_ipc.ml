@@ -94,17 +94,17 @@ struct
           (fun sock -> handler (create_connection sock)))
       (function
       | Unix.Unix_error (Unix.EADDRINUSE, _, _) ->
-          Future.Logger.error_f
+          Future.Logger.error
             "control socket `%s' already exists (%d)" path pid >>= fun () ->
           Future.Unix.exit 1
       | Unix.Unix_error (e, _, _) ->
           let err = Unix.error_message e in
-          Future.Logger.error_f
+          Future.Logger.error
             "control socket `%s' error (%d): %s" path pid err >>= fun () ->
           Future.Unix.exit 1
       | e ->
           let err = Printexc.to_string e in
-          Future.Logger.error_f
+          Future.Logger.error
             "control socket `%s' error (%d): %s" path pid err >>= fun () ->
           Future.fail e)
 
@@ -249,7 +249,7 @@ struct
                   handle_req ())
                 (fun e ->
                   let err = Printexc.to_string e in
-                  Future.Logger.error_f "request handler exception: %s" err
+                  Future.Logger.error "request handler exception: %s" err
                   >>= fun () ->
                   close_connection conn) in
         handle_req ()

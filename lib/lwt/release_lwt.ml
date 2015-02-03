@@ -43,12 +43,9 @@ struct
   module Logger = struct
     let log_to_syslog () =
       Lwt_log.default := Lwt_log.syslog ~facility:`Daemon ()
-    let debug s = Lwt_log.debug s
-    let debug_f s = Lwt_log.debug_f s
-    let info s = Lwt_log.info s
-    let info_f s = Lwt_log.info_f s
-    let error s = Lwt_log.error s
-    let error_f s = Lwt_log.error_f s
+    let debug s = Lwt_log.debug_f s
+    let info s = Lwt_log.info_f s
+    let error s = Lwt_log.error_f s
   end
 
   module Unix = struct
