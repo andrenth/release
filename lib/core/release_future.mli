@@ -92,6 +92,7 @@ module type S = sig
     val unix_socket_of_fd : fd -> ('state, unix) socket
     val unlink : string -> unit future
     val waitpid : int -> Unix.process_status future
+    val wrap_file_descr : Unix.file_descr -> fd
   end
 
   module Bytes : sig

@@ -243,6 +243,9 @@ struct
       | Ok () -> Std_unix.WEXITED 0
       | Error (`Exit_non_zero s) -> Std_unix.WEXITED s
       | Error (`Signal s) -> Std_unix.WSIGNALED (Signal.to_caml_int s)
+
+    let wrap_file_descr fd =
+      Fd.create (Fd.Kind.Socket `Active) fd (Info.of_string "<wrap_file_descr>")
   end
 
   module Bytes = struct

@@ -138,6 +138,8 @@ struct
     let unlink = Lwt_unix.unlink
     let waitpid pid =
       Lwt_unix.waitpid [] pid >>= fun (_, status) -> return status
+    let wrap_file_descr fd =
+      Lwt_unix.of_unix_file_descr fd
   end
 
   module Bytes = struct
