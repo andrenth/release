@@ -14,8 +14,7 @@ let handle_sigterm _ =
     Log.info "got sigterm, exiting" in
   let ctrl_t =
     Unix.unlink socket_path in
-  Thread_safe.run_in_async_wait_exn
-    (fun () -> log_t >>= fun () -> ctrl_t);
+  don't_wait_for (log_t >>= fun () -> ctrl_t);
   Pervasives.exit 0
 
 let control_handler fd =

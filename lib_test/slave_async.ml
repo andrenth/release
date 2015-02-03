@@ -7,7 +7,7 @@ open Release_async
 module Log = Future.Logger
 
 let handle_sigterm _ =
-  Thread_safe.run_in_async_wait_exn (fun () -> Log.info "got sigterm");
+  don't_wait_for (Log.info "got sigterm");
   Pervasives.exit 0
 
 let ipc_lock = Sequencer.create ()
