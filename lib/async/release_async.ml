@@ -116,23 +116,7 @@ struct
       Fd.Kind.infer_using_stat dup_file_descr >>| fun kind ->
       Fd.create kind dup_file_descr (Info.of_string "dup")
 
-    let dup2 src dst =
-      In_thread.syscall_exn ~name:"dup2"
-        (fun () ->
-          Fd.with_file_descr_exn src
-            (fun src ->
-              Fd.with_file_descr_exn dst
-                (fun dst ->
-                  Core_unix.dup2 ~src ~dst)))
-
     let exit code = Shutdown.exit code
-
-    let fork () =
-      In_thread.syscall_exn ~name:"fork"
-        (fun () ->
-          match Core_unix.fork () with
-          | `In_the_child -> 0
-          | `In_the_parent pid -> (Pid.to_int pid))
 
     let getpwnam name =
       Unix.Passwd.getbyname_exn name >>| fun pw ->
@@ -185,24 +169,6 @@ struct
       let signal = Signal.of_caml_int signum in
       Signal.handle [signal] (fun s -> handler (Signal.to_caml_int s))
 
-    let openfile file flags perm =
-      let convert = function
-        | Core_unix.O_RDONLY   -> `Rdonly
-        | Core_unix.O_WRONLY   -> `Wronly
-        | Core_unix.O_RDWR     -> `Rdwr
-        | Core_unix.O_NONBLOCK -> `Nonblock
-        | Core_unix.O_APPEND   -> `Append
-        | Core_unix.O_CREAT    -> `Creat
-        | Core_unix.O_TRUNC    -> `Trunc
-        | Core_unix.O_EXCL     -> `Excl
-        | Core_unix.O_NOCTTY   -> `Noctty
-        | Core_unix.O_DSYNC    -> `Dsync
-        | Core_unix.O_SYNC     -> `Sync
-        | Core_unix.O_RSYNC    -> `Rsync
-        | _                    -> failwith "unsupported open flag" in
-      let flags = List.map ~f:convert flags in
-      Unix.openfile ~mode:flags ~perm file
-
     let set_close_on_exec = Unix.set_close_on_exec
 
     let setsockopt sock opt value =
@@ -220,21 +186,13 @@ struct
 
     let socket_fd = Socket.fd
 
-    let socketpair = Unix.socketpair
-
     let unix_socket () =
       Socket.create Socket.Type.unix
 
     let unix_socket_of_fd fd =
       Socket.of_fd fd Socket.Type.unix
 
-    let stderr = Fd.stderr ()
-
     let stdin = Fd.stdin ()
-
-    let stdout = Fd.stdout ()
-
-    let unix_file_descr = Fd.file_descr_exn
 
     let unlink = Unix.unlink
 

@@ -106,17 +106,8 @@ struct
     let chroot = Lwt_unix.chroot
     let close = Lwt_unix.close
     let dup fd = return (Lwt_unix.dup fd)
-    let dup2 src dst = return (Lwt_unix.dup2 src dst)
     let exit = Pervasives.exit
     let fd_of_socket s = s
-    let fork () =
-      Lwt_io.flush_all () >>= fun () ->
-      match Lwt_unix.fork () with
-      | 0 ->
-          return 0
-      | pid ->
-          Lwt_sequence.iter_node_l Lwt_sequence.remove Lwt_main.exit_hooks;
-          return pid
     let getpwnam = Lwt_unix.getpwnam
     let listen sock backlog =
       Lwt_unix.listen sock backlog;
@@ -125,15 +116,10 @@ struct
     let listen_inet = listen
     let lstat = Lwt_unix.stat
     let on_signal signum handler = ignore (Lwt_unix.on_signal signum handler)
-    let openfile = Lwt_unix.openfile
     let set_close_on_exec = Lwt_unix.set_close_on_exec
     let setsockopt = Lwt_unix.setsockopt
     let unix_socket () = Lwt_unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0
-    let socketpair () = Lwt_unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0
-    let stderr = Lwt_unix.stderr
     let stdin = Lwt_unix.stdin
-    let stdout = Lwt_unix.stdout
-    let unix_file_descr = Lwt_unix.unix_file_descr
     let unix_socket_of_fd fd = fd
     let unlink = Lwt_unix.unlink
     let waitpid pid =

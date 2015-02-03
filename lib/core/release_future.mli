@@ -68,14 +68,11 @@ module type S = sig
     val chroot : string -> unit future
     val close : fd -> unit future
     val dup : fd -> fd future
-    val dup2 : fd -> fd -> unit future
     val exit : int -> 'a future
-    val fork : unit -> int future
     val getpwnam : string -> Unix.passwd_entry future
     val listen : ([`Bound], 'addr) socket -> int -> ([`Passive], 'addr) socket
     val lstat : string -> Unix.stats future
     val on_signal : int -> (int -> unit) -> unit
-    val openfile : string -> Unix.open_flag list -> Unix.file_perm -> fd future
     val set_close_on_exec : fd -> unit
     val setsockopt
           : ([< `Unconnected | `Bound | `Passive | `Active], 'addr) socket
@@ -83,11 +80,7 @@ module type S = sig
     val socket_fd
           : ([< `Unconnected | `Bound | `Passive | `Active], 'addr) socket
          -> fd
-    val socketpair : unit -> fd * fd
-    val stderr : fd
     val stdin : fd
-    val stdout : fd
-    val unix_file_descr : fd -> Unix.file_descr
     val unix_socket : unit -> ([`Unconnected], unix) socket
     val unix_socket_of_fd : fd -> ('state, unix) socket
     val unlink : string -> unit future
