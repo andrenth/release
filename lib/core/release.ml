@@ -456,11 +456,7 @@ struct
     Future.catch
       (fun () ->
         Future.Unix.lstat path >>= fun st ->
-        if can_exec st then
-          run cmd
-        else
-          Future.Logger.error_f "cannot execute `%s'" path >>= fun () ->
-          Future.Unix.exit 126)
+        return (can_exec st))
       (function
       | Unix.Unix_error (e, _, _) ->
           let err = Unix.error_message e in
@@ -470,6 +466,12 @@ struct
           let err = Printexc.to_string e in
           Future.Logger.error_f "cannot stat `%s': %s" path err >>= fun () ->
           Future.Unix.exit 126)
+    >>= fun ok ->
+    if ok then
+      run cmd
+    else
+      Future.Logger.error_f "cannot execute `%s'" path >>= fun () ->
+      Future.Unix.exit 126
 
   let posix_signals =
     [| "SIGABRT"; "SIGALRM"; "SIGFPE"; "SIGHUP"; "SIGILL"; "SIGINT";
