@@ -3,6 +3,7 @@ open Lwt
 module Future : Release_future.S
   with type 'a t = 'a Lwt.t
    and type Unix.fd = Lwt_unix.file_descr
+   and type Logger.t = Lwt_log.logger
    and type ('state, 'addr) Unix.socket = Lwt_unix.file_descr =
 struct
   type +'a t = 'a Lwt.t
@@ -41,11 +42,15 @@ struct
   end
 
   module Logger = struct
-    let log_to_syslog () =
-      Lwt_log.default := Lwt_log.syslog ~facility:`Daemon ()
-    let debug s = Lwt_log.debug_f s
-    let info s = Lwt_log.info_f s
-    let error s = Lwt_log.error_f s
+    type t = Lwt_log.logger
+
+    let syslog =
+      Lwt_log.append_rule "*" Lwt_log.Info;
+      Lwt_log.syslog ~facility:`User ()
+
+    let debug logger fmt = Lwt_log.debug_f ~logger fmt
+    let info logger fmt = Lwt_log.info_f ~logger fmt
+    let error logger fmt = Lwt_log.error_f ~logger fmt
   end
 
   module Unix = struct

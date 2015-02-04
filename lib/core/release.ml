@@ -5,6 +5,7 @@ module type S = sig
   type +'a future
   type fd
   type command = string * string array
+  type logger
 
   module Buffer : sig
     type t
@@ -297,7 +298,7 @@ module type S = sig
   val master_slave :
          slave:(command * IPC.handler)
       -> ?background:bool
-      -> ?syslog:bool
+      -> ?logger:logger
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
       -> ?control:(string * IPC.handler)
@@ -307,7 +308,7 @@ module type S = sig
 
   val master_slaves :
          ?background:bool
-      -> ?syslog:bool
+      -> ?logger:logger
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
       -> ?control:(string * IPC.handler)
@@ -316,7 +317,7 @@ module type S = sig
       -> slaves:(command * IPC.handler * int) list
       -> unit -> unit
 
-  val me : ?syslog:bool
+  val me : ?logger:logger
         -> ?user:string
         -> main:(IPC.connection -> unit future)
         -> unit -> unit
@@ -325,6 +326,7 @@ end
 module Make (Future : Release_future.S) : S
   with type 'a future := 'a Future.t
    and type fd := Future.Unix.fd
+   and type logger := Future.Logger.t
    and type ('state, 'addr) Socket.t = ('state, 'addr) Future.Unix.socket =
 struct
   open Future.Monad
@@ -334,12 +336,13 @@ struct
 
   type command = string * string array
 
+  module Logger = Release_logger.Make (Future)
   module Buffer = Release_buffer.Make (Future)
   module Bytes = Release_bytes.Make (Future) (Buffer)
   module Config = Release_config.Make (Future)
-  module Socket = Release_socket.Make (Future)
+  module Socket = Release_socket.Make (Future) (Logger)
   module IO = Release_io.Make (Future) (Buffer)
-  module IPC = Release_ipc.Make (Future) (Buffer) (Bytes) (IO) (Socket)
+  module IPC = Release_ipc.Make (Future) (Buffer) (Bytes) (IO) (Logger) (Socket)
   module Util = Release_util
 
   let daemon f =
@@ -386,7 +389,7 @@ struct
           return_none
       | Unix.Unix_error (e, _, _) ->
           let err = Unix.error_message e in
-          Future.Logger.error "cannot read lock file: %s: %s" path err
+          Logger.error "cannot read lock file: %s: %s" path err
           >>= fun () ->
           return_none
       | e ->
@@ -402,7 +405,7 @@ struct
       (function
       | Unix.Unix_error (e, _, _) ->
           let err = Unix.error_message e in
-          Future.Logger.error "cannot create lock file %s: %s" path err
+          Logger.error "cannot create lock file %s: %s" path err
       | e ->
           Future.fail e)
 
@@ -415,11 +418,11 @@ struct
         Future.catch
           (fun () ->
             Unix.kill pid 0;
-            Future.Logger.error
+            Logger.error
               "there is already a running instance of %s: %d" Sys.argv.(0) pid)
           (function
           | Unix.Unix_error (Unix.ESRCH, _, _) ->
-              Future.Logger.info
+              Logger.info
                 "found a stale pid in lock file %s: %d" path pid >>= fun () ->
               write_pid path
           | e ->
@@ -429,19 +432,19 @@ struct
     read_lock_file path >>= fun pid ->
     match pid with
     | None ->
-        Future.Logger.info "couldn't find lock file %s" path
+        Logger.info "couldn't find lock file %s" path
     | Some pid ->
         let mypid = Unix.getpid () in
         if pid = mypid then
           Future.Unix.unlink path
         else
-          Future.Logger.info
+          Logger.info
             "pid mismatch in lock file: found %d, mine is %d; not removing"
             pid mypid
 
   let check_user test msg =
     if not (test (Unix.getuid ())) then
-      Future.Logger.error "%s %s" Sys.argv.(0) msg >>= fun () ->
+      Logger.error "%s %s" Sys.argv.(0) msg >>= fun () ->
       Future.Unix.exit 1
     else
       return_unit
@@ -464,17 +467,17 @@ struct
       (function
       | Unix.Unix_error (e, _, _) ->
           let err = Unix.error_message e in
-          Future.Logger.error "cannot stat `%s': %s" path err >>= fun () ->
+          Logger.error "cannot stat `%s': %s" path err >>= fun () ->
           Future.Unix.exit 126
       | e ->
           let err = Printexc.to_string e in
-          Future.Logger.error "cannot stat `%s': %s" path err >>= fun () ->
+          Logger.error "cannot stat `%s': %s" path err >>= fun () ->
           Future.Unix.exit 126)
     >>= fun ok ->
     if ok then
       run cmd
     else
-      Future.Logger.error "cannot execute `%s'" path >>= fun () ->
+      Logger.error "cannot execute `%s'" path >>= fun () ->
       Future.Unix.exit 126
 
   let posix_signals =
@@ -530,7 +533,7 @@ struct
 
   let wait_child pid reexec =
     let log fmt =
-      ksprintf (fun s -> Future.Logger.info "process %s" s) fmt in
+      ksprintf (fun s -> Logger.info "process %s" s) fmt in
     Future.Unix.waitpid pid >>= begin function
     | Unix.WEXITED 0 -> log "%d exited normally" pid
     | Unix.WEXITED s -> log "%d exited with status %s" pid (signame s)
@@ -551,7 +554,7 @@ struct
       let master_fd = Future.Unix.wrap_file_descr master_fd in
       let master_sock = Future.Unix.unix_socket_of_fd master_fd in
       let master_conn = IPC.create_connection master_sock in
-      Future.Logger.error "process %d created" pid >>= fun () ->
+      Logger.error "process %d created" pid >>= fun () ->
       let _ipc_t = ipc_handler master_conn in
       add_slave_connection pid master_conn >>= fun () ->
       Unix.close slave_fd;
@@ -567,7 +570,7 @@ struct
         | `Ok -> exec_process cmd ipc_handler slave_env check_death_rate
         | `Disabled -> return_unit
         | `Exceeded ->
-            Future.Logger.error "slave process dying too fast" >>= fun () ->
+            Logger.error "slave process dying too fast" >>= fun () ->
             Future.Unix.exit 1 in
       let env = restrict_env slave_env in
       fork_exec cmd env ipc_handler reexec in
@@ -603,7 +606,7 @@ struct
   let signal_slaves signum =
     Future.iter_p
       (fun (pid, _) ->
-        Future.Logger.info "signaling process %d" pid >>= fun () ->
+        Logger.info "signaling process %d" pid >>= fun () ->
         Unix.kill pid signum;
         return_unit)
       (slave_connections ())
@@ -612,10 +615,10 @@ struct
     disable_slave_restart ();
     Future.async
       (fun () ->
-        Future.Logger.info "got %s, signaling child processes" signame
+        Logger.info "got %s, signaling child processes" signame
         >>= fun () ->
         signal_slaves signum >>= fun () ->
-        Future.Logger.info "exiting" >>= fun () ->
+        Logger.info "exiting" >>= fun () ->
         Future.Unix.exit (128 + signum))
 
   let handle_sigint _ =
@@ -626,14 +629,6 @@ struct
 
   let curry f (x, y) = f x y
 
-  let setup_syslog () =
-    try
-      Future.Logger.log_to_syslog ()
-    with e ->
-      let err = Printexc.to_string e in
-      fprintf stderr "could not setup syslog: %s" err;
-      exit 1
-
   let rec loop i n f =
     if i > n then
       return_unit
@@ -643,10 +638,10 @@ struct
 
   let default_slave_env = `Keep ["TZ"; "OCAMLRUNPARAM"]
 
-  let master_slaves ?(background = true) ?(syslog = true) ?(privileged = true)
-                    ?(slave_env = default_slave_env) ?control ?main ~lock_file
-                    ~slaves () =
-    if syslog then setup_syslog ();
+  let master_slaves ?(background = true) ?logger ?(privileged = true)
+                    ?(slave_env = default_slave_env) ?control ?main
+                    ~lock_file ~slaves () =
+    Option.either ignore Logger.set logger;
     let create_slaves (cmd, ipc_handler, n) =
       loop 1 n
         (fun () ->
@@ -681,23 +676,23 @@ struct
         Privileges.drop user)
       (function
       | Privileges.Release_privileges_error err ->
-          Future.Logger.error "Error dropping privileges: %s" err >>= fun () ->
+          Logger.error "Error dropping privileges: %s" err >>= fun () ->
           Future.Unix.exit 1
       | e ->
           Future.fail e)
 
-  let me ?(syslog = true) ?user ~main () =
+  let me ?logger ?user ~main () =
     let main_t =
       Option.either check_nonroot lose_privileges user >>= fun () ->
-      if syslog then setup_syslog ();
+      Option.either ignore Logger.set logger;
       Future.Unix.dup Future.Unix.stdin >>= fun ipc_fd ->
       Future.Unix.close Future.Unix.stdin >>= fun () ->
       let pid = Unix.getpid () in
-      Future.Logger.info "starting up (PID %d)" pid >>= fun () ->
+      Logger.info "starting up (PID %d)" pid >>= fun () ->
       let ipc_sock = Future.Unix.unix_socket_of_fd ipc_fd in
       let ipc_conn = IPC.create_connection ipc_sock in
       main ipc_conn >>= fun () ->
-      Future.Logger.info "stopping (PID %d)" pid >>= fun () ->
+      Logger.info "stopping (PID %d)" pid >>= fun () ->
       return_unit in
     Future.run main_t
 end

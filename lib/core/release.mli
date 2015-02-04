@@ -30,6 +30,7 @@
 module type S = sig
   type +'a future
   type fd
+  type logger
   type command = string * string array
 
   (** This module defines a buffer type [Buffer.t] and a set of operations
@@ -639,7 +640,7 @@ module type S = sig
   val master_slave :
          slave:(command * IPC.handler)
       -> ?background:bool
-      -> ?syslog:bool
+      -> ?logger:logger
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
       -> ?control:(string * IPC.handler)
@@ -656,8 +657,8 @@ module type S = sig
         [background] indicates whether {!daemon} will be called. Defaults to
         [true].
 
-        [syslog] indicates whether syslog logging is enabled. Defaults to
-        [true].
+        [logger] provides an optional logging facility for the master process.
+        Defaults to a syslog logger.
 
         [privileged] indicates if the master process is to be run as [root].
         Defaults to [true].
@@ -687,7 +688,7 @@ module type S = sig
 
   val master_slaves :
          ?background:bool
-      -> ?syslog:bool
+      -> ?logger:logger
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
       -> ?control:(string * IPC.handler)
@@ -703,14 +704,14 @@ module type S = sig
          instances to be created (i.e. the number of times the appropriate
          command will be run. *)
 
-  val me : ?syslog:bool
+  val me : ?logger:logger
         -> ?user:string
         -> main:(IPC.connection -> unit future)
         -> unit -> unit
     (** This function is supposed to be called in the slave process.
 
-        [syslog] indicates whether the slave process will log to syslog.
-        Defaults to [true].
+        [logger] provides an optional logging facility for the slave process.
+        Defaults to a syslog logger.
 
         [user], if present, indicates the name of the user the slave process
         will drop privileges to. Dropping privileges involves the following
@@ -733,6 +734,7 @@ end
 module Make (Future : Release_future.S) : S
   with type 'a future := 'a Future.t
    and type fd := Future.Unix.fd
+   and type logger := Future.Logger.t
    and type ('state, 'addr) Socket.t = ('state, 'addr) Future.Unix.socket
      (** Functor that builds a {!Release} implementation based on the given
          set of asynchronous operations represented by the [Future] argument

@@ -4,23 +4,23 @@ open Async.Std
 open Ipc_async
 
 open Release_async
-module Log = Future.Logger
+
+let logger = Logger_async.syslog
 
 let socket_path =
   sprintf "%s/_build/helper_async.socket" (Std_unix.getcwd ())
 
 let handle_sigterm _ =
-  let log_t =
-    Log.info "got sigterm, exiting" in
   let ctrl_t =
+    Log.info logger "got sigterm, exiting";
     Unix.unlink socket_path in
-  don't_wait_for (log_t >>= fun () -> ctrl_t);
+  don't_wait_for ctrl_t;
   Pervasives.exit 0
 
 let control_handler fd =
   let handler req =
     let s = ControlIpcOps.string_of_request req in
-    Log.info "got control request: %s" s >>= fun () ->
+    Log.info logger "got control request: %s" s;
     return (ControlIpcOps.response_of_string (String.uppercase s)) in
   ControlIpc.Server.handle_request ~timeout:5. fd handler >>= fun () ->
   return ()
@@ -35,11 +35,13 @@ let main fd =
     let rec bcast_ipc () =
       SlaveIpc.Client.read_response fd >>= function
       | `Response (SlaveIpcOps.Broadcast s) ->
-          Log.info "got broadcast: %s" s
+          Log.info logger "got broadcast: %s" s;
+          return ()
       | `Response (SlaveIpcOps.Resp1 i | SlaveIpcOps.Resp2 i) ->
-          Log.info "got unexpected IPC response: %d" i
+          Log.info logger "got unexpected IPC response: %d" i;
+          return ()
       | _ ->
-          Log.error "helper IPC error" >>= fun () ->
+          Log.error logger "helper IPC error";
           sleep 1.0 >>= fun () ->
       bcast_ipc () in
     bcast_ipc () in
@@ -49,4 +51,4 @@ let main fd =
 let () =
   Signal.handle [Signal.term] handle_sigterm;
   Random.self_init ();
-  Release.me ~syslog:false ~main:main ()
+  Release.me ~logger ~main ()

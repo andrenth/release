@@ -38,6 +38,7 @@ let store_slave_connections get_conns =
   return_unit
 
 let () =
+  Lwt_log.default := Logger_lwt.syslog;
   let slave_exec =
     sprintf "%s/_build/lib_test/slave_lwt.native" (Unix.getcwd ()) in
   let helper_exec =
@@ -48,7 +49,7 @@ let () =
   Release.master_slaves
     ~privileged: false
     ~background: false
-    ~syslog:     false
+    ~logger:     Logger_lwt.syslog
     ~lock_file:  (sprintf "./_build/release_lwt-%s.pid" exec)
     ~control:    ("./_build/master_lwt.socket", control_connection_handler)
     ~slave_env:  (`Keep ["OCAMLRUNPARAM"; "RELEASE"])

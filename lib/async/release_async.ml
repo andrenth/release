@@ -6,6 +6,7 @@ open Async_extended.Std
 module Future : Release_future.S
   with type 'a t = 'a Deferred.t
    and type Unix.fd = Fd.t
+   and type Logger.t = Log.t
    and type ('state, 'addr) Unix.socket = ('state, 'addr) Socket.t =
 struct
   type +'a t = 'a Deferred.t
@@ -51,17 +52,19 @@ struct
   end
 
   module Logger = struct
-    let logger = Log.create `Info [Log.Output.stdout ()]
+    type t = Log.t
 
-    let log_to_syslog () = Log.set_output logger [Log.Syslog.output ()]
-    let debug fmt = ksprintf (fun s -> return (Log.debug logger "%s" s)) fmt
-    let info fmt = ksprintf (fun s -> return (Log.info logger "%s" s)) fmt
-    let error fmt = ksprintf (fun s -> return (Log.error logger "%s" s)) fmt
+    let syslog = Log.create `Info [Log.Syslog.output ()]
+
+    let debug logger fmt =
+      ksprintf (fun s -> return (Log.debug logger "%s" s)) fmt
+    let info logger fmt =
+      ksprintf (fun s -> return (Log.info logger "%s" s)) fmt
+    let error logger fmt =
+      ksprintf (fun s -> return (Log.error logger "%s" s)) fmt
   end
 
   module Unix = struct
-    module Core_unix = Core.Std.Unix
-
     type fd = Fd.t
 
     type unix = Socket.Address.Unix.t
@@ -93,7 +96,7 @@ struct
     let dup fd =
       Fd.syscall_in_thread_exn fd ~name:"dup"
         (fun file_descr ->
-          Core_unix.dup file_descr)
+          Core.Std.Unix.dup file_descr)
       >>= fun dup_file_descr ->
       Fd.Kind.infer_using_stat dup_file_descr >>| fun kind ->
       Fd.create kind dup_file_descr (Info.of_string "dup")

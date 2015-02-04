@@ -10,9 +10,7 @@ let socket_path =
 let handle_sigterm _ =
   let log_t =
     Lwt_log.notice "got sigterm, exiting" in
-  let ctrl_t =
-    Lwt_unix.unlink socket_path in
-  Lwt_main.run (log_t >>= fun () -> ctrl_t);
+  Lwt_main.run log_t;
   exit 0
 
 let control_handler fd =
@@ -41,6 +39,7 @@ let main fd =
   ctrl_ipc_t <&> bcast_ipc_t
 
 let () =
+  Lwt_log.default := Logger_lwt.syslog;
   ignore (Lwt_unix.on_signal Sys.sigterm handle_sigterm);
   Random.self_init ();
-  Release.me ~syslog:false ~main:main ()
+  Release.me ~logger:Logger_lwt.syslog ~main:main ()

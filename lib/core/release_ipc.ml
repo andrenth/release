@@ -66,6 +66,9 @@ module Make
     with type 'a future := 'a Future.t
      and type buffer := Buffer.t
      and type fd := Future.Unix.fd)
+  (Logger : Release_logger.S
+    with type 'a future := 'a Future.t
+     and type t := Future.Logger.t)
   (Socket : Release_socket.S
     with type 'a future := 'a Future.t
      and type unix = Future.Unix.unix
@@ -94,17 +97,17 @@ struct
           (fun sock -> handler (create_connection sock)))
       (function
       | Unix.Unix_error (Unix.EADDRINUSE, _, _) ->
-          Future.Logger.error
+          Logger.error
             "control socket `%s' already exists (%d)" path pid >>= fun () ->
           Future.Unix.exit 1
       | Unix.Unix_error (e, _, _) ->
           let err = Unix.error_message e in
-          Future.Logger.error
+          Logger.error
             "control socket `%s' error (%d): %s" path pid err >>= fun () ->
           Future.Unix.exit 1
       | e ->
           let err = Printexc.to_string e in
-          Future.Logger.error
+          Logger.error
             "control socket `%s' error (%d): %s" path pid err >>= fun () ->
           Future.fail e)
 
@@ -234,11 +237,11 @@ struct
           read_request ?timeout conn >>= function
           | `Timeout ->
               close_connection conn >>= fun () ->
-              Future.Logger.error "read from a slave shouldn't timeout"
+              Logger.error "read from a slave shouldn't timeout"
               >>= fun () ->
               Future.Unix.exit 1
           | `EOF ->
-              if eof_warning then Future.Logger.error "got EOF on IPC socket"
+              if eof_warning then Logger.error "got EOF on IPC socket"
               else return_unit >>= fun () ->
               close_connection conn
           | `Request req ->
@@ -249,7 +252,7 @@ struct
                   handle_req ())
                 (fun e ->
                   let err = Printexc.to_string e in
-                  Future.Logger.error "request handler exception: %s" err
+                  Logger.error "request handler exception: %s" err
                   >>= fun () ->
                   close_connection conn) in
         handle_req ()

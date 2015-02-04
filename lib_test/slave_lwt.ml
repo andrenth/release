@@ -67,5 +67,6 @@ let sleep _ =
     Lwt_log.notice_f "exiting (%d)" (Unix.getpid ())]
 
 let () =
+  Lwt_log.default := Logger_lwt.syslog;
   Random.self_init ();
-  Release.me ~syslog:false ~main ()
+  Release.me ~logger:Logger_lwt.syslog ~main ()

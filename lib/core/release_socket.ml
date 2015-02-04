@@ -16,7 +16,11 @@ module type S = sig
                  -> 'a future
 end
 
-module Make (Future: Release_future.S) : S
+module Make
+  (Future: Release_future.S)
+  (Logger : Release_logger.S
+    with type 'a future := 'a Future.t
+     and type t := Future.Logger.t) : S
   with type 'a future := 'a Future.t
    and type unix = Future.Unix.unix
    and type inet = Future.Unix.inet
@@ -47,13 +51,13 @@ struct
             handler cli_fd)
           (fun e ->
             let err = Printexc.to_string e in
-            Future.Logger.error "accept handler exception: %s" err) in
+            Logger.error "accept handler exception: %s" err) in
       ignore (
         Future.finalize
           (fun () ->
             Future.with_timeout timeout handler_t >>= function
             | `Result res -> return res
-            | `Timeout -> Future.Logger.error "timeout on handler")
+            | `Timeout -> Logger.error "timeout on handler")
           (fun () ->
             Future.Unix.close (Future.Unix.socket_fd cli_fd))
       );
