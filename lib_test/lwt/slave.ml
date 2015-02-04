@@ -1,6 +1,6 @@
 open Lwt
 open Printf
-open Ipc_lwt
+open Ipc
 
 open Release_lwt
 
@@ -67,6 +67,6 @@ let sleep _ =
     Lwt_log.notice_f "exiting (%d)" (Unix.getpid ())]
 
 let () =
-  Lwt_log.default := Logger_lwt.syslog;
+  Lwt_log.default := Logger.syslog;
   Random.self_init ();
-  Release.me ~logger:Logger_lwt.syslog ~main ()
+  Release.me ~logger:Logger.syslog ~main ()

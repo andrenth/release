@@ -1,10 +1,10 @@
 open Core.Std
 open Async.Std
-open Ipc_async
+open Ipc
 
 open Release_async
 
-let logger = Logger_async.syslog
+let logger = Logger.syslog
 
 let handle_sigterm _ =
   Log.info logger "got sigterm";

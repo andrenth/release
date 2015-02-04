@@ -1,11 +1,11 @@
 module Std_unix = Unix
 open Core.Std
 open Async.Std
-open Ipc_async
+open Ipc
 
 open Release_async
 
-let logger = Logger_async.syslog
+let logger = Logger.syslog
 
 let socket_path =
   sprintf "%s/_build/helper_async.socket" (Std_unix.getcwd ())

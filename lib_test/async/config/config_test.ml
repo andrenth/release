@@ -5,7 +5,7 @@ open Printf
 open Release_async
 module C = Release.Config
 
-let path = "./lib_test"
+let path = "./lib_test/config"
 
 let return_unit =
   return ()

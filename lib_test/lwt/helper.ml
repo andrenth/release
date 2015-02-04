@@ -1,6 +1,6 @@
 open Lwt
 open Printf
-open Ipc_lwt
+open Ipc
 
 open Release_lwt
 
@@ -39,7 +39,7 @@ let main fd =
   ctrl_ipc_t <&> bcast_ipc_t
 
 let () =
-  Lwt_log.default := Logger_lwt.syslog;
+  Lwt_log.default := Logger.syslog;
   ignore (Lwt_unix.on_signal Sys.sigterm handle_sigterm);
   Random.self_init ();
-  Release.me ~logger:Logger_lwt.syslog ~main:main ()
+  Release.me ~logger:Logger.syslog ~main:main ()

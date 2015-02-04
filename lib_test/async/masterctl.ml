@@ -1,6 +1,6 @@
 open Core.Std
 open Async.Std
-open Ipc_async
+open Ipc
 open Release_async
 
 let response_handler res =
@@ -14,7 +14,9 @@ let response_handler res =
 
 let () =
   let _request_t =
-    let addr = Socket.Address.Unix.create "_build/master_async.socket" in
+    Unix.getcwd () >>= fun cwd ->
+    let path = sprintf "%s/_build/master_async.socket" cwd in
+    let addr = Socket.Address.Unix.create path in
     let sock = Socket.create Socket.Type.unix in
     Socket.connect sock addr >>= fun sock ->
     let str = "example" in

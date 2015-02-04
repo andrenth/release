@@ -77,80 +77,80 @@ Document "release"
   XOCamlbuildLibraries: release
 
 Executable "async_test_master"
-  Path:            lib_test
-  MainIs:          master_async.ml
+  Path:            lib_test/async
+  MainIs:          master.ml
   Install:         false
   CompiledObject:  best
   BuildDepends:    release.async,
                    str
 
 Executable "async_test_slave"
-  Path:            lib_test
-  MainIs:          slave_async.ml
+  Path:            lib_test/async
+  MainIs:          slave.ml
   Install:         false
   CompiledObject:  best
   BuildDepends:    release.async,
                    str
 
 Executable "async_test_helper"
-  Path:            lib_test
-  MainIs:          helper_async.ml
+  Path:            lib_test/async
+  MainIs:          helper.ml
   Install:         false
   CompiledObject:  best
   BuildDepends:    release.async,
                    str
 
 Executable "async_masterctl"
-  Path:            lib_test
-  MainIs:          masterctl_async.ml
+  Path:            lib_test/async
+  MainIs:          masterctl.ml
   Install:         false
   CompiledObject:  best
   BuildDepends:    release.async,
                    str
 
 Executable "async_test_config"
-  Path:            lib_test/config
-  MainIs:          config_test_async.ml
+  Path:            lib_test/async/config
+  MainIs:          config_test.ml
   Install:         false
   CompiledObject:  best
   BuildTools+:     ocamllex, ocamlyacc
   BuildDepends:    release.async
 
 Executable "lwt_test_master"
-  Path:            lib_test
-  MainIs:          master_lwt.ml
+  Path:            lib_test/lwt
+  MainIs:          master.ml
   Install:         false
   CompiledObject:  best
   BuildDepends:    release.lwt,
                    str
 
 Executable "lwt_test_slave"
-  Path:            lib_test
-  MainIs:          slave_lwt.ml
+  Path:            lib_test/lwt
+  MainIs:          slave.ml
   Install:         false
   CompiledObject:  best
   BuildDepends:    release.lwt,
                    str
 
 Executable "lwt_test_helper"
-  Path:            lib_test
-  MainIs:          helper_lwt.ml
+  Path:            lib_test/lwt
+  MainIs:          helper.ml
   Install:         false
   CompiledObject:  best
   BuildDepends:    release.lwt,
                    str
 
 Executable "lwt_masterctl"
-  Path:            lib_test
-  MainIs:          masterctl_lwt.ml
+  Path:            lib_test/lwt
+  MainIs:          masterctl.ml
   Install:         false
   CompiledObject:  best
   BuildDepends:    release.lwt,
                    str
 
 Executable "lwt_test_config"
-  Path:            lib_test/config
-  MainIs:          config_test_lwt.ml
+  Path:            lib_test/lwt/config
+  MainIs:          config_test.ml
   Install:         false
   CompiledObject:  best
   BuildTools+:     ocamllex, ocamlyacc

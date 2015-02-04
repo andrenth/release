@@ -1,16 +1,21 @@
-open Lwt
+module Std_unix = Unix
+open Async.Std
 open Printf
-open Ipc_lwt
+open Ipc
 
-open Release_lwt
+open Release_async
 open Release.Util
 
+let logger = Logger.syslog
+
 let slave_connections = ref None
+
+let return_unit = return ()
 
 let ipc_handler fd =
   let handler req =
     let s = SlaveIpcOps.string_of_request req in
-    Lwt_log.notice_f "got IPC request: %s" s >>= fun () ->
+    Log.info logger "got IPC request: %s" s;
     match req with
     | SlaveIpcOps.Req1 pid -> return (SlaveIpcOps.Resp1 pid)
     | SlaveIpcOps.Req2 pid -> return (SlaveIpcOps.Resp2 pid) in
@@ -20,14 +25,14 @@ let control_connection_handler fd =
   let handler req =
     match req with
     | ControlIpcOps.Req s ->
-        Lwt_log.notice_f "got control request: %s" s >>= fun () ->
+        Log.info logger "got control request: %s" s;
         return (ControlIpcOps.response_of_string (String.uppercase s))
     | ControlIpcOps.Broadcast s ->
-        Lwt_log.notice_f "got control broadcast request: %s" s >>= fun () ->
+        Log.info logger "got control broadcast request: %s" s;
         let get_conns = Option.some !slave_connections in
         let slave_conns = get_conns () in
-        Lwt_list.iter_p
-          (fun (_, fd) ->
+        Deferred.List.iter ~how:`Parallel
+          ~f:(fun (_, fd) ->
             SlaveIpc.Server.write_response fd (SlaveIpcOps.Broadcast s))
           slave_conns >>= fun () ->
         return (ControlIpcOps.Broadcast_sent) in
@@ -38,20 +43,24 @@ let store_slave_connections get_conns =
   return_unit
 
 let () =
-  Lwt_log.default := Logger_lwt.syslog;
+  let cwd = Std_unix.getcwd () in
   let slave_exec =
-    sprintf "%s/_build/lib_test/slave_lwt.native" (Unix.getcwd ()) in
+    sprintf "%s/_build/lib_test/async/slave.native" cwd in
   let helper_exec =
-    sprintf "%s/_build/lib_test/helper_lwt.native" (Unix.getcwd ()) in
+    sprintf "%s/_build/lib_test/async/helper.native" cwd in
   let slave_cmd = (slave_exec, [|Filename.basename slave_exec|]) in
   let helper_cmd = (helper_exec, [|Filename.basename helper_exec|]) in
   let exec = Filename.basename Sys.executable_name in
+  let lock_file =
+    sprintf "%s/_build/release_async-%s.pid" cwd exec in
+  let socket_path =
+    sprintf "%s/_build/master_async.socket" cwd in
   Release.master_slaves
     ~privileged: false
     ~background: false
-    ~logger:     Logger_lwt.syslog
-    ~lock_file:  (sprintf "./_build/release_lwt-%s.pid" exec)
-    ~control:    ("./_build/master_lwt.socket", control_connection_handler)
+    ~logger:     logger
+    ~lock_file:  lock_file
+    ~control:    (socket_path, control_connection_handler)
     ~slave_env:  (`Keep ["OCAMLRUNPARAM"; "RELEASE"])
     ~main:       store_slave_connections
     ~slaves:     [
