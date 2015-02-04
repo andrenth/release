@@ -9,7 +9,6 @@ struct
   type +'a t = 'a Lwt.t
   type +'a future = 'a t
 
-  (* XXX *)
   let async = Lwt.async
   let at_exit = Lwt_main.at_exit
   let catch = Lwt.catch
