@@ -11,11 +11,8 @@ let socket_path =
   sprintf "%s/_build/helper_async.socket" (Std_unix.getcwd ())
 
 let handle_sigterm _ =
-  let ctrl_t =
-    Log.info logger "got sigterm, exiting";
-    Unix.unlink socket_path in
-  don't_wait_for ctrl_t;
-  Pervasives.exit 0
+  Log.info logger "got sigterm, exiting";
+  don't_wait_for (exit 0)
 
 let control_handler fd =
   let handler req =

@@ -8,7 +8,7 @@ let logger = Logger.syslog
 
 let handle_sigterm _ =
   Log.info logger "got sigterm";
-  Pervasives.exit 0
+  don't_wait_for (exit 0)
 
 let ipc_lock = Sequencer.create ()
 
