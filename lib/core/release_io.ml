@@ -26,12 +26,11 @@ module Make
    and type buffer := Buffer.t
    and type fd := Future.Unix.fd =
 struct
+  module Util = Release_util.Make (Future)
+  module Option = Util.Option
+
   open Future.Monad
-
-  module Option = Release_util.Option
-
-  (* XXX *)
-  let return_unit = return ()
+  open Util.Monad
 
   let rec interrupt_safe f =
     Future.catch f

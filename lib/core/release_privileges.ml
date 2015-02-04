@@ -10,9 +10,10 @@ end
 module Make (Future : Release_future.S) : S
   with type 'a future := 'a Future.t =
 struct
+  module Util = Release_util.Make (Future)
+
   open Future.Monad
-  (* XXX *)
-  let return_unit = return ()
+  open Util.Monad
 
   type +'a future = 'a Future.t
 

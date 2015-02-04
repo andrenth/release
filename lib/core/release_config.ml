@@ -1,5 +1,4 @@
 open Printf
-open Release_util
 
 module type S = sig
   module Value : sig
@@ -107,7 +106,11 @@ struct
   module Value = Release_config_values
   module Validation = Release_config_validations
 
+  module Util = Release_util.Make (Future)
+  module Option = Util.Option
+
   open Future.Monad
+  open Util.Monad
 
   type +'a future = 'a Future.t
 

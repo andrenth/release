@@ -78,7 +78,10 @@ module Make
   with type 'a future := 'a Future.t
    and type socket = ([`Active], Future.Unix.unix) Future.Unix.socket =
 struct
+  module Util = Release_util.Make (Future)
+
   open Future.Monad
+  open Util.Monad
 
   type socket = ([`Active], Future.Unix.unix) Future.Unix.socket
   type connection = socket * Future.Mutex.t
@@ -161,9 +164,6 @@ struct
   struct
     type request = O.request
     type response = O.response
-
-    (* XXX *)
-    let return_unit = return ()
 
     (*
      * Do the header operations by hand to avoid forcing a

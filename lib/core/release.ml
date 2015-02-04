@@ -329,11 +329,6 @@ module Make (Future : Release_future.S) : S
    and type logger := Future.Logger.t
    and type ('state, 'addr) Socket.t = ('state, 'addr) Future.Unix.socket =
 struct
-  open Future.Monad
-  let return_unit = return ()
-  let return_none = return None
-  let (<&>) t t' = Future.join [t; t']
-
   type command = string * string array
 
   module Logger = Release_logger.Make (Future)
@@ -343,7 +338,11 @@ struct
   module Socket = Release_socket.Make (Future) (Logger)
   module IO = Release_io.Make (Future) (Buffer)
   module IPC = Release_ipc.Make (Future) (Buffer) (Bytes) (IO) (Logger) (Socket)
-  module Util = Release_util
+  module Util = Release_util.Make (Future)
+  module Option = Util.Option
+
+  open Future.Monad
+  open Util.Monad
 
   let daemon f =
     let grandchild () =
@@ -658,7 +657,7 @@ struct
       Future.iter_p create_slaves slaves >>= fun () ->
       let main_t =
         Option.either return (fun f -> f slave_connections) main in
-      main_t <&> control_t <&> idle_t in
+      Future.join [main_t; control_t; idle_t] in
     let main_t =
       if privileged then check_root () else check_nonroot () >>= fun () ->
       if background then daemon work else work () in
