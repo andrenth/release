@@ -14,9 +14,10 @@ All quotes are from the Pearl Jam song _Release - Master/Slave_ :)
 
 ## Build and installation
 
-After cloning the repository, run the commands below to build Release.
+After cloning the repository, run the commands below to build Release. You can
+built it with support for Async, Lwt or both.
 
-    $ ocaml setup.ml -configure
+    $ ocaml setup.ml -configure --enable-async --enable-lwt
     $ ocaml setup.ml -build
 
 Documentation can be generated with the command below.
@@ -26,6 +27,25 @@ Documentation can be generated with the command below.
 To install Release, run
 
     # ocaml setup.ml -install
+
+## Opening the appropriate library
+
+Release is not a complete library, but a functor that can be instantiated when
+given a module with signature `Release_future.S` that provides asynchronous
+computation capabilities, also known as "futures". Two sub-libraries are
+included with Release: `release.async` and `release.lwt`, providing
+implementations for the two popular OCaml libraries.
+
+The modules mentioned in the documentation below all live inside either
+`Release_async` or `Release_lwt`, depending on your library of choice. It is
+assumed that these modules have been `open`ed at the top of your code.
+
+Function signatures below will use types from the `Future` module. The actual
+types depend on the asynchronous computation library being used:
+
+* `Future.t` is `Deferred.t` in Async and `Lwt.t` in Lwt;
+* `Future.Unix.fd` is `Fd.t` in Async and `Lwt_unix.file_descr` in Lwt;
+* `Future.Logger.t` is `Log.t` in Async and `Lwt_log.logger` in Lwt;
 
 ## Forking daemons
 
@@ -37,7 +57,7 @@ To install Release, run
 The simplest way to use the library is to simply daemonize a process. Release
 provides an Lwt-enabled function to do this in the `Release` module.
 
-    val daemon : (unit -> unit Lwt.t) -> unit Lwt.t
+    val daemon : (unit -> unit Future.t) -> unit Future.t
 
 Upon calling `Release.daemon f`, the usual steps to create a daemon
 process will be executed.
@@ -61,22 +81,22 @@ in the master process. Thus, in case of a bug, the likelihood that it can be
 exploited with root escalation is considerably decreased.
 
 Consider the type of an inter-process communication callback function, defined
-as `Release_ipc.handler`:
+as `Release.IPC.handler`:
 
-    type handler = (Lwt_unix.file_descr -> unit Lwt.t)
+    type handler = (Future.Unix.fd -> unit Future.t)
 
 The simple case of a master process and one slave process is implemented in
 the function `Release.master_slave`.
 
     val master_slave :
-         slave:(Lwt_io.file_name * Release_ipc.handler)
+         slave:((string * string array) * Release.IPC.handler)
       -> ?background:bool
-      -> ?syslog:bool
+      -> ?logger:Future.Logger.t
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
-      -> ?control:(Lwt_io.file_name * Release_ipc.handler)
-      -> ?main:((unit -> (int * Lwt_unix.file_descr) list) -> unit Lwt.t)
-      -> lock_file:Lwt_io.file_name
+      -> ?control:(string * Release.IPC.handler)
+      -> ?main:((unit -> (int * IPC.connection) list) -> unit Future.t)
+      -> lock_file:string
       -> unit -> unit
 
 The `slave` argument is a tuple whose first argument is the path to the slave
@@ -87,13 +107,12 @@ slave process. More details about slave processes and IPC in Release will be
 described in more details below.
 
 The `background` argument indicates whether `Release.daemon` will be called.
-The `syslog` argument indicates if the syslog facilities from the `Lwt_log`
-module will be enabled. If the master process is supposed to run as root, then
-the `privileged` argument must be set to `true`. The slave process environment
-variables can be controlled by the `slave_env` argument; they can be inherited
-from the master process, or filtered via a whitelist of variable names. By
-default, only the `OCAMLRUNPARAM` environment variable is passed to slave
-processes.
+The `logger` argument provides a logging facility for the master process.
+If the master process is supposed to run as root, then the `privileged` argument
+must be set to `true`. The slave process environment variables can be controlled
+by the `slave_env` argument; they can be inherited from the master process, or
+filtered via a whitelist of variable names. By default, only the `OCAMLRUNPARAM`
+environment variable is passed to slave processes.
 
 The `master_slave` function will create a lock file in the path given in the
 `lock_file` argument. This file will contain the PID of the master process.
@@ -117,13 +136,13 @@ The general case of _n_ slave processes is handled by the function
 
     val master_slaves :
          ?background:bool
-      -> ?syslog:bool
+      -> ?logger:Future.Logger.t
       -> ?privileged:bool
-      -> ?slave_env:string list
-      -> ?control:(Lwt_io.file_name * Release_ipc.handler)
-      -> ?main:((unit -> (int * Lwt_unix.file_descr) list) -> unit Lwt.t)
-      -> lock_file:Lwt_io.file_name
-      -> slaves:(Lwt_io.file_name * Release_ipc.handler * int) list
+      -> ?slave_env:[`Inherit | `Keep of string list]
+      -> ?control:(string * Release.IPC.handler)
+      -> ?main:((unit -> (int * IPC.connection) list) -> unit Future.t)
+      -> lock_file:string
+      -> slaves:((string * string array) * Release.IPC.handler * int) list
       -> unit -> unit
 
 This function generalizes `Release.master_slave`, allowing the creation of
@@ -143,15 +162,15 @@ When a slave process is run, some code must be run in order to setup
 communication with the master, and also to drop privileges to a non-root user.
 The `Release.me` function deals with this:
 
-    val me : ?syslog:bool
+    val me : ?logger:Future.Logger.t
           -> ?user:string
-          -> main:(Lwt_unix.file_descr -> unit Lwt.t)
+          -> main:(IPC.connection -> unit Future.t)
           -> unit -> unit
 
-The `syslog` argument works like in `master_slave`. The `user` argument, if
-given, indicates the user whose UID and GID the slave process will set its own
-IDs to. This argument can only be given is `privileged` is `true` in the master
-process.
+The `logger` argument works like in `master_slave`, but for the slave process.
+The `user` argument, if given, indicates the user whose UID and GID the slave
+process will set its own IDs to. This argument can only be given is `privileged`
+is `true` in the master process.
 
 The `main` argument is a function that returns the slave's main thread. It
 accepts a file descriptor for communication with the master process.
@@ -162,9 +181,9 @@ accepts a file descriptor for communication with the master process.
 > For you to speak to me
 
 Inter-process communication in `Release` is handled in a type-safe manner in
-the module `Release_ipc`.
+the module `Release.IPC`.
 
-The `Release_ipc.Make` functor receives as an argument a module with the
+The `Release.IPC.Make` functor receives as an argument a module with the
 following signature.
 
     module type Ops = sig
@@ -182,55 +201,55 @@ The types `request` and `response` correspond to the respective IPC operations,
 and the convertion functions of requests and responses to and from strings
 must be provided.
 
-The output of `Release_ipc.Make` is a module with the signature below.
+The output of `Release.IPC.Make` is a module with the signature below.
 
     module type S = sig
       type request
       type response
 
-      val read : ?timeout:float
-              -> Lwt_unix.file_descr
-              -> [`Data of Release_buffer.t | `EOF | `Timeout] Lwt.t
+      module Server : sig
+        val read_request : ?timeout:float
+                        -> IPC.connection
+                        -> [`Request of request | `EOF | `Timeout] Future.t
 
-      val write : Lwt_unix.file_descr -> Release_buffer.t -> unit Lwt.t
+        val write_response : IPC.connection -> response -> unit Future.t
 
-      val read_request : ?timeout:float
-                      -> Lwt_unix.file_descr
-                      -> [`Request of request | `EOF | `Timeout] Lwt.t
+        val handle_request : ?timeout:float
+                          -> ?eof_warning:bool
+                          -> connection
+                          -> (request -> response Future.t)
+                          -> unit Future.t
+      end
 
-      val read_response : ?timeout:float
-                       -> Lwt_unix.file_descr
-                       -> [`Response of response | `EOF | `Timeout] Lwt.t
+      module Client : sig
+        val read_response : ?timeout:float
+                         -> connection
+                         -> [`Response of response | `EOF | `Timeout] Future.t
 
-      val write_request : Lwt_unix.file_descr -> request -> unit Lwt.t
+        val write_request : connection -> request -> unit Future.t
 
-      val write_response : Lwt_unix.file_descr -> response -> unit Lwt.t
 
-      val make_request : ?timeout:float
-                      -> Lwt_unix.file_descr
-                      -> request
-                      -> ([`Response of response | `EOF | `Timeout] -> 'a Lwt.t)
-                      -> 'a Lwt.t
-
-      val handle_request : ?timeout:float
-                        -> ?eof_warning:bool
-                        -> Lwt_unix.file_descr
-                        -> (request -> response Lwt.t)
-                        -> unit Lwt.t
+        val make_request : ?timeout:float
+                        -> connection
+                        -> request
+                        -> ([`Response of response | `EOF | `Timeout] ->
+                             'a Future.t)
+                        -> 'a Future.t
+      end
     end
 
 The functions `read` and `write` will perform these operations on the IPC file
 descriptor given as an argument, and operate on buffers.
 
-The `read_{request,response}` and `write_{request,response}` work similarly,
-but are higher-level, and operate on the `request` and `response` types,
-doing the buffer conversion implicitly.
+The `read_{request,response}` and `write_{request,response}` are the building
+blocks for interprocess communication, respectively reading and writing IPC
+requests and responses.
 
-The functions `make_request` and `handle_request` are IPC helpers wrapping
-`read` and `write`. A slave process can call `make_request fd req handler` to
+The functions `make_request` and `handle_request` are IPC wrappers around
+the functions above. A slave process can call `make_request conn req handler` to
 make an IPC request to the master process and wait for a response, which will
 be passed as an argument to the `handler` callback. The master process can call
-`handle_request fd handler` to wait for an IPC request from a slave. This
+`handle_request conn handler` to wait for an IPC request from a slave. This
 request will be passed to the callback function, which must return a response
 that will be written back to the slave.
 
@@ -238,11 +257,11 @@ that will be written back to the slave.
 
 It may be useful for slaves to have control sockets like the one available
 to the master process. This can be useful for writing control programs or for
-communication between slave processes. The `Release_ipc` module provides the
+communication between slave processes. The `Release.IPC` module provides the
 `control_socket` function to help setting up the socket and spawning a handler
 thread.
 
-    val control_socket : Lwt_io.file_name -> Release_ipc.handler -> unit Lwt.t
+    val control_socket : string -> IPC.handler -> unit Future.t
 
 #### The IPC protocol
 
@@ -262,72 +281,75 @@ to the needs of their respective applications.
 
 ## Extras
 
-### The `Release_buffer` module
+### The `Release.Buffer` module
 
-`Release_buffer` is provided in a separate, `release.buffer`, but it is loaded
-by default when `Release` is used.
-
-This module provides a buffer whose implementation is based on OCaml's
-`Bigarray` type to minimize data copying. It is used by Release in its I/O
-functions.
+This module provides a buffer whose implementation is based on the asynchronous
+computation library's buffer type, usually based on OCaml's `Bigarray` module,
+to minimize data copying. It is used by Release in its I/O functions.
 
 Please check the `ocamldoc` documentation for the module interface.
 
-### The `Release_io` module
+### The `Release.IO` module
 
 This module exports utility I/O functions that are useful when dealing with
-network I/O.
+network I/O. The functions in this module are based on the `Release.Buffer.t`
+type, which has already appeared in some function signatures in the IPC module.
 
-The functions in this module are based on the `Release_buffer.t` type, which
-has already appeared in some function signatures in the IPC module. This
-buffer is a wrapper around the `Lwt_bytes.t` type, which in turn uses OCaml's
-`Bigarray` module to minimize data-copying. See the `Release_buffer` module
-documentation for the list of available buffer-related functions.
+The first function in the module is `Release.IO.read_once`. It has similar
+semantics to the usual `Unix.read`, but works on `Release.Buffer.t`.
 
-The first function in the module is `Release_io.read_once`. It has similar
-semantics to the usual `Unix.read`, but works on `Release_buffer.t`.
-
-    val read_once : Lwt_unix.file_descr
-                 -> Release_buffer.t
+    val read_once : Future.Unix.fd
+                 -> Release.Buffer.t
                  -> int
                  -> int
-                 -> int Lwt.t
+                 -> int Future.t
 
-Calling `Release_io.read_once fd buf off n` will read at most `n` bytes
+Calling `Release.IO.read_once fd buf off n` will read at most `n` bytes
 from `fd` and store them into `buf` starting at offset `off`. This function
 is safe against temporary errors, retrying on `Unix.EINTR` and `Unix.EAGAIN`
 automatically.
 
-The second function is `Release_io.read`, which has the following signature.
+The second function is `Release.IO.read`, which has the following signature.
 
     val read : ?timeout:float
-            -> Lwt_unix.file_descr
+            -> Future.Unix.fd
             -> int
-            -> [`Data of Release_buffer.t | `EOF | `Timeout] Lwt.t
+            -> [`Data of Release.Buffer.t | `EOF | `Timeout] Future.t
 
-Calling `Release_io.read fd n` will try to read at most `n` bytes from `fd`,
-returning the appropriate result. Like `Release_io.read_once`, this function
+Calling `Release.IO.read fd n` will try to read at most `n` bytes from `fd`,
+returning the appropriate result. Like `Release.IO.read_once`, this function
 is safe against temporary errors.
 
-The third function is `Release_io.write`.
+The third function is `Release.IO.write`.
 
-    val write : Lwt_unix.file_descr -> Release_buffer.t -> unit Lwt.t
+    val write : Future.Unix.fd -> Release.Buffer.t -> unit Future.t
 
-Calling `Release_io.write fd buf` will ensure that the full length of buffer
-`buff` is written on file descriptor `fd`. This function is also safe against
+Calling `Release.IO.write fd buf` will ensure that the full length of buffer
+`buf` is written on file descriptor `fd`. This function is also safe against
 `Unix.EINTR` and `Unix.EAGAIN`.
 
-### The `Release_socket` module
+### The `Release.Socket` module
+
+Sockets in `Release` are modelled after Async's `Unix.Socket.t` type, which
+use OCaml's type system encode the socket state and address type. In module
+`Release.Socket`, the type is defined as
+
+    type unix = [ `Unix of string ]
+    type inet = [ `Inet of Unix.inet_addr * int ]
+    type addr = [ unix | inet ]
+    type ('state, 'addr) t
+      constraint 'state = [< `Unconnected | `Bound | `Passive | `Active ]
+      constraint 'addr  = [< addr ]
 
 This module contains utility socket functions. Currently the only exported
-function is `Release_socket.accept_loop`.
+function is `Release.Socket.accept_loop`.
 
     val accept_loop : ?backlog:int
                    -> ?timeout:float
-                   -> Lwt_unix.socket_type
-                   -> Lwt_unix.sockaddr
-                   -> (Lwt_unix.file_descr -> unit Lwt.t)
-                   -> unit Lwt.t
+                   -> ([`Unconnected], 'addr) Release.Socket.t
+                   -> 'addr
+                   -> (([`Active], 'addr) t -> unit Future.t)
+                   -> unit Future.t
 
 This function implements a traditional accept loop, spawning one thread per
 client connection. The function creates a socket of the specified type, binds
@@ -336,9 +358,9 @@ connection is accepted, the callback function given as the last argument is
 executed in a separate thread (which may be interrupted depending on the
 `timeout` argument), while `accept_loop` goes back to wait for new connections.
 
-## Release sub-packages
+## Other Release sub-modules
 
-### The `Release_bytes` module
+### The `Release.Bytes` module
 
 When writing network-based daemons, the need to implement some kind of binary
 protocol is very common. Very often, these protocols have numeric fields that
@@ -346,93 +368,95 @@ must be read or written by the application. Since the network I/O functions
 take buffers as arguments, the need to perform integer reads writes from and
 into buffers, respectively, is quite frequent.
 
-The Release library offers the `Release_bytes` module to help in such
+The Release library offers the `Release.Bytes` module to help in such
 conversions. This module contains a set of functions that take a buffer as an
 argument and read or write integers of various sizes at a given offset on the
 buffer. The functions that read and write single bytes are available directly
-`Release_bytes`, while functions for integers of other sizes can be accessed
-from the modules `Release_bytes.Big_endian` and `Release_bytes.Little_endian`.
+`Release.Bytes`, while functions for integers of other sizes can be accessed
+from the modules `Release.Bytes.Big_endian` and `Release.Bytes.Little_endian`.
 
-The functions available in `Release_bytes`, with their respective
+The functions available in `Release.Bytes`, with their respective
 signatures, are listed below.
 
-* `val read_byte_at : int -> Release_buffer.t -> int`
-* `val read_byte : Release_buffer.t -> int`
-* `val write_byte : int -> Buffer.t -> unit`
+* `val read_byte_at : int -> Release.Buffer.t -> int`
+* `val read_byte : Release.Buffer.t -> int`
+* `val write_byte : int -> Release.Buffer.t -> unit`
 
-The following functions are available in both `Release_bytes.Little_endian` and
-`Release_bytes.Little_endian`.
+The following functions are available in both `Release.Bytes.Little_endian` and
+`Release.Bytes.Little_endian`.
 
-* `val read_int16_at : int -> Release_buffer.t -> int`
-* `val read_int16 : Release_buffer.t -> int`
-* `val write_int16_byte : int -> Buffer.t -> unit`
-* `val write_int16 : int -> Buffer.t -> unit`
+* `val read_int16_at : int -> Release.Buffer.t -> int`
+* `val read_int16 : Release.Buffer.t -> int`
+* `val write_int16_byte : int -> Release.Buffer.t -> unit`
+* `val write_int16 : int -> Release.Buffer.t -> unit`
 
-* `val read_int_at : int -> Release_buffer.t -> int`
-* `val read_int : Release_buffer.t -> int`
-* `val write_int_byte : int -> Buffer.t -> unit`
-* `val write_int : int -> Buffer.t -> unit`
+* `val read_int_at : int -> Release.Buffer.t -> int`
+* `val read_int : Release.Buffer.t -> int`
+* `val write_int_byte : int -> Release.Buffer.t -> unit`
+* `val write_int : int -> Release.Buffer.t -> unit`
 
-* `val read_int32_at : int -> Release_buffer.t -> int32`
-* `val read_int32 : Release_buffer.t -> int32`
-* `val write_int32_byte : int32 -> Buffer.t -> unit`
-* `val write_int32 : int32 -> Buffer.t -> unit`
+* `val read_int32_at : int -> Release.Buffer.t -> int32`
+* `val read_int32 : Release.Buffer.t -> int32`
+* `val write_int32_byte : int32 -> Release.Buffer.t -> unit`
+* `val write_int32 : int32 -> Release.Buffer.t -> unit`
 
-* `val read_uint32_at : int -> Release_buffer.t -> Uint32.t`
-* `val read_uint32 : Release_buffer.t -> Uint32.t`
-* `val write_uint32_byte : Uint32.t -> Buffer.t -> unit`
-* `val write_uint32 : Uint32.t -> Buffer.t -> unit`
+* `val read_uint32_at : int -> Release.Buffer.t -> Uint32.t`
+* `val read_uint32 : Release.Buffer.t -> Uint32.t`
+* `val write_uint32_byte : Uint32.t -> Release.Buffer.t -> unit`
+* `val write_uint32 : Uint32.t -> Release.Buffer.t -> unit`
 
-* `val read_int64_at : int -> Release_buffer.t -> int64`
-* `val read_int64 : Release_buffer.t -> int64`
-* `val write_int64_byte : int64 -> Buffer.t -> unit`
-* `val write_int64 : int64 -> Buffer.t -> unit`
+* `val read_int64_at : int -> Release.Buffer.t -> int64`
+* `val read_int64 : Release.Buffer.t -> int64`
+* `val write_int64_byte : int64 -> Release.Buffer.t -> unit`
+* `val write_int64 : int64 -> Release.Buffer.t -> unit`
 
-* `val read_uint64_at : int -> Release_buffer.t -> Uint64.t`
-* `val read_uint64 : Release_buffer.t -> Uint64.t`
-* `val write_uint64_byte : Uint64.t -> Buffer.t -> unit`
-* `val write_uint64 : Uint64.t -> Buffer.t -> unit`
+* `val read_uint64_at : int -> Release.Buffer.t -> Uint64.t`
+* `val read_uint64 : Release.Buffer.t -> Uint64.t`
+* `val write_uint64_byte : Uint64.t -> Release.Buffer.t -> unit`
+* `val write_uint64 : Uint64.t -> Release.Buffer.t -> unit`
 
-* `val read_uint128_at : int -> Release_buffer.t -> Uint128.t`
-* `val read_uint128 : Release_buffer.t -> Uint128.t`
-* `val write_uint128_byte : Uint128.t -> Buffer.t -> unit`
-* `val write_uint128 : Uint128.t -> Buffer.t -> unit`
+* `val read_uint128_at : int -> Release.Buffer.t -> Uint128.t`
+* `val read_uint128 : Release.Buffer.t -> Uint128.t`
+* `val write_uint128_byte : Uint128.t -> Release.Buffer.t -> unit`
+* `val write_uint128 : Uint128.t -> Release.Buffer.t -> unit`
 
-### The `Release_config` module
+### The `Release.Config` module
 
 This module provides an interface to help dealing with configuration files in
 Release applications. A Release configuration file uses a simple `key = value`
 format with support for sections, similar to `.ini` configuration files.
 
-`Release_config` values can be integers, floats, strings, booleans, regular
-expressions, log levels or lists containing one of those types. Configuration
-files are validated against a specification provided by the application, which
-states the default value, if any, and a list of validations for each
-configuration directive.
+`Release.Config` values can be integers, floats, strings, booleans, regular
+expressions, custom keywords or lists containing one of those types.
+Configuration files are validated against a specification provided by the
+application, which states the default value, if any, and a list of validations
+for each configuration directive.
 
-The `Release_config_values` module provides some helpers for setting default
+The `Release.Config.Default` module provides some helpers for setting default
 values in configuration specifications:
 
-* `default_bool`
-* `default_int`
-* `default_float`
-* `default_string`
-* `default_regexp`
-* `default_log_level`
-* `default_bool_list`
-* `default_int_list`
-* `default_float_list`
-* `default_string_list`
+* `Default.keyword`
+* `Default.bool`
+* `Default.int`
+* `Default.float`
+* `Default.string`
+* `Default.regexp`
+* `Default.keyword_list`
+* `Default.bool_list`
+* `Default.int_list`
+* `Default.float_list`
+* `Default.string_list`
 
-The `Release_config_validations` provides helpers for specifying validation
-lists in a configuration:
+The `Release.Config.Validation` module provides helpers for specifying
+validation lists in a configuration:
 
+* `keyword`: value must be the given keyword
+* `keywords`: value must be one of the given keywords
 * `bool`: the value is a boolean
 * `int`: the value is an integer
 * `float`: the value is a float
 * `string`: the value is a string
 * `regexp`: the value is a regular expression
-* `log_level`: the value is a log level
 * `bool_list`: the value is a list of booleans
 * `int_list`: the value is a list of integers
 * `float_list`: the value is a list of floats
@@ -465,22 +489,26 @@ lists in a configuration:
 
 Please refer to the `ocamldoc` documentation for the types of the above helpers.
 
-Configuration specifications are values of type `Release_config.spec`,
+Configuration specifications are values of type `Release.Config.spec`,
 constructed as below.
 
-    type value =
-      [ `Int of int
-      | `Float of float
-      | `Bool of bool
-      | `Str of string
-      | `Regexp of Str.regexp
-      | `Log_level of Lwt_log.level
-      | `List of (value list)
-      ]
+    module Value = struct
+      type t =
+        [ `Keyword of string
+        | `Bool of bool
+        | `Int of int
+        | `Float of float
+        | `Str of string
+        | `Regexp of Str.regexp
+        | `List of (value list)
+        ]
+    end
 
-    type validation = value -> [`Valid | `Invalid of string]
+    module Validation = struct
+      type t = Value.t -> [`Valid | `Invalid of string]
+    end
 
-    type key = string * value option * validation list
+    type key = string * Value.t option * Validation.t list
 
     type section =
       [ `Global of key list
@@ -492,22 +520,22 @@ constructed as below.
 Below is an example of a configuration specification and its respective
 configuration file.
 
-    open Release_config_values
-    open Release_config_validations
+    open Release.Config.Value
+    open Release.Config.Validation
 
     let spec =
       [ `Global (* Settings which don't belong to any section *)
           [ "user", None (* required parameter *), [unprivileged_user]
-          ; "privileged", default_bool true, [bool]
-          ; "read_timeout", default_int 5, int_in_range (0, 10)
-          ; "log_level", default_log_level notice, [log_level]
+          ; "privileged", Default.bool true, [bool]
+          ; "read_timeout", Default.int 5, int_in_range (0, 10)
+          ; "log_level", Default.keyword "info", [keywords ["debug"; "info"; "error"]]
           ]
       ; `Section ("some-section",
-          [ "match_with", default_regexp /^[a-z]+$/, [regexp]
-          ; "tmp", default_string "/tmp", one_of_strings ["/tmp"; "/var/tmp"]
+          [ "match_with", Default.regexp /^[a-z]+$/, [regexp]
+          ; "tmp", Default.string "/tmp", one_of_strings ["/tmp"; "/var/tmp"]
           ])
       ; `Section ("another-section",
-          [ "privileged_users", default_string_list ["root"], [list_of existing_user]
+          [ "privileged_users", Default.string_list ["root"], [list_of existing_user]
           ])
       ]
 
