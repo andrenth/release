@@ -10,7 +10,7 @@ Plugins:     META (0.4), DevFiles (0.4)
 
 Library "release"
   FindlibName:      release
-  Path:             lib/core
+  Path:             lib/release
   BuildDepends:     str,
                     unix,
                     uint.uint32 (>= 1.0.1),
@@ -73,7 +73,7 @@ Document "release"
   Title:                Release documentation
   Type:                 ocamlbuild (0.3)
   BuildTools+:          ocamldoc
-  XOCamlbuildPath:      lib/core
+  XOCamlbuildPath:      lib/release
   XOCamlbuildLibraries: release
 
 Executable "async_test_master"
