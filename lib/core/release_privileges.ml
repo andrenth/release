@@ -8,7 +8,7 @@ module type S = sig
 end
 
 module Make (Future : Release_future.S) : S
-  with type 'a future = 'a Future.t =
+  with type 'a future := 'a Future.t =
 struct
   open Future.Monad
   (* XXX *)
