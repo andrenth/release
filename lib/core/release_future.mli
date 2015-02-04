@@ -2,6 +2,8 @@ module type S = sig
   type +'a t
   type +'a future = 'a t
 
+  val name : string
+
   val async : (unit -> unit t) -> unit
   val at_exit : (unit -> unit future) -> unit
   val catch : (unit -> 'a t) -> (exn -> 'a t) -> 'a t

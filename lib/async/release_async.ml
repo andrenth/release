@@ -12,6 +12,8 @@ struct
   type +'a t = 'a Deferred.t
   type +'a future = 'a t
 
+  let name = "async"
+
   let async f =
     don't_wait_for (f ())
 

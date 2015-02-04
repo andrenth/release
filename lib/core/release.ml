@@ -614,11 +614,14 @@ struct
     disable_slave_restart ();
     Future.async
       (fun () ->
-        Logger.info "got %s, signaling child processes" signame
-        >>= fun () ->
+        Logger.info "got %s, signaling child processes" signame >>= fun () ->
         signal_slaves signum >>= fun () ->
         Logger.info "exiting" >>= fun () ->
-        Future.Unix.exit (128 + signum))
+        Future.Unix.exit (128 + signum));
+    (* XXX Lwt sometimes hangs without the call below. Maybe related to
+     * https://github.com/ocsigen/lwt/issues/48 *)
+    if Future.name = "lwt" then
+      exit (128 + signum)
 
   let handle_sigint _ =
     async_exit "SIGINT" 2
