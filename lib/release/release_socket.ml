@@ -36,19 +36,19 @@ struct
     constraint 'state = [< `Unconnected | `Bound | `Passive | `Active ]
     constraint 'addr  = [< addr ]
 
-  let accept_loop ?(backlog = 10) ?(timeout = 10.0) fd addr handler =
+  let accept_loop ?(backlog = 10) ?(timeout = 10.0) sock addr handler =
     (match addr with
     | `Unix s -> Future.at_exit (fun () -> Future.Unix.unlink s)
     | `Inet _ -> ());
-    Future.Unix.setsockopt fd Unix.SO_REUSEADDR true;
-    Future.Unix.bind fd addr >>= fun fd ->
-    let fd = Future.Unix.listen fd backlog in
+    Future.Unix.setsockopt sock Unix.SO_REUSEADDR true;
+    Future.Unix.bind sock addr >>= fun bound_sock ->
+    let listen_sock = Future.Unix.listen bound_sock backlog in
     let rec loop () =
-      Future.Unix.accept fd >>= fun (cli_fd, _) ->
+      Future.Unix.accept listen_sock >>= fun (client_sock, _) ->
       let handler_t =
         Future.catch
           (fun () ->
-            handler cli_fd)
+            handler client_sock)
           (fun e ->
             let err = Printexc.to_string e in
             Logger.error "accept handler exception: %s" err) in
@@ -59,7 +59,7 @@ struct
             | `Result res -> return res
             | `Timeout -> Logger.error "timeout on handler")
           (fun () ->
-            Future.Unix.close (Future.Unix.socket_fd cli_fd))
+            Future.Unix.close (Future.Unix.socket_fd client_sock))
       );
       loop () in
     loop ()

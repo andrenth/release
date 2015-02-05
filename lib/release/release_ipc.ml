@@ -237,8 +237,7 @@ struct
           read_request ?timeout conn >>= function
           | `Timeout ->
               close_connection conn >>= fun () ->
-              Logger.error "read from a slave shouldn't timeout"
-              >>= fun () ->
+              Logger.error "read from a slave shouldn't timeout" >>= fun () ->
               Future.Unix.exit 1
           | `EOF ->
               if eof_warning then Logger.error "got EOF on IPC socket"
@@ -259,17 +258,17 @@ struct
     end
 
     module Client = struct
-      let read_response ?timeout fd =
-        read ?timeout fd >>= function
+      let read_response ?timeout conn =
+        read ?timeout conn >>= function
         | `Data buf -> return (`Response (response_of_buffer buf))
         | `Timeout | `EOF as other -> return other
 
-      let write_request fd req =
-        write fd (buffer_of_request req)
+      let write_request conn req =
+        write conn (buffer_of_request req)
 
-      let make_request ?timeout fd req handler =
-        write_request fd req >>= fun () ->
-        read_response ?timeout fd >>= fun res ->
+      let make_request ?timeout conn req handler =
+        write_request conn req >>= fun () ->
+        read_response ?timeout conn >>= fun res ->
         handler res
     end
   end
