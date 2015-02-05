@@ -21,7 +21,7 @@
 
     Release is a multi-process framework where each process handles concurrent
     operations by relying on a library that provides asynchronous computation
-    capabilities. The framework provides a functor (see [Relesae.Make]) which
+    capabilities. The framework provides a functor (see [Release.Make]) which
     allows the construction of a module based on any given asynchronous library
     that provides the necessary primitives. In Release, asynchronous
     computations are represented by the ['a future] type.
