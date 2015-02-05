@@ -2,13 +2,14 @@
 
 ## Introduction
 
-Release is a multi-process Lwt-enabled daemon framework for OCaml, providing
-facilities for type-safe inter-process communication and privilege-dropping.
+Release is a multi-process daemon framework for OCaml with support for
+asynchronous computation, providing facilities for type-safe inter-process
+communication and privilege-dropping.
 
 Its goal is to make it easy to write servers that are released from the calling
 terminal and to release root privileges when those are not necessary.
 
-In this documentation, any mention of a "thread" refers to an `Lwt.t`.
+In this documentation, any mention of a "thread" refers to a lightweight thread in an asynchronous computation library such as Async or Lwt.
 
 All quotes are from the Pearl Jam song _Release - Master/Slave_ :)
 
