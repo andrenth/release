@@ -62,8 +62,8 @@ Library "release-lwt"
   FindlibName:      lwt
   FindlibParent:    release
   Path:             lib/lwt
-  BuildDepends:     lwt (>= 2.4.7),
-                    lwt.unix (>= 2.4.7),
+  BuildDepends:     lwt (= 2.4.6),
+                    lwt.unix (= 2.4.6),
                     release
   CompiledObject:   best
   Modules:          Release_lwt
@@ -135,6 +135,14 @@ Executable "lwt_test_slave"
 Executable "lwt_test_helper"
   Path:            lib_test/lwt
   MainIs:          helper.ml
+  Install:         false
+  CompiledObject:  best
+  BuildDepends:    release.lwt,
+                   str
+
+Executable "lwt_test_worker"
+  Path:            lib_test/lwt
+  MainIs:          worker.ml
   Install:         false
   CompiledObject:  best
   BuildDepends:    release.lwt,

@@ -120,9 +120,7 @@ struct
     type t = Lwt_bytes.t
 
     let blit = Lwt_bytes.blit
-    let blit_string_bytes src src_pos dst dst_pos len =
-      let b = Bytes.of_string src in
-      Lwt_bytes.blit_from_bytes b src_pos dst dst_pos len
+    let blit_string_bytes = Lwt_bytes.blit_string_bytes
     let create = Lwt_bytes.create
     let fill = Lwt_bytes.fill
     let get = Lwt_bytes.get
