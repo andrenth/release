@@ -535,11 +535,15 @@ module type S = sig
           connections on the socket. When a new connection is established,
           [handler] is called on a separate thread. *)
 
-    module type Ops = sig
+    module type Types = sig
       type request
         (** The type of IPC requests. *)
       type response
         (** The type of IPC responses. *)
+    end
+
+    module type Ops = sig
+      include Types
 
       val string_of_request : request -> string
         (** A function that converts a request into a string. *)
@@ -550,6 +554,13 @@ module type S = sig
         (** A function that converts a response into a string. *)
       val response_of_string : string -> response
         (** A function that converts a string into a response. *)
+    end
+
+    (** This module defines a functor providing default string conversion
+        implementation for IPC types based on OCaml's [Marshal] module. *)
+    module Marshal : sig
+      module Make (T : Types) : Ops
+        with type request := T.request and type response := T.response
     end
 
     module type S = sig
@@ -605,7 +616,7 @@ module type S = sig
     end
 
     module Make (O : Ops) : S
-      with type request = O.request and type response = O.response
+      with type request := O.request and type response := O.response
         (** Functor that builds an implementation of the IPC-handling functions
             given the request and response types and the appropriate string
             conversion functions. *)

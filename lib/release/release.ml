@@ -235,14 +235,23 @@ module type S = sig
     val create_connection : ([`Active], Socket.unix) Socket.t -> connection
     val control_socket : string -> handler -> unit future
 
-    module type Ops = sig
+    module type Types = sig
       type request
       type response
+    end
+
+    module type Ops = sig
+      include Types
 
       val string_of_request : request -> string
       val request_of_string : string -> request
       val string_of_response : response -> string
       val response_of_string : string -> response
+    end
+
+    module Marshal : sig
+      module Make (T : Types) : Ops
+        with type request := T.request and type response := T.response
     end
 
     module type S = sig
@@ -276,7 +285,7 @@ module type S = sig
     end
 
     module Make (O : Ops) : S
-      with type request = O.request and type response = O.response
+      with type request := O.request and type response := O.response
   end
 
   module Util : sig

@@ -10,15 +10,24 @@ module type S = sig
   val create_connection : socket -> connection
   val control_socket : string -> handler -> unit future
 
-  module type Ops = sig
+  module type Types = sig
     type request
     type response
+  end
+
+  module type Ops = sig
+    include Types
 
     val string_of_request : request -> string
     val request_of_string : string -> request
 
     val string_of_response : response -> string
     val response_of_string : string -> response
+  end
+
+  module Marshal : sig
+    module Make (T : Types) : Ops
+      with type request := T.request and type response := T.response
   end
 
   module type S = sig
@@ -52,7 +61,7 @@ module type S = sig
   end
 
   module Make (O : Ops) : S
-    with type request = O.request and type response = O.response
+    with type request := O.request and type response := O.response
 end
 
 module Make
@@ -114,15 +123,34 @@ struct
             "control socket `%s' error (%d): %s" path pid err >>= fun () ->
           Future.fail e)
 
-  module type Ops = sig
+  module type Types = sig
     type request
     type response
+  end
+
+  module type Ops = sig
+    include Types
 
     val string_of_request : request -> string
     val request_of_string : string -> request
 
     val string_of_response : response -> string
     val response_of_string : string -> response
+  end
+
+  module Marshal = struct
+    module Make (T : Types) : Ops
+      with type request := T.request and type response := T.response =
+    struct
+      type request = T.request
+      type response = T.response
+
+      let string_of_request r = Marshal.to_string r []
+      let request_of_string s = Marshal.from_string s 0
+
+      let string_of_response r = Marshal.to_string r []
+      let response_of_string s = Marshal.from_string s 0
+    end
   end
 
   module type S = sig
@@ -160,11 +188,8 @@ struct
   end
 
   module Make (O : Ops) : S
-    with type request = O.request and type response = O.response =
+    with type request := O.request and type response := O.response =
   struct
-    type request = O.request
-    type response = O.response
-
     (*
      * Do the header operations by hand to avoid forcing a
      * dependency on Release_bytes.
