@@ -27,6 +27,8 @@
     computations are represented by the ['a future] type.
 *)
 
+open Stdint
+
 module type S = sig
   type +'a future
   type fd

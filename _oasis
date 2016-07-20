@@ -13,9 +13,7 @@ Library "release"
   Path:             lib/release
   BuildDepends:     str,
                     unix,
-                    uint.uint32 (>= 1.0.1),
-                    uint.uint64 (>= 1.0.1),
-                    uint.uint128 (>= 1.0.1)
+                    stdint
   CompiledObject:   best
   Modules:          Release,
                     Release_future
@@ -62,8 +60,8 @@ Library "release-lwt"
   FindlibName:      lwt
   FindlibParent:    release
   Path:             lib/lwt
-  BuildDepends:     lwt (= 2.4.6),
-                    lwt.unix (= 2.4.6),
+  BuildDepends:     lwt (>= 2.5.0),
+                    lwt.unix (>= 2.5.0),
                     release
   CompiledObject:   best
   Modules:          Release_lwt
@@ -135,14 +133,6 @@ Executable "lwt_test_slave"
 Executable "lwt_test_helper"
   Path:            lib_test/lwt
   MainIs:          helper.ml
-  Install:         false
-  CompiledObject:  best
-  BuildDepends:    release.lwt,
-                   str
-
-Executable "lwt_test_worker"
-  Path:            lib_test/lwt
-  MainIs:          worker.ml
   Install:         false
   CompiledObject:  best
   BuildDepends:    release.lwt,

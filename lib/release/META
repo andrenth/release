@@ -1,8 +1,8 @@
 # OASIS_START
-# DO NOT EDIT (digest: 50b11a6c273a3a561d340fcd5f454bad)
+# DO NOT EDIT (digest: caa1273352e52fb73e5b7fee8c17619a)
 version = "2.0.0"
 description = "OCaml daemon framework"
-requires = "str unix uint.uint32 uint.uint64 uint.uint128"
+requires = "str unix stdint"
 archive(byte) = "release.cma"
 archive(byte, plugin) = "release.cma"
 archive(native) = "release.cmxa"

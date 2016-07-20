@@ -1,4 +1,5 @@
 open Printf
+open Stdint
 open Release_util
 
 module type S = sig

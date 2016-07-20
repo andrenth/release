@@ -64,7 +64,7 @@ struct
 
   let add_string buf s =
     let len = String.length s in
-    Future.Bytes.blit_string_bytes s 0 buf.bytes buf.len len;
+    Future.Bytes.blit_from_bytes s 0 buf.bytes buf.len len;
     buf.len <- buf.len + len
 
   let sub buf off len =

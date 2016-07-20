@@ -80,7 +80,7 @@ module type S = sig
     type t
 
     val blit : t -> int -> t -> int -> int -> unit
-    val blit_string_bytes : string -> int -> t -> int -> int -> unit
+    val blit_from_bytes : bytes -> int -> t -> int -> int -> unit
     val create : int -> t
     val fill : t -> int -> int -> char -> unit
     val get : t -> int -> char

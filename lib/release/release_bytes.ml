@@ -1,3 +1,5 @@
+open Stdint
+
 module type S = sig
   type buffer
 

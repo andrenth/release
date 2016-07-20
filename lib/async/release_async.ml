@@ -1,4 +1,5 @@
 module Std_unix = Unix
+module Std_bytes = Bytes
 open Core.Std
 open Async.Std
 open Async_extended.Std
@@ -56,7 +57,8 @@ struct
   module Logger = struct
     type t = Log.t
 
-    let syslog = Log.create `Info [Log.Syslog.output ()]
+    let syslog =
+      Log.create ~level:`Info ~output:[Log.Syslog.output ()] ~on_error:`Raise
 
     let debug logger fmt =
       ksprintf (fun s -> return (Log.debug logger "%s" s)) fmt
@@ -216,7 +218,8 @@ struct
 
     let blit src src_pos dst dst_pos len =
       Bigstring.blit ~src ~src_pos ~len ~dst ~dst_pos
-    let blit_string_bytes src src_pos dst dst_pos len =
+    let blit_from_bytes src src_pos dst dst_pos len =
+      let src = Std_bytes.of_string src in
       Bigstring.From_string.blit ~src ~src_pos ~len ~dst ~dst_pos
     let create n = Bigstring.create n
     let fill buf pos len c =
@@ -248,7 +251,9 @@ struct
     let read fd buf pos len =
       if Fd.supports_nonblock fd then
         nonblocking fd `Read ~name:"nonblocking_read"
-          (fun fd -> Bigstring.read_assume_fd_is_nonblocking fd buf ~pos ~len)
+          (fun fd ->
+            let r = Bigstring.read_assume_fd_is_nonblocking fd buf ~pos ~len in
+            Core.Std.Unix.Syscall_result.Int.ok_exn r)
       else
         Fd.syscall_in_thread_exn fd ~name:"read"
           (fun fd -> Bigstring.read fd buf ~pos ~len)
