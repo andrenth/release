@@ -1,5 +1,5 @@
 module Std_unix = Unix
-open Async.Std
+open Async
 open Printf
 open Ipc
 
@@ -26,7 +26,7 @@ let control_connection_handler fd =
     match req with
     | ControlIpcOps.Req s ->
         Log.info logger "got control request: %s" s;
-        return (ControlIpcOps.response_of_string (String.uppercase s))
+        return (ControlIpcOps.response_of_string (String.uppercase_ascii s))
     | ControlIpcOps.Broadcast s ->
         Log.info logger "got control broadcast request: %s" s;
         let get_conns = Option.some !slave_connections in

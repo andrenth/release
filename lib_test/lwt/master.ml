@@ -21,7 +21,7 @@ let control_connection_handler fd =
     match req with
     | ControlIpcOps.Req s ->
         Lwt_log.notice_f "got control request: %s" s >>= fun () ->
-        return (ControlIpcOps.response_of_string (String.uppercase s))
+        return (ControlIpcOps.response_of_string (String.uppercase_ascii s))
     | ControlIpcOps.Broadcast s ->
         Lwt_log.notice_f "got control broadcast request: %s" s >>= fun () ->
         let get_conns = Option.some !slave_connections in

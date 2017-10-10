@@ -17,7 +17,7 @@ let control_handler fd =
   let handler req =
     let s = ControlIpcOps.string_of_request req in
     Lwt_log.notice_f "got control request: %s" s >>= fun () ->
-    return (ControlIpcOps.response_of_string (String.uppercase s)) in
+    return (ControlIpcOps.response_of_string (String.uppercase_ascii s)) in
   ControlIpc.Server.handle_request ~timeout:5. fd handler >>= fun () ->
   return ()
 

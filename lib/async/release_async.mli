@@ -1,4 +1,4 @@
-open Async.Std
+open Async
 
 module Future : Release_future.S
   with type 'a t = 'a Deferred.t

@@ -1,6 +1,6 @@
 module Std_unix = Unix
-open Core.Std
-open Async.Std
+open Core
+open Async
 open Ipc
 
 open Release_async

@@ -1,7 +1,7 @@
 module Std_unix = Unix
 module Std_bytes = Bytes
-open Core.Std
-open Async.Std
+open Core
+open Async
 open Async_extended.Std
 
 module Future : Release_future.S
@@ -43,7 +43,7 @@ struct
     assert false
 
   module Monad = struct
-    let (>>=) = Deferred.bind
+    let (>>=) = (>>=)
     let return = Deferred.return
   end
 
@@ -93,14 +93,15 @@ struct
        * sockets, so we close the descriptor manually. This avoids
        * an EPIPE error when we fork and close unused descriptors
        * on either process. *)
-      Fd.close ~should_close_file_descriptor:false fd >>= fun () ->
+      Fd.close ~file_descriptor_handling:Fd.Do_not_close_file_descriptor fd
+      >>= fun () ->
       Std_unix.close file_descr;
       return ()
 
     let dup fd =
       Fd.syscall_in_thread_exn fd ~name:"dup"
         (fun file_descr ->
-          Core.Std.Unix.dup file_descr)
+          Core.Unix.dup file_descr)
       >>= fun dup_file_descr ->
       Fd.Kind.infer_using_stat dup_file_descr >>| fun kind ->
       Fd.create kind dup_file_descr (Info.of_string "dup")
@@ -120,13 +121,16 @@ struct
       }
 
     let listen sock backlog =
-      Socket.listen ~max_pending_connections:backlog sock
+      Socket.listen ~backlog sock
 
     let listen_unix fd backlog =
       listen (Socket.of_fd fd Socket.Type.unix) backlog
 
     let listen_inet fd backlog =
       listen (Socket.of_fd fd Socket.Type.tcp) backlog
+
+    let to_epoch t =
+      Time.diff t Time.epoch |> Time.Span.to_sec
 
     let lstat path =
       Unix.lstat path >>| fun st ->
@@ -149,9 +153,9 @@ struct
       ; Std_unix.st_gid = st.gid
       ; Std_unix.st_rdev = st.rdev
       ; Std_unix.st_size = Option.value_exn (Int64.to_int st.size)
-      ; Std_unix.st_atime = Time.to_epoch st.atime
-      ; Std_unix.st_mtime = Time.to_epoch st.mtime
-      ; Std_unix.st_ctime = Time.to_epoch st.ctime
+      ; Std_unix.st_atime = to_epoch st.atime
+      ; Std_unix.st_mtime = to_epoch st.mtime
+      ; Std_unix.st_ctime = to_epoch st.ctime
       }
 
     let on_signal signum handler =
@@ -160,18 +164,18 @@ struct
 
     let openfile file flags perm =
       let convert = function
-        | Core.Std.Unix.O_RDONLY   -> `Rdonly
-        | Core.Std.Unix.O_WRONLY   -> `Wronly
-        | Core.Std.Unix.O_RDWR     -> `Rdwr
-        | Core.Std.Unix.O_NONBLOCK -> `Nonblock
-        | Core.Std.Unix.O_APPEND   -> `Append
-        | Core.Std.Unix.O_CREAT    -> `Creat
-        | Core.Std.Unix.O_TRUNC    -> `Trunc
-        | Core.Std.Unix.O_EXCL     -> `Excl
-        | Core.Std.Unix.O_NOCTTY   -> `Noctty
-        | Core.Std.Unix.O_DSYNC    -> `Dsync
-        | Core.Std.Unix.O_SYNC     -> `Sync
-        | Core.Std.Unix.O_RSYNC    -> `Rsync
+        | Core.Unix.O_RDONLY   -> `Rdonly
+        | Core.Unix.O_WRONLY   -> `Wronly
+        | Core.Unix.O_RDWR     -> `Rdwr
+        | Core.Unix.O_NONBLOCK -> `Nonblock
+        | Core.Unix.O_APPEND   -> `Append
+        | Core.Unix.O_CREAT    -> `Creat
+        | Core.Unix.O_TRUNC    -> `Trunc
+        | Core.Unix.O_EXCL     -> `Excl
+        | Core.Unix.O_NOCTTY   -> `Noctty
+        | Core.Unix.O_DSYNC    -> `Dsync
+        | Core.Unix.O_SYNC     -> `Sync
+        | Core.Unix.O_RSYNC    -> `Rsync
         | _                    -> failwith "unsupported open flag" in
       let flags = List.map ~f:convert flags in
       Unix.openfile ~mode:flags ~perm file
@@ -236,24 +240,24 @@ struct
     let to_string b = Bigstring.to_string b
 
    let rec nonblocking fd what f ~name =
-     let module U = Std_unix in
      let module B = Bigstring in
-     try
-       return (Fd.syscall_exn fd ~nonblocking:true f)
-     with
-     | B.IOError (_, U.Unix_error ((U.EAGAIN | U.EWOULDBLOCK), _, _))
-     | U.Unix_error ((U.EAGAIN | U.EWOULDBLOCK), _, _) ->
+     let module U = Core.Unix in
+     let ready_to fd =
        Fd.ready_to fd what
        >>= function
        | `Bad_fd | `Closed -> failwith (name ^ ": descriptor is invalid")
-       | `Ready -> nonblocking fd what f ~name
+       | `Ready -> nonblocking fd what f ~name in
+     let syscall () =
+       Fd.syscall_exn fd ~nonblocking:true f in
+     match U.Syscall_result.Int.to_result (syscall ()) with
+     | Ok r -> return r
+     | Error U.EAGAIN -> ready_to fd
+     | Error e -> raise (U.Unix_error (e, name, ""))
 
     let read fd buf pos len =
       if Fd.supports_nonblock fd then
         nonblocking fd `Read ~name:"nonblocking_read"
-          (fun fd ->
-            let r = Bigstring.read_assume_fd_is_nonblocking fd buf ~pos ~len in
-            Core.Std.Unix.Syscall_result.Int.ok_exn r)
+          (fun fd -> Bigstring.read_assume_fd_is_nonblocking fd buf ~pos ~len)
       else
         Fd.syscall_in_thread_exn fd ~name:"read"
           (fun fd -> Bigstring.read fd buf ~pos ~len)
@@ -261,7 +265,9 @@ struct
     let write fd buf pos len =
       if Fd.supports_nonblock fd then
         nonblocking fd `Write ~name:"nonblocking write"
-          (fun fd -> Bigstring.write_assume_fd_is_nonblocking fd buf ~pos ~len)
+          (fun fd ->
+            Bigstring.write_assume_fd_is_nonblocking fd buf ~pos ~len
+            |> Core.Unix.Syscall_result.Int.create_ok)
       else
         Fd.syscall_in_thread_exn fd ~name:"write"
           (fun fd -> Bigstring.write fd buf ~pos ~len)

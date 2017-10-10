@@ -86,7 +86,7 @@ struct
 
     let bind (sock: 'addr unconnected_socket) addr =
       let sockaddr = sockaddr_of_addr addr in
-      Lwt_unix.bind (socket_fd sock) sockaddr;
+      Lwt_unix.bind (socket_fd sock) sockaddr >>= fun () ->
       return (sock: 'addr bound_socket)
 
     let chdir = Lwt_unix.chdir
