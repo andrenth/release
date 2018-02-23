@@ -75,6 +75,7 @@ Document "release"
   XOCamlbuildLibraries: release
 
 Executable "async_test_master"
+  Build$:          flag(async)
   Path:            lib_test/async
   MainIs:          master.ml
   Install:         false
@@ -83,6 +84,7 @@ Executable "async_test_master"
                    str
 
 Executable "async_test_slave"
+  Build$:          flag(async)
   Path:            lib_test/async
   MainIs:          slave.ml
   Install:         false
@@ -91,6 +93,7 @@ Executable "async_test_slave"
                    str
 
 Executable "async_test_helper"
+  Build$:          flag(async)
   Path:            lib_test/async
   MainIs:          helper.ml
   Install:         false
@@ -99,6 +102,7 @@ Executable "async_test_helper"
                    str
 
 Executable "async_masterctl"
+  Build$:          flag(async)
   Path:            lib_test/async
   MainIs:          masterctl.ml
   Install:         false
@@ -107,6 +111,7 @@ Executable "async_masterctl"
                    str
 
 Executable "async_test_config"
+  Build$:          flag(async)
   Path:            lib_test/async/config
   MainIs:          config_test.ml
   Install:         false
@@ -115,6 +120,7 @@ Executable "async_test_config"
   BuildDepends:    release.async
 
 Executable "lwt_test_master"
+  Build$:          flag(lwt)
   Path:            lib_test/lwt
   MainIs:          master.ml
   Install:         false
@@ -123,6 +129,7 @@ Executable "lwt_test_master"
                    str
 
 Executable "lwt_test_slave"
+  Build$:          flag(lwt)
   Path:            lib_test/lwt
   MainIs:          slave.ml
   Install:         false
@@ -131,6 +138,7 @@ Executable "lwt_test_slave"
                    str
 
 Executable "lwt_test_helper"
+  Build$:          flag(lwt)
   Path:            lib_test/lwt
   MainIs:          helper.ml
   Install:         false
@@ -139,6 +147,7 @@ Executable "lwt_test_helper"
                    str
 
 Executable "lwt_masterctl"
+  Build$:          flag(lwt)
   Path:            lib_test/lwt
   MainIs:          masterctl.ml
   Install:         false
@@ -147,6 +156,7 @@ Executable "lwt_masterctl"
                    str
 
 Executable "lwt_test_config"
+  Build$:          flag(lwt)
   Path:            lib_test/lwt/config
   MainIs:          config_test.ml
   Install:         false
