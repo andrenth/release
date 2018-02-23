@@ -13,7 +13,7 @@ module type S = sig
   val index : t -> char -> int option
   val index_from : t -> int -> char -> int option
   val add_char : t -> char -> unit
-  val add_string : t -> string -> unit
+  val add_bytes : t -> bytes -> unit
   val add_buffer : t -> t -> unit
   val contents : t -> string
   val to_string : t -> string
@@ -62,9 +62,9 @@ struct
   let add_char buf c =
     set buf buf.len c
 
-  let add_string buf s =
-    let len = String.length s in
-    Future.Bytes.blit_from_bytes s 0 buf.bytes buf.len len;
+  let add_bytes buf b =
+    let len = Bytes.length b in
+    Future.Bytes.blit_from_bytes b 0 buf.bytes buf.len len;
     buf.len <- buf.len + len
 
   let sub buf off len =

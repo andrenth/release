@@ -78,8 +78,8 @@ module type S = sig
     val add_char : t -> char -> unit
       (** [add_char buf c] appends character [c] at the end of [buf]. *)
 
-    val add_string : t -> string -> unit
-      (** [add_string buf s] appends string [s] at the end of [buf]. *)
+    val add_bytes : t -> bytes -> unit
+      (** [add_bytes buf b] appends bytes [b] at the end of [buf]. *)
 
     val add_buffer : t -> t -> unit
       (** [add_buffer buf1 buf2] appends buffer [buf2] at the end of [buf1]. *)

@@ -20,7 +20,7 @@ module type S = sig
     val index : t -> char -> int option
     val index_from : t -> int -> char -> int option
     val add_char : t -> char -> unit
-    val add_string : t -> string -> unit
+    val add_bytes : t -> bytes -> unit
     val add_buffer : t -> t -> unit
     val contents : t -> string
     val to_string : t -> string

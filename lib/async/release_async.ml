@@ -223,7 +223,7 @@ struct
     let blit src src_pos dst dst_pos len =
       Bigstring.blit ~src ~src_pos ~len ~dst ~dst_pos
     let blit_from_bytes src src_pos dst dst_pos len =
-      let src = Std_bytes.of_string src in
+      let src = Std_bytes.to_string src in
       Bigstring.From_string.blit ~src ~src_pos ~len ~dst ~dst_pos
     let create n = Bigstring.create n
     let fill buf pos len c =
