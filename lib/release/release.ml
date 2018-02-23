@@ -672,7 +672,8 @@ struct
         Option.either return (fun f -> f slave_connections) main in
       Future.join [main_t; control_t; idle_t] in
     let main_t =
-      if privileged then check_root () else check_nonroot () >>= fun () ->
+      let check = if privileged then check_root else check_nonroot in
+      check >>= fun () ->
       if background then daemon work else work () in
     Future.run main_t
 
