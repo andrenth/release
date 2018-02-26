@@ -360,8 +360,7 @@ struct
       let dev_null = Unix.openfile "/dev/null" [Unix.O_RDWR] 0 in
       let close_and_dup fd =
         Unix.close fd;
-        Unix.dup2 dev_null fd;
-        Unix.close dev_null in
+        Unix.dup2 dev_null fd in
       let descrs = [Unix.stdin; Unix.stdout; Unix.stderr] in
       List.iter close_and_dup descrs;
       Unix.close dev_null;
