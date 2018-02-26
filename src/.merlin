@@ -1,9 +1,0 @@
-B ../_build/default/src
-FLG -open Release__ -w -40
-PKG bytes
-PKG lwt
-PKG result
-PKG stdint
-PKG str
-PKG unix
-S .

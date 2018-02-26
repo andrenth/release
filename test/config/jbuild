@@ -2,4 +2,4 @@
 
 (executable
  ((name config_test)
-  (libraries (release lwt.unix))))
+  (libraries (release lwt.unix re2))))

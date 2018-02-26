@@ -120,7 +120,7 @@ module type S = sig
         | `Int of int
         | `Float of float
         | `Str of string
-        | `Regexp of Str.regexp
+        | `Regexp of Re.re
         | `List of t list
         ]
 
@@ -129,7 +129,7 @@ module type S = sig
       val to_int : [>`Int of int] -> int
       val to_float : [>`Float of float] -> float
       val to_string : [>`Str of string] -> string
-      val to_regexp : [>`Regexp of Str.regexp] -> Str.regexp
+      val to_regexp : [>`Regexp of Re.re] -> Re_pcre.regexp
       val to_list : string -> (t -> 'a) -> [>`List of t list] -> 'a list
       val to_keyword_list : [>`List of [>`Keyword of string] list]
                          -> string list
@@ -144,7 +144,7 @@ module type S = sig
         val int : int -> [>`Int of int] option
         val float : float -> [>`Float of float] option
         val string : string -> [>`Str of string] option
-        val regexp : Str.regexp -> [>`Regexp of Str.regexp] option
+        val regexp : Re_pcre.regexp -> [>`Regexp of Re.re] option
         val keyword_list : string list
                         -> [>`List of [>`Keyword of string] list] option
         val bool_list : bool list -> [>`List of [>`Bool of bool] list] option

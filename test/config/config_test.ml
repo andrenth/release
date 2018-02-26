@@ -42,7 +42,7 @@ let spec =
       ; "another_global_parameter", Default.bool true, [bool]
       ; "global-list", Default.int_list [1], [validate_global_list]
       ; "empty-list", Default.string_list [], [validate_empty_list]
-      ; "a-regexp", Default.regexp (Str.regexp "."), [regexp]
+      ; "a-regexp", Default.regexp (Re_pcre.regexp "."), [regexp]
       ]
   ; `Section ("section1",
       [ "my-required-param", None, [string]
@@ -70,7 +70,7 @@ let () =
         assert (getg conf "another_global_parameter" = `Bool true);
         assert (getg conf "global-list" = `List [`Int 1;`Int 2;`Int 3;`Int 4]);
         assert (getg conf "empty-list" = `List []);
-        assert (Str.string_match (V.to_regexp (getg conf "a-regexp")) "foo" 0);
+        assert (Re.execp (V.to_regexp (getg conf "a-regexp")) "foo");
 
         assert (get conf "section1" "my-required-param" = `Str"required-value");
         assert (get conf "section1" "my-optional-param" = `Str"optional-value");
@@ -133,7 +133,7 @@ let optspec =
       ; "another_global_parameter", Default.bool true, [bool]
       ; "global-list", Default.int_list [1], [validate_global_list]
       ; "empty-list", Default.string_list [], [validate_empty_list]
-      ; "a-regexp", Default.regexp (Str.regexp "^x$"), [regexp]
+      ; "a-regexp", Default.regexp (Re_pcre.regexp "^x$"), [regexp]
       ]
   ; `Section ("section1",
       [ "my-required-param", Default.string "required-value", [string]
@@ -156,7 +156,7 @@ let () =
   assert (getg conf "another_global_parameter" = `Bool true);
   assert (getg conf "global-list" = `List [`Int 1]);
   assert (getg conf "empty-list" = `List []);
-  assert (Str.string_match (V.to_regexp (getg conf "a-regexp")) "x" 0);
+  assert (Re.execp (V.to_regexp (getg conf "a-regexp")) "x");
 
   assert (get conf "section1" "my-required-param" = `Str "required-value");
   assert (get conf "section1" "my-optional-param" = `Str "opt");

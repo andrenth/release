@@ -5,7 +5,7 @@ open Ipc
 open Release
 
 let socket_path =
-  sprintf "%s/_build/helper_lwt.socket" (Unix.getcwd ())
+  sprintf "%s/_build/helper.socket" (Unix.getcwd ())
 
 let handle_sigterm _ =
   let log_t =

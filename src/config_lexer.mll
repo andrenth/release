@@ -84,7 +84,7 @@ and str buf = parse
 and regexp buf = parse
   | '/'
       {
-        Str.regexp (Buffer.contents buf)
+        Re_pcre.regexp (Buffer.contents buf)
       }
   | '(' as p
   | ')' as p

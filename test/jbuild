@@ -7,4 +7,4 @@
 
 (executables
  ((names (master slave helper masterctl))
-  (libraries (release lwt.unix))))
+  (libraries (release lwt.unix re.pcre))))

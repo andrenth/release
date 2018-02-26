@@ -41,6 +41,7 @@ let syslog =
   Lwt_log.syslog ~facility:`User ()
 
 let () =
+  Lwt_log.default := Logger.syslog;
   let cwd = Unix.getcwd () in
   let slave_exec =
     sprintf "%s/_build/default/test/slave.exe" cwd in

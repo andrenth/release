@@ -4,7 +4,7 @@ type t =
   | `Int of int
   | `Float of float
   | `Str of string
-  | `Regexp of Str.regexp
+  | `Regexp of Re_pcre.regexp
   | `List of t list
   ]
 

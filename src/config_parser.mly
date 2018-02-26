@@ -28,7 +28,7 @@ let () = section G.global_section
 %token <float> FLOAT
 %token <bool> BOOL
 %token <string> STRING
-%token <Str.regexp> REGEXP
+%token <Re.re> REGEXP
 %token EQUALS
 %token LBRACKET
 %token RBRACKET

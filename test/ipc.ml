@@ -13,16 +13,15 @@ module SlaveIpcOps = struct
     | Req2 pid -> sprintf "req2+%d" pid
 
   let request_of_string s =
-    let re = Str.regexp "^req\\([12]\\)\\+\\([0-9]+\\)$" in
-    if Str.string_match re s 0 then begin
-      let i = Str.matched_group 1 s in
-      let pid = Str.matched_group 2 s in
-      match i with
-      | "1" -> Req1 (int_of_string pid)
-      | "2" -> Req2 (int_of_string pid)
-      | _ -> failwith (sprintf "bad request: %s" s)
-    end else
-      failwith (sprintf "bad request: %s" s)
+    let re = Re_pcre.regexp "^req\\([12]\\)\\+\\([0-9]+\\)$" in
+    match Re.matches re s with
+    | [i; pid] ->
+        (match i with
+        | "1" -> Req1 (int_of_string pid)
+        | "2" -> Req2 (int_of_string pid)
+        | _ -> failwith (sprintf "bad request: %s" s))
+    | _ ->
+        failwith (sprintf "bad request: %s" s)
 
   let string_of_response = function
     | Resp1 pid -> sprintf "resp1+%d" pid
@@ -30,19 +29,18 @@ module SlaveIpcOps = struct
     | Broadcast s -> sprintf "broadcast:%s" s
 
   let response_of_string s =
-    let re1 = Str.regexp "^resp\\([12]\\)\\+\\([0-9]+\\)$" in
-    let re2 = Str.regexp "^broadcast:\\([a-z]+\\)$" in
-    if Str.string_match re1 s 0 then
-      let i = Str.matched_group 1 s in
-      let pid = Str.matched_group 2 s in
-      match i with
-      | "1" -> Resp1 (int_of_string pid)
-      | "2" -> Resp2 (int_of_string pid)
-      | _ -> failwith (sprintf "bad response: %s" s)
-    else if Str.string_match re2 s 0 then
-      Broadcast (Str.matched_group 1 s)
-    else
-      failwith (sprintf "bad response: %s" s)
+    let re1 = Re_pcre.regexp "^resp\\([12]\\)\\+\\([0-9]+\\)$" in
+    let re2 = Re_pcre.regexp "^broadcast:\\([a-z]+\\)$" in
+    match Re.matches re1 s with
+    | [i; pid] ->
+        (match i with
+        | "1" -> Resp1 (int_of_string pid)
+        | "2" -> Resp2 (int_of_string pid)
+        | _ -> failwith (sprintf "bad response: %s" s))
+    | _ ->
+        (match Re.matches re2 s with
+        | [bcast] -> Broadcast bcast
+        | _ -> failwith (sprintf "bad response: %s" s))
 end
 
 module SlaveIpc = Release.Ipc.Make (SlaveIpcOps)
@@ -58,11 +56,10 @@ module ControlIpcOps = struct
     | Broadcast s -> sprintf "broadcast:%s" s
 
   let request_of_string s =
-    let re = Str.regexp "^broadcast:\\([a-z]+\\)$" in
-    if Str.string_match re s 0 then
-      Broadcast (Str.matched_group 1 s)
-    else
-      Req s
+    let re = Re_pcre.regexp "^broadcast:\\([a-z]+\\)$" in
+    match Re.matches re s with
+    | [bcast] -> Broadcast bcast
+    | _ -> Req s
 
   let string_of_response = function
     | Resp s -> s
