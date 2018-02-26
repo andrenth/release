@@ -118,8 +118,7 @@ struct
   exception Overflow
 
   let close_connection conn =
-    let fd, mtx = conn in
-    Lwt_mutex.with_lock mtx (fun () -> Lwt_unix.close fd)
+    Lwt_unix.close (fst conn)
 
   let read_header =
     Bytes.Big_endian.read_int
@@ -145,8 +144,7 @@ struct
     let buf' = B.create (len + header_length) in
     write_header len buf';
     B.blit buf 0 buf' header_length len;
-    let fd, mtx = conn in
-    Lwt_mutex.with_lock mtx (fun () -> Io.write fd buf')
+    Io.write (fst conn) buf'
 
   let request_of_buffer buf =
     O.request_of_string (B.to_string buf)
