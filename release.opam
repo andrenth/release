@@ -1,0 +1,17 @@
+opam-version: "1.2"
+name: "release"
+version: "2.0.0"
+maintainer: "Andre Nathan <andrenth@gmail.com>"
+authors: "Andre Nathan <andrenth@gmail.com>"
+homepage: "https://github.com/andrenth/release"
+bug-reports: "https://github.com/andrenth/release/issues"
+license: "MIT"
+dev-repo: "https://github.com/andrenth/release.git"
+build: [
+  ["jbuilder" "build" "-p" name "-j" jobs]
+]
+depends: [
+  "jbuilder" {build}
+  "lwt"
+  "stdint"
+]

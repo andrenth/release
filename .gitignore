@@ -1,7 +1,3 @@
-.gitignore
 _build/
-setup.data
-setup.log
+.merlin
 *.swp
-*.native
-*.docdir
