@@ -1,6 +1,6 @@
 {
 
-open Release_config_parser
+open Config_parser
 
 let char_for_backslash = function
   | 'n' -> '\n'

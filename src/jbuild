@@ -7,5 +7,5 @@
   (libraries
    (stdint lwt str unix))))
 
-(ocamllex (release_config_lexer))
-(ocamlyacc (release_config_parser))
+(ocamllex (config_lexer))
+(ocamlyacc (config_parser))

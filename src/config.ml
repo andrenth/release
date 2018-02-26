@@ -1,9 +1,9 @@
 open Printf
 open Lwt.Infix
-open Release_util
+open Util
 
-module Value = Release_config_values
-module Validation = Release_config_validations
+module Value = Config_values
+module Validation = Config_validations
 
 type key = string * Value.t option * Validation.t list
 
@@ -58,7 +58,7 @@ let validate_unknown msg conf =
     let msg = if len = 1 then msg else msg ^ "s" in
     `Invalid (unknown_config msg conf)
 
-let global_section = Release_config_global.global_section
+let global_section = Config_global.global_section
 
 let validate_key_and cont validations value =
   let rec validate = function
@@ -157,14 +157,14 @@ let parse file spec =
     try
       let lexbuf = Lexing.from_channel ch in
       while true do
-        Release_config_parser.input Release_config_lexer.token lexbuf
+        Config_parser.input Config_lexer.token lexbuf
       done;
       assert false (* not reached *)
     with End_of_file ->
       close_in ch;
-      match Release_config_global.errors () with
+      match Config_global.errors () with
       | [] ->
-          let conf = Release_config_global.copy () in
+          let conf = Config_global.copy () in
           remove_empty_global_section conf;
           Lwt.return (validate conf spec)
       | errors ->

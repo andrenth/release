@@ -1,8 +1,9 @@
 open Printf
 open Lwt.Infix
-open Release_util
+open Util
 
 module B = Release_buffer
+module Bytes = Release_bytes
 
 type connection = Lwt_unix.file_descr * Lwt_mutex.t
 type handler = connection -> unit Lwt.t
@@ -16,7 +17,7 @@ let control_socket path handler =
     (fun () ->
       let sock = Lwt_unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
       let addr = Lwt_unix.ADDR_UNIX path in
-      Release_socket.accept_loop sock addr
+      Socket.accept_loop sock addr
         (fun sock -> handler (create_connection sock)))
     (function
     | Unix.Unix_error (Unix.EADDRINUSE, _, _) ->
@@ -103,7 +104,7 @@ module Make (O : Ops) : S
 struct
   (*
    * Do the header operations by hand to avoid forcing a
-   * dependency on Release_bytes.
+   * dependency on Bytes.
    *
    * IPC header is a 4-byte field containing the payload
    * size, stored in network byte order.
@@ -121,17 +122,17 @@ struct
     Lwt_mutex.with_lock mtx (fun () -> Lwt_unix.close fd)
 
   let read_header =
-    Release_bytes.Big_endian.read_int
+    Bytes.Big_endian.read_int
 
   let write_header =
-    Release_bytes.Big_endian.write_int
+    Bytes.Big_endian.write_int
 
   let read_header_and_payload ?timeout fd =
-    Release_io.read ?timeout fd header_length >>= function
+    Io.read ?timeout fd header_length >>= function
     | `Timeout | `EOF as other ->
         Lwt.return other
     | `Data b ->
-        try Release_io.read ?timeout fd (read_header b)
+        try Io.read ?timeout fd (read_header b)
         with Overflow -> Lwt.fail (Failure "IPC header length overflow")
 
   let read ?timeout conn =
@@ -145,7 +146,7 @@ struct
     write_header len buf';
     B.blit buf 0 buf' header_length len;
     let fd, mtx = conn in
-    Lwt_mutex.with_lock mtx (fun () -> Release_io.write fd buf')
+    Lwt_mutex.with_lock mtx (fun () -> Io.write fd buf')
 
   let request_of_buffer buf =
     O.request_of_string (B.to_string buf)

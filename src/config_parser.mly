@@ -1,7 +1,7 @@
 %{
 
-open Release_config_values
-module G = Release_config_global
+open Config_values
+module G = Config_global
 
 let current_line () =
   let start_pos = Parsing.symbol_start_pos () in

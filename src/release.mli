@@ -8,8 +8,8 @@
     channels between master and slave, dropping privileges and chroot'ing
     the slave process, etc.
 
-    The library also provides helper sub-modules [IO], for simple and safe
-    I/O operations, [IPC], for type- and thread-safe inter-process
+    The library also provides helper sub-modules [Io], for simple and safe
+    I/O operations, [Ipc], for type- and thread-safe inter-process
     communication and [Socket] for miscellaneous socket-related utility
     functions.
 
@@ -115,7 +115,7 @@ end
     sense that reads and writes are automatically retried when [Unix.EINTR]
     or [Unix.EAGAIN] errors are caught.
 *)
-module IO : sig
+module Io : sig
   val read_once : Lwt_unix.file_descr
                -> Buffer.t
                -> int
@@ -510,7 +510,7 @@ end
     Therefore, in 32-bit architectures, an exception might be raises during
     header parsing.
 *)
-module IPC : sig
+module Ipc : sig
   (** The type of IPC connections. *)
   type connection
 
@@ -640,13 +640,13 @@ val daemon : (unit -> unit Lwt.t) -> unit Lwt.t
           calls [f]. *)
 
 val master_slave :
-       slave:(command * IPC.handler)
+       slave:(command * Ipc.handler)
     -> ?background:bool
     -> ?logger:Lwt_log.logger
     -> ?privileged:bool
     -> ?slave_env:[`Inherit | `Keep of string list]
-    -> ?control:(string * IPC.handler)
-    -> ?main:((unit -> (int * IPC.connection) list) -> unit Lwt.t)
+    -> ?control:(string * Ipc.handler)
+    -> ?main:((unit -> (int * Ipc.connection) list) -> unit Lwt.t)
     -> lock_file:string
     -> unit -> unit
   (** Sets up a master process with one slave.
@@ -654,7 +654,7 @@ val master_slave :
       [slave] is a tuple whose first element contains the {!command}
       associated to the slave process and second element is a callback
       function that is called in the master process to handle IPC requests
-      from the slave (see {!IPC}).
+      from the slave (see {!Ipc}).
 
       [background] indicates whether {!daemon} will be called. Defaults to
       [true].
@@ -693,10 +693,10 @@ val master_slaves :
     -> ?logger:Lwt_log.logger
     -> ?privileged:bool
     -> ?slave_env:[`Inherit | `Keep of string list]
-    -> ?control:(string * IPC.handler)
-    -> ?main:((unit -> (int * IPC.connection) list) -> unit Lwt.t)
+    -> ?control:(string * Ipc.handler)
+    -> ?main:((unit -> (int * Ipc.connection) list) -> unit Lwt.t)
     -> lock_file:string
-    -> slaves:(command * IPC.handler * int) list
+    -> slaves:(command * Ipc.handler * int) list
     -> unit -> unit
    (** This function generalizes {!master_slave}, taking the same arguments,
        except for [slave], which is substituted by [slaves]. This argument is
@@ -708,7 +708,7 @@ val master_slaves :
 
 val me : ?logger:Lwt_log.logger
       -> ?user:string
-      -> main:(IPC.connection -> unit Lwt.t)
+      -> main:(Ipc.connection -> unit Lwt.t)
       -> unit -> unit
   (** This function is supposed to be called in the slave process.
 

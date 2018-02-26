@@ -1,6 +1,6 @@
 open Printf
 open Stdint
-open Release_util
+open Util
 
 module type S = sig
   type +'a future
@@ -31,7 +31,7 @@ module type S = sig
     val write : fd -> t -> int -> int -> int future
   end
 
-  module IO : sig
+  module Io : sig
     val read_once : fd
                  -> Buffer.t
                  -> int
@@ -44,7 +44,7 @@ module type S = sig
     val write : fd -> Buffer.t -> unit future
   end
 
-  module Bytes : sig
+  module Binary : sig
     val read_byte_at : int -> Buffer.t -> int
     val read_byte : Buffer.t -> int
     val write_byte : int -> Buffer.t -> unit
@@ -229,7 +229,7 @@ module type S = sig
                    -> 'a future
   end
 
-  module IPC : sig
+  module Ipc : sig
     type connection
     type handler = connection -> unit future
 
@@ -306,13 +306,13 @@ module type S = sig
   val daemon : (unit -> unit future) -> unit future
 
   val master_slave :
-         slave:(command * IPC.handler)
+         slave:(command * Ipc.handler)
       -> ?background:bool
       -> ?logger:logger
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
-      -> ?control:(string * IPC.handler)
-      -> ?main:((unit -> (int * IPC.connection) list) -> unit future)
+      -> ?control:(string * Ipc.handler)
+      -> ?main:((unit -> (int * Ipc.connection) list) -> unit future)
       -> lock_file:string
       -> unit -> unit
 
@@ -321,15 +321,15 @@ module type S = sig
       -> ?logger:logger
       -> ?privileged:bool
       -> ?slave_env:[`Inherit | `Keep of string list]
-      -> ?control:(string * IPC.handler)
-      -> ?main:((unit -> (int * IPC.connection) list) -> unit future)
+      -> ?control:(string * Ipc.handler)
+      -> ?main:((unit -> (int * Ipc.connection) list) -> unit future)
       -> lock_file:string
-      -> slaves:(command * IPC.handler * int) list
+      -> slaves:(command * Ipc.handler * int) list
       -> unit -> unit
 
   val me : ?logger:logger
         -> ?user:string
-        -> main:(IPC.connection -> unit future)
+        -> main:(Ipc.connection -> unit future)
         -> unit -> unit
 end
 
@@ -337,11 +337,11 @@ type command = string * string array
 
 module Buffer = Release_buffer
 module Bytes = Release_bytes
-module Config = Release_config
-module Socket = Release_socket
-module IO = Release_io
-module IPC = Release_ipc
-module Util = Release_util
+module Config = Config
+module Socket = Socket
+module Io = Io
+module Ipc = Ipc
+module Util = Util
 module Option = Util.Option
 
 open Lwt.Infix
@@ -381,7 +381,7 @@ let daemon f =
 
 let read_pid fd =
   let buf = Buffer.create 32 in
-  IO.read_once fd buf 0 32 >>= fun k ->
+  Io.read_once fd buf 0 32 >>= fun k ->
   let pid = String.trim (Buffer.to_string (Buffer.sub buf 0 k)) in
   Lwt.catch
     (fun () -> Lwt.return (Some (int_of_string pid)))
@@ -410,7 +410,7 @@ let write_pid path =
       let buf = Buffer.of_string (string_of_int (Unix.getpid ()) ^ "\n") in
       let flags = [Unix.O_CREAT; Unix.O_WRONLY] in
       Lwt_unix.openfile path flags 0o644 >>= fun fd ->
-      IO.write fd buf)
+      Io.write fd buf)
     (function
     | Unix.Unix_error (e, _, _) ->
         let err = Unix.error_message e in
@@ -561,7 +561,7 @@ let fork_exec cmd env reexec =
     ~env
     cmd
     (fun proc ->
-      let master_conn = IPC.create_connection master_fd in
+      let master_conn = Ipc.create_connection master_fd in
       handle_process master_conn reexec proc)
 
 let rec exec_process cmd ipc_handler slave_env check_death_rate =
@@ -660,7 +660,7 @@ let master_slaves ?(background = true) ?logger ?(privileged = true)
     Lwt_main.at_exit (fun () -> remove_lock_file lock_file);
     let idle_t, _wait_t = Lwt.wait () in
     let control_t =
-      Option.either Lwt.return (curry IPC.control_socket) control in
+      Option.either Lwt.return (curry Ipc.control_socket) control in
     Lwt_list.iter_p create_slaves slaves >>= fun () ->
     let main_t =
       Option.either Lwt.return (fun f -> f slave_connections) main in
@@ -679,9 +679,9 @@ let lose_privileges user =
   check_root () >>= fun () ->
   Lwt.catch
     (fun () ->
-      Release_privileges.drop user)
+      Privileges.drop user)
     (function
-    | Release_privileges.Release_privileges_error err ->
+    | Privileges.Error err ->
         Lwt_log.error_f "Error dropping privileges: %s" err >>= fun () ->
         exit 1
     | e ->
@@ -695,7 +695,7 @@ let me ?logger ?user ~main () =
     Lwt_unix.close Lwt_unix.stdin >>= fun () ->
     let pid = Unix.getpid () in
     Lwt_log.info_f "starting up (PID %d)" pid >>= fun () ->
-    let ipc_conn = IPC.create_connection ipc_fd in
+    let ipc_conn = Ipc.create_connection ipc_fd in
     main ipc_conn >>= fun () ->
     Lwt_log.info_f "stopping (PID %d)" pid >>= fun () ->
     Lwt.return_unit in

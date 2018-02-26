@@ -1,5 +1,5 @@
 open Lwt.Infix
-open Release_util
+open Util
 
 module B = Release_buffer
 

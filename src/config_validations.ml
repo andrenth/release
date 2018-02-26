@@ -1,6 +1,6 @@
 open Printf
 
-type t = Release_config_values.t -> [`Valid | `Invalid of string]
+type t = Config_values.t -> [`Valid | `Invalid of string]
 type result = [`Valid | `Invalid of string]
 
 let keyword kw = function
@@ -42,10 +42,10 @@ let any_list name f = function
   | _ ->
       `Invalid (sprintf "%s_list: not a list" name)
 
-let bool_list : Release_config_values.t -> result = any_list "bool" bool
-let int_list : Release_config_values.t -> result = any_list "int" int
-let float_list : Release_config_values.t -> result = any_list "float" float
-let string_list : Release_config_values.t -> result = any_list "string" string
+let bool_list : Config_values.t -> result = any_list "bool" bool
+let int_list : Config_values.t -> result = any_list "int" int
+let float_list : Config_values.t -> result = any_list "float" float
+let string_list : Config_values.t -> result = any_list "string" string
 
 let int_in_range (min, max) = function
   | `Int x ->
@@ -120,7 +120,7 @@ let string_in l = function
   | _ ->
       `Invalid "string_in: not a string"
 
-let file_with f name err (v : Release_config_values.t) : result =
+let file_with f name err (v : Config_values.t) : result =
   match v with
   | `Str file ->
       (try

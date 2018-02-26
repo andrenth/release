@@ -1,12 +1,12 @@
 open Printf
 open Lwt.Infix
-open Release_util
+open Util
 
-exception Release_privileges_error of string
+exception Error of string
 
 let check_priv name f exp =
   if f () <> exp then
-    Lwt.fail (Release_privileges_error name)
+    Lwt.fail (Error name)
   else
     Lwt.return_unit
 
@@ -19,7 +19,7 @@ let drop user =
     match uid with
     | 0 ->
         Lwt.fail
-          (Release_privileges_error ("cannot drop privileges to root"))
+          (Error ("cannot drop privileges to root"))
     | _ ->
         Lwt_unix.chroot dir >>= fun () ->
         Lwt_unix.chdir "/" >>= fun () ->
@@ -34,8 +34,8 @@ let drop user =
     (function
     | Not_found ->
         Lwt.fail
-          (Release_privileges_error (sprintf "user `%s' not found" user))
+          (Error (sprintf "user `%s' not found" user))
     | Unix.Unix_error (e, _, _) ->
-        Lwt.fail (Release_privileges_error (Unix.error_message e))
+        Lwt.fail (Error (Unix.error_message e))
     | e ->
         Lwt.fail e)
