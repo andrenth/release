@@ -1,0 +1,10 @@
+(jbuild_version 1)
+
+(alias
+ ((name    runtest)
+  (deps    (master.exe slave.exe helper.exe masterctl.exe))
+   (action (echo "compiled test executables: ${^}\n"))))
+
+(executables
+ ((names (master slave helper masterctl))
+  (libraries (release lwt.unix))))

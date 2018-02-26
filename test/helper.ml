@@ -2,7 +2,7 @@ open Lwt
 open Printf
 open Ipc
 
-open Release_lwt
+open Release
 
 let socket_path =
   sprintf "%s/_build/helper_lwt.socket" (Unix.getcwd ())
@@ -23,7 +23,7 @@ let control_handler fd =
 
 let main fd =
   let ctrl_ipc_t =
-    Release.IPC.control_socket socket_path control_handler in
+    Release.Ipc.control_socket socket_path control_handler in
   let bcast_ipc_t =
     let rec bcast_ipc () =
       SlaveIpc.Client.read_response fd >>= function

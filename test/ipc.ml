@@ -1,5 +1,4 @@
 open Printf
-open Release_async
 
 module SlaveIpcOps = struct
   type request = Req1 of int
@@ -46,7 +45,7 @@ module SlaveIpcOps = struct
       failwith (sprintf "bad response: %s" s)
 end
 
-module SlaveIpc = Release.IPC.Make (SlaveIpcOps)
+module SlaveIpc = Release.Ipc.Make (SlaveIpcOps)
 
 module ControlIpcOps = struct
   type request = Req of string
@@ -73,4 +72,4 @@ module ControlIpcOps = struct
     if s = "bcastok" then Broadcast_sent else Resp s
 end
 
-module ControlIpc = Release.IPC.Make (ControlIpcOps)
+module ControlIpc = Release.Ipc.Make (ControlIpcOps)

@@ -1,10 +1,9 @@
 open Lwt
 open Printf
 
-open Release_lwt
 module C = Release.Config
 
-let path = "./lib_test/config"
+let path = "./"
 
 let validate_global_parameter = function
   | `Int i ->
