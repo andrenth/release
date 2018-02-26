@@ -1,0 +1,11 @@
+(jbuild_version 1)
+
+(library
+ ((name release)
+  (public_name release)
+  (synopsis "blah")
+  (libraries
+   (stdint lwt str unix))))
+
+(ocamllex (release_config_lexer))
+(ocamlyacc (release_config_parser))
