@@ -26,14 +26,15 @@ let main fd =
     Release.Ipc.control_socket socket_path control_handler in
   let bcast_ipc_t =
     let rec bcast_ipc () =
-      SlaveIpc.Client.read_response fd >>= function
+      SlaveIpc.Client.read_response fd >>= begin function
       | `Response (SlaveIpcOps.Broadcast s) ->
           Lwt_log.notice_f "got broadcast: %s" s
       | `Response (SlaveIpcOps.Resp1 i | SlaveIpcOps.Resp2 i) ->
           Lwt_log.notice_f "got unexpected IPC response: %d" i
       | _ ->
           Lwt_log.error "helper IPC error" >>= fun () ->
-          Lwt_unix.sleep 1.0 >>= fun () ->
+          Lwt_unix.sleep 1.0
+      end >>= fun () ->
       bcast_ipc () in
     bcast_ipc () in
   ctrl_ipc_t <&> bcast_ipc_t
