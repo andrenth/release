@@ -1,16 +1,17 @@
-open Lwt
+open Lwt.Infix
 open Printf
 open Ipc
 
 let handle_sigterm _ =
-  ignore_result (Lwt_log.notice "got sigterm");
+  Lwt.ignore_result (Lwt_log.notice "got sigterm");
   exit 0
 
 let ipc_lock = Lwt_mutex.create ()
 
 let ipc_request fd req =
   Lwt_mutex.with_lock ipc_lock
-    (fun () -> SlaveIpc.Client.write_request fd req)
+    (fun () ->
+       SlaveIpc.Client.write_request fd req)
 
 let rec consume_ipc fd =
   SlaveIpc.Client.read_response fd >>= begin function
@@ -53,7 +54,6 @@ let check_env () =
         Lwt.fail e)
 
 let main fd =
-  Lwt_log.default := Logger.syslog;
   check_env () >>= fun () ->
   ignore (Lwt_unix.on_signal Sys.sigterm handle_sigterm);
   let read_t = consume_ipc fd in
