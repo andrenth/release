@@ -208,30 +208,33 @@ let restrict_env = function
         Option.may_default env (fun v -> v::env) (getenv k) in
       Array.of_list (List.fold_left setenv [] allowed)
 
+let log_status pid =
+  let log fmt = ksprintf (fun s -> Lwt_log.notice_f "process %s" s) fmt in
+  function
+  | Lwt_unix.WEXITED 0 -> log "%d exited normally" pid
+  | Lwt_unix.WEXITED s -> log "%d exited with status %s" pid (signame s)
+  | Lwt_unix.WSIGNALED s -> log "%d signaled to death by %s" pid (signame s)
+  | Lwt_unix.WSTOPPED s -> log "%d stopped by signal %s" pid (signame s)
+
 let handle_process master_fd reexec proc =
   let log fmt = ksprintf (fun s -> Lwt_log.notice_f "process %s" s) fmt in
   let pid = proc#pid in
   add_slave_connection pid master_fd >>= fun () ->
   log "%d created" pid >>= fun () ->
-	proc#status >>= begin function
-  | Lwt_unix.WEXITED 0 -> log "%d exited normally" pid
-  | Lwt_unix.WEXITED s -> log "%d exited with status %s" pid (signame s)
-  | Lwt_unix.WSIGNALED s -> log "%d signaled to death by %s" pid (signame s)
-  | Lwt_unix.WSTOPPED s -> log "%d stopped by signal %s" pid (signame s)
-  end >>= fun () ->
+	proc#status >>= log_status pid >>= fun () ->
   remove_slave_connection pid >>= fun () ->
   reexec ()
 
-let fork_exec cmd env reexec =
+let fork_exec cmd env ipc_handler reexec =
   let master_fd, slave_fd = Lwt_unix.(socketpair PF_UNIX SOCK_STREAM 0) in
   Lwt_unix.set_close_on_exec master_fd;
+  let master_conn = Ipc.create_connection master_fd in
+  let _ipc_t = ipc_handler master_conn in
   Lwt_process.with_process_none
     ~stdin:(`FD_move (Lwt_unix.unix_file_descr slave_fd))
     ~env
     cmd
-    (fun proc ->
-      let master_conn = Ipc.create_connection master_fd in
-      handle_process master_conn reexec proc)
+    (handle_process master_conn reexec)
 
 let rec exec_process cmd ipc_handler slave_env check_death_rate =
   let run_proc cmd =
@@ -243,7 +246,7 @@ let rec exec_process cmd ipc_handler slave_env check_death_rate =
           Lwt_log.error "slave process dying too fast" >>= fun () ->
           exit 1 in
     let env = restrict_env slave_env in
-    fork_exec cmd env reexec  in
+    fork_exec cmd env ipc_handler reexec  in
   let _slave_t =
     try_exec run_proc cmd in
   Lwt.return_unit
@@ -327,7 +330,7 @@ let master_slaves ?(background = true) ?logger ?(privileged = true)
     ignore (Lwt_unix.on_signal Sys.sigterm handle_sigterm);
     create_lock_file lock_file >>= fun () ->
     Lwt_main.at_exit (fun () -> remove_lock_file lock_file);
-    let idle_t, _wait_t = Lwt.wait () in
+    let idle_t, _idle_w = Lwt.wait () in
     let control_t =
       Option.either Lwt.return (curry Ipc.control_socket) control in
     Lwt_list.iter_p create_slaves slaves >>= fun () ->
@@ -341,7 +344,7 @@ let master_slaves ?(background = true) ?logger ?(privileged = true)
   Lwt_main.run main_t
 
 let master_slave ~slave =
-  let (cmd, ipc_handler) = slave in
+  let cmd, ipc_handler = slave in
   master_slaves ~slaves:[cmd, ipc_handler, 1]
 
 let lose_privileges user =
