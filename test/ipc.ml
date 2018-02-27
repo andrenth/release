@@ -1,5 +1,10 @@
 open Printf
 
+let re_matches re s is =
+  match Re.exec_opt re s with
+  | Some groups -> Some (List.map (Re.Group.get groups) is)
+  | None -> None
+
 module SlaveIpcOps = struct
   type request = Req1 of int
                | Req2 of int
@@ -13,9 +18,9 @@ module SlaveIpcOps = struct
     | Req2 pid -> sprintf "req2+%d" pid
 
   let request_of_string s =
-    let re = Re_pcre.regexp "^req\\([12]\\)\\+\\([0-9]+\\)$" in
-    match Re.matches re s with
-    | [i; pid] ->
+    let re = Re_pcre.regexp "^req([12])\\+([0-9]+)$" in
+    match re_matches re s [1; 2] with
+    | Some [i; pid] ->
         (match i with
         | "1" -> Req1 (int_of_string pid)
         | "2" -> Req2 (int_of_string pid)
@@ -29,17 +34,17 @@ module SlaveIpcOps = struct
     | Broadcast s -> sprintf "broadcast:%s" s
 
   let response_of_string s =
-    let re1 = Re_pcre.regexp "^resp\\([12]\\)\\+\\([0-9]+\\)$" in
-    let re2 = Re_pcre.regexp "^broadcast:\\([a-z]+\\)$" in
-    match Re.matches re1 s with
-    | [i; pid] ->
+    let re1 = Re_pcre.regexp "^resp([12])\\+([0-9]+)$" in
+    let re2 = Re_pcre.regexp "^broadcast:([a-z]+)$" in
+    match re_matches re1 s [1; 2] with
+    | Some [i; pid] ->
         (match i with
         | "1" -> Resp1 (int_of_string pid)
         | "2" -> Resp2 (int_of_string pid)
         | _ -> failwith (sprintf "bad response: %s" s))
     | _ ->
-        (match Re.matches re2 s with
-        | [bcast] -> Broadcast bcast
+        (match re_matches re2 s [1] with
+        | Some [bcast] -> Broadcast bcast
         | _ -> failwith (sprintf "bad response: %s" s))
 end
 
@@ -56,9 +61,9 @@ module ControlIpcOps = struct
     | Broadcast s -> sprintf "broadcast:%s" s
 
   let request_of_string s =
-    let re = Re_pcre.regexp "^broadcast:\\([a-z]+\\)$" in
-    match Re.matches re s with
-    | [bcast] -> Broadcast bcast
+    let re = Re_pcre.regexp "^broadcast:([a-z]+)$" in
+    match re_matches re s [1] with
+    | Some [bcast] -> Broadcast bcast
     | _ -> Req s
 
   let string_of_response = function
