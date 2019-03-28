@@ -290,7 +290,7 @@ module Config : sig
     val to_int : [>`Int of int] -> int
     val to_float : [>`Float of float] -> float
     val to_string : [>`Str of string] -> string
-    val to_regexp : [>`Regexp of Re.re] -> Re_pcre.regexp
+    val to_regexp : [>`Regexp of Re.re] -> Re.Pcre.regexp
     val to_list : string -> (t -> 'a) -> [>`List of t list] -> 'a list
     val to_keyword_list : [>`List of [>`Keyword of string] list]
                        -> string list
@@ -307,7 +307,7 @@ module Config : sig
       val int : int -> [>`Int of int] option
       val float : float -> [>`Float of float] option
       val string : string -> [>`Str of string] option
-      val regexp : Re_pcre.regexp -> [>`Regexp of Re.re] option
+      val regexp : Re.Pcre.regexp -> [>`Regexp of Re.re] option
       val keyword_list : string list
                       -> [>`List of [>`Keyword of string] list] option
       val bool_list : bool list -> [>`List of [>`Bool of bool] list] option
@@ -379,7 +379,7 @@ module Config : sig
     val string_matching : string -> t
       (** The value is a string matching the regular expression given as a
           string. The regular expression is created by calling
-          [Re_pcre.regexp] on the first argument. *)
+          [Re.Pcre.regexp] on the first argument. *)
 
     val int_in : int list -> t
       (** The value is equal to one of the integers in the given list. *)

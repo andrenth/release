@@ -96,7 +96,7 @@ let float_less_than max = function
 let string_matching re = function
   | `Str s ->
       (try
-        if Re_pcre.pmatch ~rex:(Re_pcre.regexp re) s then
+        if Re.Pcre.pmatch ~rex:(Re.Pcre.regexp re) s then
           `Valid
         else
           `Invalid (sprintf "string_matching: %s doesn't match %s" s re)
